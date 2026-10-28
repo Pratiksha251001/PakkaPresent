@@ -473,13 +473,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const updateUserPassword = async (
     password: string,
   ): Promise<{ ok: boolean; message?: string }> => {
-    const cleanPassword = password.trim();
-    if (!user || !role)
-      return { ok: false, message: "No active user session." };
-    if (cleanPassword.length < 8)
+    if (/\s/.test(password))
       return {
         ok: false,
-        message: "Password must be at least 8 characters long.",
+        message: "Password must not contain spaces or whitespace.",
+      };
+    const cleanPassword = password;
+    if (!user || !role)
+      return { ok: false, message: "No active user session." };
+    const meetsPermanentPasswordPolicy =
+      cleanPassword.length >= 8 &&
+      /[A-Z]/.test(cleanPassword) &&
+      /[a-z]/.test(cleanPassword) &&
+      /[0-9]/.test(cleanPassword) &&
+      /[^A-Za-z0-9]/.test(cleanPassword);
+    if (!meetsPermanentPasswordPolicy)
+      return {
+        ok: false,
+        message:
+          "Password must contain at least 8 characters, including an uppercase letter, lowercase letter, number, and symbol.",
       };
     if (
       isDefaultPassword(cleanPassword, role, {

@@ -100,6 +100,7 @@ export function CrudPage<T extends { id: string }>({
   const [editingItem, setEditingItem] = useState<T | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [credentialNotice, setCredentialNotice] = useState<{
     accountType: "teacher" | "student";
     name: string;
@@ -128,6 +129,7 @@ export function CrudPage<T extends { id: string }>({
     setEditingItem(null);
     setCredentialNotice(null);
     setShowPassword(false);
+    setFieldErrors({});
     const initial: Record<string, any> = {};
     fields.forEach((f) => {
       initial[f.key] =
@@ -140,6 +142,7 @@ export function CrudPage<T extends { id: string }>({
   const openEdit = (item: T) => {
     setEditingItem(item);
     setShowPassword(false);
+    setFieldErrors({});
     const formInit: any = { ...(item as any) };
     if (table === "subjects") {
       const currentTs = localDb.teacher_subjects.find(
@@ -169,8 +172,41 @@ export function CrudPage<T extends { id: string }>({
 
   const handleSave = async () => {
     setSaving(true);
+    setFieldErrors({});
     let insertedRecord: { table: string; id: string } | null = null;
     try {
+      if (table === "students" && !editingItem) {
+        const rollNumber = String(formData.roll_number || "");
+        const studentEmail = String(formData.email || "");
+        const studentFieldErrors: Record<string, string> = {};
+
+        if (/\s/.test(rollNumber) || rollNumber.length < 6) {
+          studentFieldErrors.roll_number =
+            "Roll number must contain at least 6 characters and must not contain spaces because it is used as the student's temporary initial password.";
+        }
+
+        if (/\s/.test(studentEmail)) {
+          studentFieldErrors.email =
+            "Email must not contain spaces or whitespace.";
+        }
+
+        if (Object.keys(studentFieldErrors).length > 0) {
+          setFieldErrors(studentFieldErrors);
+          setSaving(false);
+          const firstInvalidField = studentFieldErrors.roll_number
+            ? "roll_number"
+            : "email";
+
+          window.requestAnimationFrame(() => {
+            document
+              .querySelector<HTMLInputElement>(
+                `[name="edutrack-students-${firstInvalidField}"]`,
+              )
+              ?.focus();
+          });
+          return;
+        }
+      }
       if (
         table === "students" &&
         !String(formData.department_id || "").trim()
@@ -403,10 +439,10 @@ export function CrudPage<T extends { id: string }>({
             .trim()
             .toLowerCase();
           const password = rawPassword || String(student.roll_number || "");
-          if (!email || password.length < 8) {
+          if (!email || password.length < 6) {
             await localDb.delete("students", student.id);
             throw new Error(
-              "A valid email and an initial password of at least 8 characters are required.",
+              "A valid email and a temporary initial password of at least 6 characters are required.",
             );
           }
           try {
@@ -584,6 +620,7 @@ export function CrudPage<T extends { id: string }>({
                 const currentVal = formData[f.key] || "";
                 const isInvalidMobile =
                   isMobile && currentVal && !isValid10DigitMobile(currentVal);
+                const fieldError = fieldErrors[f.key];
 
                 return (
                   <div key={f.key} className="space-y-1.5">
@@ -703,15 +740,48 @@ export function CrudPage<T extends { id: string }>({
                               : "off"
                         }
                         value={formData[f.key] || ""}
-                        onChange={(e) =>
+                        aria-invalid={!!fieldError}
+                        aria-describedby={
+                          fieldError ? `${table}-${f.key}-error` : undefined
+                        }
+                        className={
+                          fieldError
+                            ? "border-destructive bg-destructive/5 focus-visible:ring-destructive"
+                            : undefined
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+
                           setFormData((prev) => ({
                             ...prev,
-                            [f.key]: e.target.value,
-                          }))
-                        }
+                            [f.key]: value,
+                          }));
+
+                          const isValidRollNumber =
+                            f.key !== "roll_number" ||
+                            (value.length >= 6 && !/\s/.test(value));
+                          const isValidEmail =
+                            f.key !== "email" || !/\s/.test(value);
+
+                          if (fieldError && isValidRollNumber && isValidEmail) {
+                            setFieldErrors((previous) => {
+                              const next = { ...previous };
+                              delete next[f.key];
+                              return next;
+                            });
+                          }
+                        }}
                       />
                     )}
-                    {f.helperText ? (
+                    {fieldError ? (
+                      <p
+                        id={`${table}-${f.key}-error`}
+                        className="text-[11px] font-semibold leading-tight text-destructive"
+                        role="alert"
+                      >
+                        {fieldError}
+                      </p>
+                    ) : f.helperText ? (
                       <p className="text-[11px] text-muted-foreground leading-tight">
                         {f.helperText}
                       </p>

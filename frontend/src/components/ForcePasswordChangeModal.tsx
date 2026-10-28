@@ -59,6 +59,18 @@ export const ForcePasswordChangeModal: React.FC = () => {
 
   // Requirement checks
   const isMinLength = newPassword.length >= 8;
+  const hasUppercase = /[A-Z]/.test(newPassword);
+  const hasLowercase = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const hasSymbol = /[^A-Za-z0-9]/.test(newPassword);
+  const hasWhitespace = /\s/.test(newPassword);
+  const isStrongPassword =
+    isMinLength &&
+    hasUppercase &&
+    hasLowercase &&
+    hasNumber &&
+    hasSymbol &&
+    !hasWhitespace;
   const isMatch = newPassword.length > 0 && newPassword === confirmPassword;
   const isNotDefault =
     newPassword.length > 0 &&
@@ -69,14 +81,20 @@ export const ForcePasswordChangeModal: React.FC = () => {
       id: user.id,
     });
 
-  const canSubmit = isMinLength && isMatch && isNotDefault && !loading;
+  const canSubmit = isStrongPassword && isMatch && isNotDefault && !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!isMinLength) {
-      setErrorMessage("Password must contain at least 8 characters.");
+    if (hasWhitespace) {
+      setErrorMessage("Password must not contain spaces or whitespace.");
+      return;
+    }
+    if (!isStrongPassword) {
+      setErrorMessage(
+        "Password must contain at least 8 characters, including an uppercase letter, lowercase letter, number, and symbol.",
+      );
       return;
     }
 
@@ -276,6 +294,24 @@ export const ForcePasswordChangeModal: React.FC = () => {
                 className={isNotDefault ? "text-foreground font-medium" : ""}
               >
                 Different from default institutional passwords
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2
+                className={`h-3.5 w-3.5 ${
+                  newPassword.length > 0 && !hasWhitespace
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-muted-foreground/50"
+                }`}
+              />
+              <span
+                className={
+                  newPassword.length > 0 && !hasWhitespace
+                    ? "text-foreground font-medium"
+                    : ""
+                }
+              >
+                No spaces or whitespace
               </span>
             </div>
             <div className="flex items-center gap-2">

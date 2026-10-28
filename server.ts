@@ -883,6 +883,12 @@ async function startServer() {
         studentId,
       } = req.body || {};
       const allowed = ["hod", "teacher", "class_coordinator", "student"];
+      if (/\s/.test(String(email)) || /\s/.test(String(password)))
+        return res.status(400).json({
+          success: false,
+          message:
+            "Email and temporary password must not contain spaces or whitespace.",
+        });
       if (!email || !password || !fullName || !allowed.includes(role))
         return res.status(400).json({
           success: false,
@@ -897,6 +903,12 @@ async function startServer() {
         return res.status(400).json({
           success: false,
           message: "teacherId is required for a staff account.",
+        });
+      const minimumTemporaryPasswordLength = role === "student" ? 6 : 8;
+      if (String(password).length < minimumTemporaryPasswordLength)
+        return res.status(400).json({
+          success: false,
+          message: `The temporary password must contain at least ${minimumTemporaryPasswordLength} characters for this account type.`,
         });
       const actor = req.actor;
       if (!actor)
@@ -1034,12 +1046,23 @@ async function startServer() {
           message:
             "A single linked record, email, full name, and matching managed role are required.",
         });
-      const normalizedPreviousRollNumber = String(
-        previousRollNumber || "",
-      ).trim();
-      const normalizedCurrentRollNumber = String(
-        currentRollNumber || "",
-      ).trim();
+      const rawPreviousRollNumber = String(previousRollNumber || "");
+      const rawCurrentRollNumber = String(currentRollNumber || "");
+      if (
+        isStudent &&
+        (/\s/.test(rawPreviousRollNumber) || /\s/.test(rawCurrentRollNumber))
+      )
+        return res.status(400).json({
+          success: false,
+          message: "Roll number must not contain spaces or whitespace.",
+        });
+      if (/\s/.test(String(email)) || (password && /\s/.test(String(password))))
+        return res.status(400).json({
+          success: false,
+          message: "Email and password must not contain spaces or whitespace.",
+        });
+      const normalizedPreviousRollNumber = rawPreviousRollNumber.trim();
+      const normalizedCurrentRollNumber = rawCurrentRollNumber.trim();
       if (
         isStudent &&
         ((normalizedPreviousRollNumber && !normalizedCurrentRollNumber) ||
@@ -1123,12 +1146,12 @@ async function startServer() {
         normalizedPreviousRollNumber !== normalizedCurrentRollNumber;
       if (
         shouldSyncTemporaryStudentPassword &&
-        normalizedCurrentRollNumber.length < 8
+        normalizedCurrentRollNumber.length < 6
       )
         return res.status(400).json({
           success: false,
           message:
-            "The new roll number must contain at least 8 characters before it can become the temporary password.",
+            "The new roll number must contain at least 6 characters before it can become the temporary password.",
         });
       const effectivePassword = password
         ? String(password)
@@ -1294,15 +1317,21 @@ async function startServer() {
           message: "SUPABASE_SERVICE_ROLE_KEY is not configured.",
         });
       const { teacherId, studentId, password } = req.body || {};
-      if (
-        (!teacherId && !studentId) ||
-        !password ||
-        String(password).length < 8
-      )
+      if ((!teacherId && !studentId) || !password)
         return res.status(400).json({
           success: false,
-          message:
-            "A linked teacher/student and password of at least 8 characters are required.",
+          message: "A linked teacher/student and password are required.",
+        });
+      const minimumTemporaryPasswordLength = studentId ? 6 : 8;
+      if (/\s/.test(String(password)))
+        return res.status(400).json({
+          success: false,
+          message: "Temporary password must not contain spaces or whitespace.",
+        });
+      if (String(password).length < minimumTemporaryPasswordLength)
+        return res.status(400).json({
+          success: false,
+          message: `The temporary password must contain at least ${minimumTemporaryPasswordLength} characters for this account type.`,
         });
       const table = studentId ? "students" : "teachers";
       const entityId = studentId || teacherId;
