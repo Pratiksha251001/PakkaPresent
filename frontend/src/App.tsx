@@ -59,7 +59,7 @@ const ProtectedRoute: React.FC<{
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="app-startup-spinner h-8 w-8 animate-spin rounded-full border-4" />
       </div>
     );
   }
@@ -139,7 +139,7 @@ const RootRouteHandler: React.FC = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="app-startup-spinner h-8 w-8 animate-spin rounded-full border-4" />
       </div>
     );
   }
