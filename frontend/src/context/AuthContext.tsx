@@ -438,12 +438,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const confirmLogout = async () => {
+    if (isLoggingOut) return;
+
     setIsLoggingOut(true);
+    setIsLogoutConfirmOpen(false);
+
     try {
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 200);
+      });
+
       await signOut();
     } finally {
       setIsLoggingOut(false);
-      setIsLogoutConfirmOpen(false);
     }
   };
 
