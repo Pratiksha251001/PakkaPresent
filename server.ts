@@ -200,7 +200,7 @@ function printAsciiTerminalBanner(port: number) {
     "\n\x1b[36m======================================================================\x1b[0m",
   );
   console.log(
-    "\x1b[1;32m  🎓 EDUTRACK INSTITUTIONAL BACKEND ENGINE — ONLINE\x1b[0m",
+    "\x1b[1;32m  🎓 PAKKAPRESENT INSTITUTIONAL BACKEND ENGINE — ONLINE\x1b[0m",
   );
   console.log(
     "\x1b[36m======================================================================\x1b[0m",
@@ -788,7 +788,10 @@ async function startServer() {
   });
 
   printAsciiTerminalBanner(PORT);
-  addLog("info", `Starting EduTrack full-stack application on port ${PORT}...`);
+  addLog(
+    "info",
+    `Starting PakkaPresent full-stack application on port ${PORT}...`,
+  );
 
   // Stage 1: securely provision a staff Auth account and role mapping.
   app.post("/api/admin/staff/provision", requireAdmin, async (req, res) => {
@@ -1354,7 +1357,7 @@ async function startServer() {
       status: "ok",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      service: "EduTrack Unified Backend",
+      service: "PakkaPresent Unified Backend",
       dbConnected: isDbConnected,
     });
   });
@@ -1979,7 +1982,7 @@ async function startServer() {
     ).toLowerCase();
     const testText =
       message ||
-      `[EduTrack] Test message from ${chosenProvider.toUpperCase()} Gateway. Verified at ${new Date().toLocaleTimeString()}.`;
+      `[PakkaPresent] Test message from ${chosenProvider.toUpperCase()} Gateway. Verified at ${new Date().toLocaleTimeString()}.`;
     const serverIp = await getPublicIp();
 
     addLog(
@@ -2236,7 +2239,7 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     addLog(
       "success",
-      `EduTrack full-stack application running at http://0.0.0.0:${PORT}`,
+      `PakkaPresent full-stack application running at http://0.0.0.0:${PORT}`,
     );
   });
 }

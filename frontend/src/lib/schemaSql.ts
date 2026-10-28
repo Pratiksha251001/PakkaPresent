@@ -1,5 +1,5 @@
 export const SUPABASE_SCHEMA_SQL = `-- ============================================================================
--- EduTrack Smart Attendance Management System
+-- PakkaPresent Smart Attendance Management System
 -- Supabase PostgreSQL Database Schema
 -- Run this entire script in your Supabase SQL Editor (SQL Editor -> New Query -> Run)
 -- ============================================================================
@@ -12,7 +12,7 @@ create table if not exists public.departments (
   id uuid default uuid_generate_v4() primary key,
   name text not null,
   code text not null unique,
-  institution_name text default 'EduTrack',
+  institution_name text default 'PakkaPresent',
   hod_id uuid,
   status text not null default 'active' check (status in ('active', 'inactive')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -177,8 +177,8 @@ create table if not exists public.notices (
 -- ============================================================================
 -- Role-aware Row Level Security (RLS) policies
 -- ============================================================================
--- EduTrack role-aware RLS hardening.
--- Validated in the isolated EduTrack-Integration-Test Supabase project.
+-- PakkaPresent role-aware RLS hardening.
+-- Validated in the isolated PakkaPresent-Integration-Test Supabase project.
 
 alter table public.students add column if not exists class_name text;
 

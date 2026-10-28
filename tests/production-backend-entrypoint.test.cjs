@@ -28,7 +28,6 @@ test("Render blueprint uses repository root and root production scripts", () => 
 });
 
 test("selected root server contains the production email routes", () => {
-  assert.match(rootServer, /registerParentEmailRoutes/);
   assert.match(rootServer, /registerParentNotificationDispatch/);
   assert.match(rootServer, /"\/api\/email\/send"/);
   assert.match(rootServer, /"\/api\/health"/);

@@ -2,10 +2,10 @@ import { SmsLanguage } from "./types";
 export * from "./engineeringUtils";
 
 export const college = {
-  name: "Smart Attendance System",
-  shortName: "Attendance System",
+  name: "PakkaPresent",
+  shortName: "PakkaPresent",
   tagline: "Manage Attendance. Alert Parents. Build Trust.",
-  logoUrl: "/logo.png",
+  logoUrl: "/pakkapresent-logo.svg",
   minAttendance: 75,
   engineeringYears: [1, 2, 3, 4],
   semesters: [1, 2, 3, 4, 5, 6, 7, 8],
@@ -162,7 +162,7 @@ export function getEnglishAbsenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `Dear Parent, ${studentName} is absent for ${shortSub} today. - EduTrack`;
+  return `Dear Parent, ${studentName} is absent for ${shortSub} today. - PakkaPresent`;
 }
 
 export function getMarathiAbsenceMessage(
@@ -171,7 +171,7 @@ export function getMarathiAbsenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `${studentName} आज ${shortSub} साठी गैरहजर आहे. - EduTrack`;
+  return `${studentName} आज ${shortSub} साठी गैरहजर आहे. - PakkaPresent`;
 }
 
 export function getHindiAbsenceMessage(
@@ -180,7 +180,7 @@ export function getHindiAbsenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `${studentName} आज ${shortSub} के लिए अनुपस्थित है। - EduTrack`;
+  return `${studentName} आज ${shortSub} के लिए अनुपस्थित है। - PakkaPresent`;
 }
 
 export function getTrilingualAbsenceMessage(
@@ -189,7 +189,7 @@ export function getTrilingualAbsenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `Dear Parent, ${studentName} is absent for ${shortSub} today. ${studentName} आज ${shortSub} साठी गैरहजर आहे. - EduTrack`;
+  return `Dear Parent, ${studentName} is absent for ${shortSub} today. ${studentName} आज ${shortSub} साठी गैरहजर आहे. - PakkaPresent`;
 }
 
 export function getBilingualMrMessage(
@@ -214,7 +214,7 @@ export function getOtherAbsenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `Dear Parent, ${studentName} is absent for ${shortSub} today. ${studentName} आज ${shortSub} साठी गैरहजर आहे. - EduTrack`;
+  return `Dear Parent, ${studentName} is absent for ${shortSub} today. ${studentName} आज ${shortSub} साठी गैरहजर आहे. - PakkaPresent`;
 }
 
 /**
@@ -226,7 +226,7 @@ export function getEnglishPresenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `Dear Parent, ${studentName} is marked PRESENT for ${shortSub} today. - EduTrack`;
+  return `Dear Parent, ${studentName} is marked PRESENT for ${shortSub} today. - PakkaPresent`;
 }
 
 export function getMarathiPresenceMessage(
@@ -235,7 +235,7 @@ export function getMarathiPresenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `पालकहो, विद्यार्थी ${studentName} आज ${shortSub} तासाला उपस्थित (PRESENT) आहे. - EduTrack`;
+  return `पालकहो, विद्यार्थी ${studentName} आज ${shortSub} तासाला उपस्थित (PRESENT) आहे. - PakkaPresent`;
 }
 
 export function getHindiPresenceMessage(
@@ -244,7 +244,7 @@ export function getHindiPresenceMessage(
   subjectName: string,
 ): string {
   const shortSub = getSubjectShortName(subjectName);
-  return `प्रिय अभिभावक, छात्र ${studentName} आज ${shortSub} कक्षा में उपस्थित (PRESENT) है। - EduTrack`;
+  return `प्रिय अभिभावक, छात्र ${studentName} आज ${shortSub} कक्षा में उपस्थित (PRESENT) है। - PakkaPresent`;
 }
 
 export function generatePresenceSmsMessage(
@@ -261,7 +261,7 @@ export function generatePresenceSmsMessage(
   }
   if (lang === "bilingual_mr" || lang === "trilingual") {
     const shortSub = getSubjectShortName(subjectName);
-    return `Dear Parent, ${studentName} is PRESENT for ${shortSub} today. विद्यार्थी ${studentName} आज ${shortSub} तासाला उपस्थित आहे. - EduTrack`;
+    return `Dear Parent, ${studentName} is PRESENT for ${shortSub} today. विद्यार्थी ${studentName} आज ${shortSub} तासाला उपस्थित आहे. - PakkaPresent`;
   }
   return getEnglishPresenceMessage(studentName, date, subjectName);
 }
@@ -310,7 +310,7 @@ export interface MonthlyLowAttendanceMsgParams {
 
 /**
  * Generate monthly low attendance alert message for parents (< 75% attendance)
- * Compact format: English and Marathi with common student name and - EduTrack signoff
+ * Compact format: English and Marathi with common student name and - PakkaPresent signoff
  */
 export function getMonthlyLowAttendanceMessage({
   studentName,
@@ -323,9 +323,9 @@ export function getMonthlyLowAttendanceMessage({
   lang = "bilingual_mr",
 }: MonthlyLowAttendanceMsgParams): string {
   const enMsg = `Dear Parent, ${studentName} has ${percentage}% attendance in ${monthName} (below ${minAttendance}%).`;
-  const mrMsg = `${studentName} ची ${monthName} मध्ये उपस्थिती ${percentage}% आहे (${minAttendance}% पेक्षा कमी). - EduTrack`;
+  const mrMsg = `${studentName} ची ${monthName} मध्ये उपस्थिती ${percentage}% आहे (${minAttendance}% पेक्षा कमी). - PakkaPresent`;
 
-  if (lang === "en") return `${enMsg} - EduTrack`;
+  if (lang === "en") return `${enMsg} - PakkaPresent`;
   if (lang === "mr") return mrMsg;
   return `${enMsg} ${mrMsg}`;
 }
@@ -347,7 +347,7 @@ export function generateEmailAlertContent(
     const subject = `⚠️ Low Attendance Warning (Below 75%): ${studentName} - ${shortSub}`;
     const body = `Dear Parent / Guardian,
 
-This is an official attendance notice from EduTrack Academic Portal.
+This is an official attendance notice from PakkaPresent Academic Portal.
 
 Your ward ${studentName} was marked ABSENT today (${date}) for ${subjectName}.
 
@@ -358,7 +358,7 @@ Students maintaining less than 75% aggregate attendance face debarment from appe
 
 Best regards,
 Head of Department & Academic Cell
-EduTrack Engineering Portal`;
+PakkaPresent Engineering Portal`;
     return { subject, body };
   }
 
@@ -373,7 +373,7 @@ Please ensure regular presence in subsequent scheduled lectures.
 
 Regards,
 Faculty & Department Administration
-EduTrack Portal`;
+PakkaPresent Portal`;
     return { subject, body };
   }
 
@@ -384,6 +384,6 @@ Your ward ${studentName} was marked PRESENT today (${date}) for ${subjectName}.
 ${typeof currentRate === "number" ? `Current Cumulative Attendance: ${currentRate}%` : ""}
 
 Regards,
-EduTrack Portal`;
+PakkaPresent Portal`;
   return { subject, body };
 }

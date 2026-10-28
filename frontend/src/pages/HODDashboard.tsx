@@ -14,6 +14,8 @@ import {
   Search,
   ExternalLink,
   Sparkles,
+  UserCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { localDb } from "../lib/supabase";
@@ -245,12 +247,12 @@ export const HODDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.10] via-card to-card p-6 shadow-xs">
+      <div className="dashboard-hero relative overflow-hidden rounded-2xl p-6 shadow-xs">
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <Badge className="bg-primary/15 text-primary border-primary/20 text-xs font-bold">
-                HOD PORTAL · {myDepartment?.code || "UNASSIGNED"}
+              <Badge className="dashboard-accent-badge text-xs font-bold">
+                HOD PORTAL · {myDepartment?.code || "Unassigned"}
               </Badge>
               <span className="text-xs text-muted-foreground">
                 Academic Year {CURRENT_ACADEMIC_YEAR}
@@ -324,7 +326,7 @@ export const HODDashboard: React.FC = () => {
 
           <Link
             to="/hod/classes"
-            className="text-xs text-primary hover:underline font-semibold flex items-center gap-1"
+            className="dashboard-accent-link text-xs font-semibold flex items-center gap-1"
           >
             Manage Classes <ArrowRight className="h-3 w-3" />
           </Link>
@@ -433,11 +435,11 @@ export const HODDashboard: React.FC = () => {
       </Card>
 
       {/* Dual Role: HOD as Lecturer & Teaching Workload */}
-      <Card className="border-primary/25 bg-gradient-to-br from-primary/5 via-card to-card p-5">
+      <Card className="dashboard-accent-panel p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/70 pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <span className="dashboard-accent-icon flex h-7 w-7 items-center justify-center rounded-lg">
                 <BookOpen className="h-4 w-4" />
               </span>
               <h2 className="font-display text-lg font-bold text-foreground">
@@ -445,7 +447,7 @@ export const HODDashboard: React.FC = () => {
               </h2>
               <Badge
                 variant="outline"
-                className="border-primary/30 text-primary text-[10px] font-bold"
+                className="dashboard-accent-badge text-[10px] font-bold"
               >
                 HOD &amp; Lecturer
               </Badge>
@@ -475,7 +477,7 @@ export const HODDashboard: React.FC = () => {
                 >
                   <div className="min-w-0 pr-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-primary">
+                      <span className="dashboard-accent-text font-mono text-xs font-bold">
                         {sub.code}
                       </span>
                       <Badge variant="outline" className="text-[10px]">
@@ -671,14 +673,17 @@ export const HODDashboard: React.FC = () => {
                       </span>
                       {assignedTeachers.length > 0 ? (
                         <span
-                          className="font-medium text-foreground truncate block text-xs"
+                          className="font-medium text-foreground flex min-w-0 items-center gap-1 text-xs"
                           title={assignedTeachers.join(", ")}
                         >
-                          👨‍🏫 {assignedTeachers.join(", ")}
+                          <UserCheck className="h-3.5 w-3.5 shrink-0 dashboard-accent-text" />
+                          <span className="truncate">
+                            {assignedTeachers.join(", ")}
+                          </span>
                         </span>
                       ) : (
-                        <span className="text-amber-600 dark:text-amber-400 text-xs font-medium inline-flex items-center gap-1">
-                          ⚠️ Unassigned
+                        <span className="text-amber-700 dark:text-amber-400 text-xs font-medium inline-flex items-center gap-1">
+                          <AlertTriangle className="h-3.5 w-3.5" /> Unassigned
                         </span>
                       )}
                     </div>
@@ -687,7 +692,7 @@ export const HODDashboard: React.FC = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 text-[11px] px-2 text-primary hover:bg-primary/10"
+                        className="dashboard-accent-action h-7 px-2 text-[11px]"
                         title="Conduct Lecture"
                       >
                         <ClipboardCheck className="h-3.5 w-3.5 mr-1" />
@@ -725,8 +730,8 @@ export const HODDashboard: React.FC = () => {
       <Card className="border-border p-5 shadow-xs">
         <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
-              <TrendingUp className="h-4 w-4" />
+            <span className="dashboard-accent-icon flex h-7 w-7 items-center justify-center rounded-lg">
+              <TrendingUp className="h-4 w-4 dashboard-accent-text" />
             </span>
             <h2 className="font-display text-base font-bold text-foreground">
               Department Attendance Trend
@@ -747,19 +752,22 @@ export const HODDashboard: React.FC = () => {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={attendanceTrend}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                <CartesianGrid
+                  stroke="hsl(var(--chart-grid))"
+                  strokeDasharray="4 4"
+                />
                 <XAxis
                   dataKey="date"
                   fontSize={11}
-                  stroke="currentColor"
-                  opacity={0.6}
+                  stroke="hsl(var(--chart-axis))"
+                  tick={{ fill: "hsl(var(--chart-label))" }}
                 />
                 <YAxis
                   domain={[0, 100]}
                   unit="%"
                   fontSize={11}
-                  stroke="currentColor"
-                  opacity={0.6}
+                  stroke="hsl(var(--chart-axis))"
+                  tick={{ fill: "hsl(var(--chart-label))" }}
                 />
                 <Tooltip
                   formatter={(value: number) => [`${value}%`, "Attendance"]}
@@ -773,10 +781,20 @@ export const HODDashboard: React.FC = () => {
                 <Line
                   type="monotone"
                   dataKey="rate"
-                  stroke="hsl(var(--primary))"
+                  stroke="hsl(var(--chart-line))"
                   strokeWidth={3}
-                  dot={{ r: 4, fill: "hsl(var(--primary))" }}
-                  activeDot={{ r: 6 }}
+                  dot={{
+                    r: 4,
+                    fill: "hsl(var(--card))",
+                    stroke: "hsl(var(--chart-line))",
+                    strokeWidth: 3,
+                  }}
+                  activeDot={{
+                    r: 6,
+                    fill: "hsl(var(--card))",
+                    stroke: "hsl(var(--chart-line))",
+                    strokeWidth: 3,
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>

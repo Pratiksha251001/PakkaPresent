@@ -873,13 +873,13 @@ export const ClassCoordinatorDashboard: React.FC<
         </div>
 
         {/* Tab Switcher & Reports Link */}
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border/60">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/60 bg-muted/60 p-1 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setActiveMainTab("students")}
               className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeMainTab === "students"
-                  ? "bg-primary/10 text-primary shadow-xs border border-primary/25"
+                  ? "dashboard-selected-tab shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -894,7 +894,7 @@ export const ClassCoordinatorDashboard: React.FC<
                 onClick={() => setActiveMainTab("subjects")}
                 className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeMainTab === "subjects"
-                    ? "bg-primary/10 text-primary shadow-xs border border-primary/25"
+                    ? "dashboard-selected-tab shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -914,9 +914,9 @@ export const ClassCoordinatorDashboard: React.FC<
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs font-semibold shadow-xs"
+              className="h-8 gap-1.5 border-transparent bg-transparent text-xs font-semibold shadow-none hover:bg-background"
             >
-              <FileText className="h-3.5 w-3.5 text-primary" />
+              <FileText className="h-3.5 w-3.5 dashboard-accent-text" />
               Class Reports & Defaulters
             </Button>
           </Link>
@@ -930,11 +930,11 @@ export const ClassCoordinatorDashboard: React.FC<
             return (
               <Card
                 key={i}
-                className={`border ${s.border} p-5 relative overflow-hidden`}
+                className={`border ${s.border} p-4 relative overflow-hidden`}
               >
                 <div className="relative">
                   <div
-                    className={`h-10 w-10 rounded-lg flex items-center justify-center mb-3 ${s.iconBg}`}
+                    className={`h-10 w-10 rounded-lg flex items-center justify-center mb-2 ${s.iconBg}`}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
@@ -957,7 +957,7 @@ export const ClassCoordinatorDashboard: React.FC<
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h2 className="font-display font-bold text-lg flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
+                <ClipboardList className="h-5 w-5 dashboard-accent-text" />
                 Student Roster
               </h2>
             </div>
@@ -969,8 +969,8 @@ export const ClassCoordinatorDashboard: React.FC<
                 className="text-xs"
                 title="Set or reset portal login passwords for all students in class"
               >
-                <KeyRound className="h-3.5 w-3.5 mr-1.5 text-primary" /> Batch
-                Set Passwords
+                <KeyRound className="h-3.5 w-3.5 mr-1.5 dashboard-accent-text" />{" "}
+                Batch Set Passwords
               </Button>
               <Button
                 size="sm"
@@ -1261,47 +1261,82 @@ export const ClassCoordinatorDashboard: React.FC<
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, roll, reg, class, or parent mobile..."
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+          <div className="dashboard-roster-filters mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_12rem] sm:items-end">
+            <div className="space-y-1">
+              <span className="dashboard-filter-label">Search Students</span>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name, roll, reg, class, or parent mobile..."
+                  className="pl-10"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
-            <Select value={semesterFilter} onValueChange={setSemesterFilter}>
-              <SelectTrigger className="w-full sm:w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Semesters</SelectItem>
-                {college.semesters.map((s) => (
-                  <SelectItem key={s} value={String(s)}>
-                    Semester {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="All Divisions" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Divisions / Classes</SelectItem>
-                {Array.from(
-                  new Set(students.map((s) => s.class_name).filter(Boolean)),
-                ).map((cn) => (
-                  <SelectItem key={cn} value={cn!}>
-                    {cn}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1">
+              <span className="dashboard-filter-label">Semester</span>
+
+              <Select value={semesterFilter} onValueChange={setSemesterFilter}>
+                <SelectTrigger
+                  className="w-full"
+                  aria-label="Filter students by semester"
+                >
+                  <SelectValue
+                    displayValue={
+                      semesterFilter === "all"
+                        ? "All Semesters"
+                        : `Semester ${semesterFilter}`
+                    }
+                  />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">All Semesters</SelectItem>
+
+                  {college.semesters.map((s) => (
+                    <SelectItem key={s} value={String(s)}>
+                      Semester {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <span className="dashboard-filter-label">Class / Division</span>
+
+              <Select value={classFilter} onValueChange={setClassFilter}>
+                <SelectTrigger
+                  className="w-full"
+                  aria-label="Filter students by class or division"
+                >
+                  <SelectValue
+                    placeholder="All Divisions"
+                    displayValue={
+                      classFilter === "all"
+                        ? "All Divisions / Classes"
+                        : classFilter
+                    }
+                  />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="all">All Divisions / Classes</SelectItem>
+
+                  {Array.from(
+                    new Set(students.map((s) => s.class_name).filter(Boolean)),
+                  ).map((cn) => (
+                    <SelectItem key={cn} value={cn!}>
+                      {cn}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="rounded-lg border border-border overflow-hidden">
+          <div className="rounded-lg border border-border/55 overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -1311,7 +1346,7 @@ export const ClassCoordinatorDashboard: React.FC<
                     <TableHead>Sem</TableHead>
                     <TableHead>Class / Div</TableHead>
                     <TableHead>Parent Contact</TableHead>
-                    <TableHead>Student No</TableHead>
+                    <TableHead>Student Mobile</TableHead>
                     <TableHead className="text-right w-[115px]">
                       Actions
                     </TableHead>
@@ -1348,7 +1383,7 @@ export const ClassCoordinatorDashboard: React.FC<
                         {s.class_name ? (
                           <Badge
                             variant="outline"
-                            className="font-semibold text-xs bg-primary/5 text-primary border-primary/20"
+                            className="dashboard-class-badge font-semibold text-xs"
                           >
                             {s.class_name}
                           </Badge>
@@ -1394,7 +1429,7 @@ export const ClassCoordinatorDashboard: React.FC<
                             variant="ghost"
                             size="icon"
                             onClick={() => setAlertStudent(s)}
-                            className="h-7 w-7 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+                            className="h-8 w-8 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
                             title="Send Parent Absentee Alert / SMS (English, मराठी, हिंदी)"
                           >
                             <MessageSquare className="h-3.5 w-3.5" />
@@ -1403,7 +1438,7 @@ export const ClassCoordinatorDashboard: React.FC<
                             variant="ghost"
                             size="icon"
                             onClick={() => setPasswordModalStudent(s)}
-                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                             title="Set / Reset Student Portal Password"
                           >
                             <KeyRound className="h-3.5 w-3.5" />
@@ -1412,7 +1447,7 @@ export const ClassCoordinatorDashboard: React.FC<
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditStudent(s)}
-                            className="h-7 w-7"
+                            className="h-8 w-8"
                             title="Edit Student"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
@@ -1421,7 +1456,7 @@ export const ClassCoordinatorDashboard: React.FC<
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteStudent(s.id)}
-                            className="h-7 w-7 text-red-500 hover:text-red-500 hover:bg-red-500/10"
+                            className="h-8 w-8 text-red-500 hover:text-red-500 hover:bg-red-500/10"
                             title="Delete Student"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1700,7 +1735,7 @@ export const ClassCoordinatorDashboard: React.FC<
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenQuickAssign(sub)}
-                              className="h-7 w-7 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+                              className="h-8 w-8 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
                               title="Assign / Reassign Teacher (Imported by HOD)"
                             >
                               <UserCheck className="h-3.5 w-3.5" />
@@ -1709,7 +1744,7 @@ export const ClassCoordinatorDashboard: React.FC<
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenEditSubject(sub)}
-                              className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                               title="Edit Subject"
                             >
                               <Edit3 className="h-3.5 w-3.5" />
@@ -1718,7 +1753,7 @@ export const ClassCoordinatorDashboard: React.FC<
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDeleteSubject(sub)}
-                              className="h-7 w-7 text-red-500 hover:text-red-500 hover:bg-red-500/10"
+                              className="h-8 w-8 text-red-500 hover:text-red-500 hover:bg-red-500/10"
                               title="Delete Subject"
                             >
                               <Trash2 className="h-3.5 w-3.5" />

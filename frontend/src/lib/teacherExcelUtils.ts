@@ -66,7 +66,11 @@ function normalizeDateValue(raw: any): string {
   }
   // Try standard Date parse
   const parsed = new Date(str);
-  if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 1920 && parsed.getFullYear() < 2030) {
+  if (
+    !isNaN(parsed.getTime()) &&
+    parsed.getFullYear() > 1920 &&
+    parsed.getFullYear() < 2030
+  ) {
     return parsed.toISOString().split("T")[0];
   }
   return str;
@@ -77,7 +81,7 @@ function normalizeDateValue(raw: any): string {
  */
 export async function parseTeacherSpreadsheet(
   file: File,
-  defaultDepartmentName: string = ""
+  defaultDepartmentName: string = "",
 ): Promise<ParsedTeacherRow[]> {
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, {
@@ -93,7 +97,7 @@ export async function parseTeacherSpreadsheet(
 
   const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(
     workbook.Sheets[sheetName],
-    { defval: "", raw: true }
+    { defval: "", raw: true },
   );
 
   if (!rawRows || rawRows.length === 0) {
@@ -102,7 +106,7 @@ export async function parseTeacherSpreadsheet(
 
   const existingTeachers = localDb.teachers;
   const existingEmpIds = new Set(
-    existingTeachers.map((t) => t.employee_id.trim().toLowerCase())
+    existingTeachers.map((t) => t.employee_id.trim().toLowerCase()),
   );
   const seenEmpIdsInFile = new Set<string>();
 
@@ -125,7 +129,8 @@ export async function parseTeacherSpreadsheet(
 
     for (const [key, val] of Object.entries(row)) {
       const norm = normalizeKey(key);
-      const strVal = val !== undefined && val !== null ? String(val).trim() : "";
+      const strVal =
+        val !== undefined && val !== null ? String(val).trim() : "";
 
       // Full Name
       if (
@@ -212,11 +217,7 @@ export async function parseTeacherSpreadsheet(
         if (!mobile) mobile = strVal;
       }
       // Email
-      else if (
-        norm === "email" ||
-        norm === "emailaddress" ||
-        norm === "mail"
-      ) {
+      else if (norm === "email" || norm === "emailaddress" || norm === "mail") {
         if (!email) email = strVal;
       }
       // Role
@@ -242,10 +243,14 @@ export async function parseTeacherSpreadsheet(
     } else {
       const normEmp = employee_id.trim().toLowerCase();
       if (existingEmpIds.has(normEmp)) {
-        errors.push(`Employee ID "${employee_id}" already exists in system database`);
+        errors.push(
+          `Employee ID "${employee_id}" already exists in system database`,
+        );
       }
       if (seenEmpIdsInFile.has(normEmp)) {
-        errors.push(`Duplicate Employee ID "${employee_id}" within uploaded file`);
+        errors.push(
+          `Duplicate Employee ID "${employee_id}" within uploaded file`,
+        );
       }
       seenEmpIdsInFile.add(normEmp);
     }
@@ -264,7 +269,11 @@ export async function parseTeacherSpreadsheet(
 
     // Mobile validation: completely optional; only validate if user actually provided a number
     if (mobile && mobile.trim()) {
-      const mobileErr = getMobileValidationError(mobile, "Phone / Mobile", false);
+      const mobileErr = getMobileValidationError(
+        mobile,
+        "Phone / Mobile",
+        false,
+      );
       if (mobileErr) {
         errors.push(mobileErr);
       }
@@ -294,37 +303,39 @@ export async function parseTeacherSpreadsheet(
 /**
  * Generates and downloads a sample Excel (.xlsx) file with Name, ID & Email mandatory
  */
-export function downloadTeacherExcelTemplate(departmentName: string = "Computer Science & Engineering") {
+export function downloadTeacherExcelTemplate(
+  departmentName: string = "Computer Science & Engineering",
+) {
   const sampleData = [
     {
       "Full Name": "Dr. Aarav Sharma",
       "College Employee ID Reference No": "EMP-CSE-201",
-      "Designation": "Associate Professor",
-      "Department": departmentName,
-      "Qualification": "Ph.D in AI",
+      Designation: "Associate Professor",
+      Department: departmentName,
+      Qualification: "Ph.D in AI",
       "Year of Experience": "12 Years",
-      "Phone": "9876543210",
-      "Email": "aarav.sharma@edutrack.edu",
+      Phone: "9876543210",
+      Email: "aarav.sharma@pakkapresent.edu",
     },
     {
       "Full Name": "Prof. Meera Kulkarni",
       "College Employee ID Reference No": "EMP-CSE-202",
-      "Designation": "Assistant Professor",
-      "Department": departmentName,
-      "Qualification": "", // Optional
+      Designation: "Assistant Professor",
+      Department: departmentName,
+      Qualification: "", // Optional
       "Year of Experience": "", // Optional
-      "Phone": "", // Optional
-      "Email": "meera.k@edutrack.edu", // Required (*)
+      Phone: "", // Optional
+      Email: "meera.k@pakkapresent.edu", // Required (*)
     },
     {
       "Full Name": "Rajesh Pillai",
       "College Employee ID Reference No": "EMP-CSE-203",
-      "Designation": "", // Optional - defaults to Assistant Professor
-      "Department": departmentName,
-      "Qualification": "", // Optional
+      Designation: "", // Optional - defaults to Assistant Professor
+      Department: departmentName,
+      Qualification: "", // Optional
       "Year of Experience": "", // Optional
-      "Phone": "", // Optional
-      "Email": "rajesh.p@edutrack.edu", // Required (*)
+      Phone: "", // Optional
+      Email: "rajesh.p@pakkapresent.edu", // Required (*)
     },
   ];
 
@@ -345,13 +356,15 @@ export function downloadTeacherExcelTemplate(departmentName: string = "Computer 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Teachers");
 
-  XLSX.writeFile(workbook, "EduTrack_Teacher_Import_Template.xlsx");
+  XLSX.writeFile(workbook, "PakkaPresent_Teacher_Import_Template.xlsx");
 }
 
 /**
  * Generates and downloads a sample CSV (.csv) file with Name, ID & Email mandatory
  */
-export function downloadTeacherCsvTemplate(departmentName: string = "Computer Science & Engineering") {
+export function downloadTeacherCsvTemplate(
+  departmentName: string = "Computer Science & Engineering",
+) {
   const headers = [
     "Full Name",
     "College Employee ID Reference No",
@@ -367,7 +380,7 @@ export function downloadTeacherCsvTemplate(departmentName: string = "Computer Sc
     [
       "Dr. Aarav Sharma",
       "EMP-CSE-201",
-      "aarav.sharma@edutrack.edu",
+      "aarav.sharma@pakkapresent.edu",
       "Associate Professor",
       `"${departmentName}"`,
       "Ph.D in AI",
@@ -377,7 +390,7 @@ export function downloadTeacherCsvTemplate(departmentName: string = "Computer Sc
     [
       "Prof. Meera Kulkarni",
       "EMP-CSE-202",
-      "meera.k@edutrack.edu",
+      "meera.k@pakkapresent.edu",
       "Assistant Professor",
       `"${departmentName}"`,
       "",
@@ -387,7 +400,7 @@ export function downloadTeacherCsvTemplate(departmentName: string = "Computer Sc
     [
       "Rajesh Pillai",
       "EMP-CSE-203",
-      "rajesh.p@edutrack.edu",
+      "rajesh.p@pakkapresent.edu",
       "",
       `"${departmentName}"`,
       "",
@@ -396,12 +409,14 @@ export function downloadTeacherCsvTemplate(departmentName: string = "Computer Sc
     ],
   ];
 
-  const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join(
+    "\n",
+  );
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "EduTrack_Teacher_Import_Template.csv";
+  a.download = "PakkaPresent_Teacher_Import_Template.csv";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

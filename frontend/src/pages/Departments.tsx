@@ -37,6 +37,7 @@ export const Departments: React.FC = () => {
       <CrudPage<Department>
         title="Departments"
         table="departments"
+        recordLabel="departments"
         searchKeys={["name", "code", "status"]}
         fields={[
           { key: "name", label: "Department Name", required: true },
@@ -85,7 +86,7 @@ export const Departments: React.FC = () => {
             header: "Status",
             render: (d) => (
               <Badge variant={d.status === "active" ? "success" : "secondary"}>
-                {d.status}
+                {d.status.charAt(0).toUpperCase() + d.status.slice(1)}
               </Badge>
             ),
           },

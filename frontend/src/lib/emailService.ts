@@ -17,7 +17,7 @@ export interface SendEmailResult {
 }
 
 /**
- * Requests email delivery through the authenticated EduTrack backend.
+ * Requests email delivery through the authenticated PakkaPresent backend.
  * EmailJS credentials remain server-only and are never read or stored by the browser.
  */
 export async function sendEmailAlert(
@@ -62,7 +62,7 @@ export async function sendTestEmail(
     subject: "Test Email: SMIT Smart Attendance Alert System",
     message: `Hello,
 
-This is a verified test email sent from your College Attendance Portal through the authenticated EduTrack backend.
+This is a verified test email sent from your College Attendance Portal through the authenticated PakkaPresent backend.
 
 Official attendance alerts and below-75% warning notices can now be delivered through the configured server-side email provider.
 

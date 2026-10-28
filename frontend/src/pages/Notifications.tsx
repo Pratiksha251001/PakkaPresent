@@ -30,10 +30,12 @@ import { Card } from "../components/ui/card";
 export const Notifications: React.FC = () => {
   const { user, role } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-    getStoredNotifications()
+    getStoredNotifications(),
   );
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "unread" | "attendance" | "security">("all");
+  const [filter, setFilter] = useState<
+    "all" | "unread" | "attendance" | "security"
+  >("all");
 
   const userKey = user?.id || user?.email || role || "anon";
 
@@ -44,7 +46,10 @@ export const Notifications: React.FC = () => {
     window.addEventListener("edutrack_notifications_updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
-      window.removeEventListener("edutrack_notifications_updated", handleUpdate);
+      window.removeEventListener(
+        "edutrack_notifications_updated",
+        handleUpdate,
+      );
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -55,23 +60,28 @@ export const Notifications: React.FC = () => {
   }, [user, role, notifications]);
 
   const unreadCount = useMemo(() => {
-    return userNotifications.filter((n) => !isNotificationRead(n, userKey)).length;
+    return userNotifications.filter((n) => !isNotificationRead(n, userKey))
+      .length;
   }, [userNotifications, userKey]);
 
   const attendanceCount = useMemo(() => {
-    return userNotifications.filter((n) => n.type === "attendance_submitted").length;
+    return userNotifications.filter((n) => n.type === "attendance_submitted")
+      .length;
   }, [userNotifications]);
 
   const securityCount = useMemo(() => {
-    return userNotifications.filter((n) => n.type === "security_login_failed").length;
+    return userNotifications.filter((n) => n.type === "security_login_failed")
+      .length;
   }, [userNotifications]);
 
   const filtered = useMemo(() => {
     return userNotifications.filter((item) => {
       const read = isNotificationRead(item, userKey);
       if (filter === "unread" && read) return false;
-      if (filter === "attendance" && item.type !== "attendance_submitted") return false;
-      if (filter === "security" && item.type !== "security_login_failed") return false;
+      if (filter === "attendance" && item.type !== "attendance_submitted")
+        return false;
+      if (filter === "security" && item.type !== "security_login_failed")
+        return false;
 
       if (search.trim()) {
         const q = search.toLowerCase().trim();
@@ -137,13 +147,17 @@ export const Notifications: React.FC = () => {
                     {unreadCount} unread
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 text-xs font-medium gap-1 px-2 py-0.5">
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 text-xs font-medium gap-1 px-2 py-0.5"
+                  >
                     <CheckCircle2 className="h-3 w-3" /> All caught up
                   </Badge>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Activity alerts, attendance logs, and institutional security updates
+                Activity alerts, attendance logs, and institutional security
+                updates
               </p>
             </div>
           </div>
@@ -236,7 +250,9 @@ export const Notifications: React.FC = () => {
               <Bell className="h-6 w-6 opacity-60" />
             </div>
             <p className="text-sm font-semibold text-foreground">
-              {search || filter !== "all" ? "No matching notifications" : "No notifications yet"}
+              {search || filter !== "all"
+                ? "No matching notifications"
+                : "No notifications yet"}
             </p>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
               {search || filter !== "all"
@@ -267,8 +283,8 @@ export const Notifications: React.FC = () => {
                       isSecurity
                         ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                         : isAttendance
-                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-primary/10 text-primary border border-primary/20"
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-primary/10 text-primary border border-primary/20"
                     }`}
                   >
                     {isSecurity ? (
@@ -284,7 +300,9 @@ export const Notifications: React.FC = () => {
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <p className={`text-xs font-bold text-foreground truncate ${!read ? "text-primary" : ""}`}>
+                        <p
+                          className={`text-xs font-bold text-foreground truncate ${!read ? "text-primary" : ""}`}
+                        >
                           {item.title}
                         </p>
                         {!read && (
@@ -298,16 +316,20 @@ export const Notifications: React.FC = () => {
                             isSecurity
                               ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
                               : isAttendance
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
-                              : "bg-muted text-muted-foreground"
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                                : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {isSecurity ? "Security" : isAttendance ? "Attendance" : "Update"}
+                          {isSecurity
+                            ? "Security"
+                            : isAttendance
+                              ? "Attendance"
+                              : "Update"}
                         </Badge>
                         <button
                           type="button"
                           onClick={(e) => handleDeleteItem(e, item.id)}
-                          className="opacity-40 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-all ml-1"
+                          className="opacity-75 group-hover:opacity-100 text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-destructive/10 transition-all ml-1"
                           title="Delete notification"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -319,7 +341,7 @@ export const Notifications: React.FC = () => {
                       {item.message}
                     </p>
 
-                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground/80 pt-1">
+                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-1">
                       <span className="flex items-center gap-1 font-medium">
                         <Clock className="h-3 w-3 text-muted-foreground" />
                         <span>{formatTimestamp(item.created_at)}</span>

@@ -266,12 +266,6 @@ export const UserProfile: React.FC = () => {
             </p>
           </div>
         </div>
-        <Badge
-          variant="outline"
-          className="capitalize text-xs font-semibold px-2.5 py-1"
-        >
-          {roleLabel}
-        </Badge>
       </div>
 
       {/* Main Profile Info Card */}
@@ -322,7 +316,7 @@ export const UserProfile: React.FC = () => {
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                <AlertCircle className="h-3 w-3" /> Default Password
+                <AlertCircle className="h-3 w-3" /> Change Default Password
               </span>
             )}
           </div>
@@ -627,7 +621,7 @@ export const UserProfile: React.FC = () => {
               Active Session
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Sign out of EduTrack on this browser.
+              Sign out of PakkaPresent on this browser.
             </p>
           </div>
           <Button

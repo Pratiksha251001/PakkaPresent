@@ -47,12 +47,15 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
   onOpenChange,
   onTestSent,
 }) => {
-  const [activeTab, setActiveTab] = useState<"test" | "providers" | "guide">("test");
+  const [activeTab, setActiveTab] = useState<"test" | "providers" | "guide">(
+    "test",
+  );
   const [status, setStatus] = useState<SmsGatewayStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
 
   // Selected provider in settings tab
-  const [selectedProvider, setSelectedProvider] = useState<SmsProviderType>("fast2sms");
+  const [selectedProvider, setSelectedProvider] =
+    useState<SmsProviderType>("fast2sms");
 
   // Provider-specific input state
   // 1. Fast2SMS
@@ -78,8 +81,12 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
   // 5. Custom Gateway
   const [customUrl, setCustomUrl] = useState("");
   const [customMethod, setCustomMethod] = useState<"POST" | "GET">("POST");
-  const [customHeaders, setCustomHeaders] = useState('{\n  "Content-Type": "application/json"\n}');
-  const [customBody, setCustomBody] = useState('{\n  "to": "{clean10}",\n  "message": "{message}"\n}');
+  const [customHeaders, setCustomHeaders] = useState(
+    '{\n  "Content-Type": "application/json"\n}',
+  );
+  const [customBody, setCustomBody] = useState(
+    '{\n  "to": "{clean10}",\n  "message": "{message}"\n}',
+  );
   const [customApiKey, setCustomApiKey] = useState("");
   const [customSenderId, setCustomSenderId] = useState("EDUTRK");
 
@@ -89,10 +96,13 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
   // Test form state
   const [testMobile, setTestMobile] = useState("");
   const [testMessage, setTestMessage] = useState(
-    "Dear Parent, Student Rohan Patil is absent for Mathematics today. Marked via EduTrack SMIT."
+    "Dear Parent, Student Rohan Patil is absent for Mathematics today. Marked via PakkaPresent SMIT.",
   );
-  const [testPreset, setTestPreset] = useState<"en" | "mr" | "hi" | "custom">("en");
-  const [testProviderChoice, setTestProviderChoice] = useState<string>("active");
+  const [testPreset, setTestPreset] = useState<"en" | "mr" | "hi" | "custom">(
+    "en",
+  );
+  const [testProviderChoice, setTestProviderChoice] =
+    useState<string>("active");
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -144,7 +154,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
       if (data.textlocal?.sender) setTextlocalSender(data.textlocal.sender);
 
       if (data.custom?.url) setCustomUrl(data.custom.url);
-      if (data.custom?.method) setCustomMethod(data.custom.method as "POST" | "GET");
+      if (data.custom?.method)
+        setCustomMethod(data.custom.method as "POST" | "GET");
       if (data.custom?.headers) setCustomHeaders(data.custom.headers);
       if (data.custom?.bodyTemplate) setCustomBody(data.custom.bodyTemplate);
       if (data.custom?.apiKey) setCustomApiKey(data.custom.apiKey);
@@ -209,7 +220,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
       const res = await updateSmsGatewayConfig(payload);
       if (res.success) {
-        setConfigSaveStatus(`Success! ${selectedProvider.toUpperCase()} is now your active SMS Gateway.`);
+        setConfigSaveStatus(
+          `Success! ${selectedProvider.toUpperCase()} is now your active SMS Gateway.`,
+        );
         await fetchStatus();
       } else {
         setConfigSaveStatus("Save failed: " + res.message);
@@ -225,15 +238,15 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
     setTestPreset(preset);
     if (preset === "en") {
       setTestMessage(
-        "Dear Parent, Student Rohan Patil is absent for Mathematics today. Marked via EduTrack SMIT."
+        "Dear Parent, Student Rohan Patil is absent for Mathematics today. Marked via PakkaPresent SMIT.",
       );
     } else if (preset === "mr") {
       setTestMessage(
-        "पालकहो, विद्यार्थी रोहन पाटील आज गणित विषयाच्या तासाला गैरहजर आहे. - EduTrack SMIT"
+        "पालकहो, विद्यार्थी रोहन पाटील आज गणित विषयाच्या तासाला गैरहजर आहे. - PakkaPresent SMIT",
       );
     } else if (preset === "hi") {
       setTestMessage(
-        "प्रिय अभिभावक, छात्र रोहन पाटिल आज गणित कक्षा में अनुपस्थित है। - EduTrack SMIT"
+        "प्रिय अभिभावक, छात्र रोहन पाटिल आज गणित कक्षा में अनुपस्थित है। - PakkaPresent SMIT",
       );
     }
   };
@@ -244,7 +257,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
     if (!cleanNumbers || cleanNumbers.length < 10) {
       setTestResult({
         success: false,
-        message: "Kripya valid 10-digit mobile number dalein (e.g. 9876543210).",
+        message:
+          "Kripya valid 10-digit mobile number dalein (e.g. 9876543210).",
         time: new Date().toLocaleTimeString(),
       });
       return;
@@ -254,10 +268,17 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
     setTestResult(null);
 
     try {
-      const chosenProvider = testProviderChoice === "active" ? (status?.activeProvider || "fast2sms") : testProviderChoice;
-      const res = await sendTestSmsViaGateway(testMobile.trim(), testMessage.trim(), {
-        provider: chosenProvider,
-      });
+      const chosenProvider =
+        testProviderChoice === "active"
+          ? status?.activeProvider || "fast2sms"
+          : testProviderChoice;
+      const res = await sendTestSmsViaGateway(
+        testMobile.trim(),
+        testMessage.trim(),
+        {
+          provider: chosenProvider,
+        },
+      );
 
       setTestResult({
         success: res.success,
@@ -284,14 +305,18 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
     }
   };
 
-  const activeProviderName = (status?.activeProvider || status?.provider || "fast2sms").toUpperCase();
+  const activeProviderName = (
+    status?.activeProvider ||
+    status?.provider ||
+    "fast2sms"
+  ).toUpperCase();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden bg-background">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-3xl max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden bg-background p-0">
         {/* Header */}
-        <DialogHeader className="p-5 pb-3 border-b border-border/60 bg-muted/20">
-          <div className="flex items-start justify-between">
+        <DialogHeader className="border-b border-border/60 bg-muted/20 px-6 pb-3 pt-5 pr-14">
+          <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -302,16 +327,21 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                 </DialogTitle>
                 {status?.isConfigured ? (
                   <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold">
-                    <CheckCircle className="h-3 w-3 mr-1 inline" /> {activeProviderName} Live Active
+                    <CheckCircle className="h-3 w-3 mr-1 inline" />{" "}
+                    {activeProviderName} Live Active
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-xs">
-                    <Radio className="h-3 w-3 mr-1 inline animate-pulse" /> Simulation Mode
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-xs"
+                  >
+                    <Radio className="h-3 w-3 mr-1 inline animate-pulse" />{" "}
+                    Simulation Mode
                   </Badge>
                 )}
               </div>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Connect any SMS provider (Fast2SMS, MSG91, Twilio, Textlocal, or Custom API) to send real cellular messages to parents.
+              <DialogDescription className="text-xs text-foreground/70">
+                Configure an SMS provider to send parent notifications.
               </DialogDescription>
             </div>
 
@@ -322,50 +352,52 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
               disabled={loadingStatus}
               className="h-8 px-2 text-xs"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loadingStatus ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${loadingStatus ? "animate-spin" : ""}`}
+              />
             </Button>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1.5 mt-3 pt-2 border-t border-border/40">
+          <div className="mt-3 grid grid-cols-1 gap-2 border-t border-border/40 pt-3 sm:grid-cols-3">
             <button
               onClick={() => setActiveTab("test")}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+              className={`flex h-10 w-full items-center justify-center gap-1 rounded-lg px-2 py-2 text-center text-[11px] font-semibold whitespace-nowrap transition-all ${
                 activeTab === "test"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               <Send className="h-3.5 w-3.5" />
-              Live Test SMS
+              Live Test
             </button>
             <button
               onClick={() => setActiveTab("providers")}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+              className={`flex h-10 w-full items-center justify-center gap-1 rounded-lg px-2 py-2 text-center text-[11px] font-semibold whitespace-nowrap transition-all ${
                 activeTab === "providers"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               <Sliders className="h-3.5 w-3.5" />
-              Providers & API Keys
+              Providers
             </button>
             <button
               onClick={() => setActiveTab("guide")}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+              className={`flex h-10 w-full items-center justify-center gap-1 rounded-lg px-2 py-2 text-center text-[11px] font-semibold whitespace-nowrap transition-all ${
                 activeTab === "guide"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
-              IP & Carrier Diagnostics
+              Diagnostics
             </button>
           </div>
         </DialogHeader>
 
         {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-4 flex-1">
+        <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-5 pr-5 [scrollbar-gutter:stable]">
           {/* TAB 1: LIVE TEST SMS */}
           {activeTab === "test" && (
             <div className="space-y-4">
@@ -373,13 +405,20 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                 <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div className="text-xs space-y-1">
                   <div className="font-semibold text-foreground flex items-center gap-2">
-                    Active Gateway: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{activeProviderName}</span>
+                    Active Gateway:{" "}
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      {activeProviderName}
+                    </span>
                     <span className="text-[10px] text-muted-foreground">
-                      ({status?.isConfigured ? "Real Carrier Mode" : "Simulation Mode"})
+                      (
+                      {status?.isConfigured
+                        ? "Real Carrier Mode"
+                        : "Simulation Mode"}
+                      )
                     </span>
                   </div>
                   <p className="text-muted-foreground">
-                    Type any phone number below to send a live test SMS. If you have another provider key, switch to the <strong>Providers & API Keys</strong> tab.
+                    Send a test message through the active gateway.
                   </p>
                 </div>
               </div>
@@ -410,7 +449,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         type="button"
                         onClick={() => handlePresetChange("en")}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
-                          testPreset === "en" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          testPreset === "en"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
                         }`}
                       >
                         English
@@ -419,7 +460,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         type="button"
                         onClick={() => handlePresetChange("mr")}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
-                          testPreset === "mr" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          testPreset === "mr"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
                         }`}
                       >
                         मराठी
@@ -428,7 +471,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         type="button"
                         onClick={() => handlePresetChange("hi")}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
-                          testPreset === "hi" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          testPreset === "hi"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
                         }`}
                       >
                         हिंदी
@@ -437,7 +482,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         type="button"
                         onClick={() => handlePresetChange("custom")}
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
-                          testPreset === "custom" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          testPreset === "custom"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
                         }`}
                       >
                         Custom
@@ -457,7 +504,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                   />
                   <div className="flex items-center justify-between mt-1 text-[11px] text-muted-foreground">
                     <span>Characters: {testMessage.length}</span>
-                    <span>Standard cellular SMS: 1 credit per 160 characters</span>
+                    <span>
+                      Standard cellular SMS: 1 credit per 160 characters
+                    </span>
                   </div>
                 </div>
 
@@ -480,7 +529,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     )}
                   </Button>
 
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-foreground/70">
                     Sent via: <strong>{activeProviderName}</strong>
                   </span>
                 </div>
@@ -502,9 +551,13 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       ) : (
                         <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                       )}
-                      {testResult.success ? "SMS Dispatched Successfully!" : "Dispatch Rejected / Notice"}
+                      {testResult.success
+                        ? "SMS Dispatched Successfully!"
+                        : "Dispatch Rejected / Notice"}
                     </span>
-                    <span className="text-[10px] opacity-75 font-mono">{testResult.time}</span>
+                    <span className="text-[10px] opacity-75 font-mono">
+                      {testResult.time}
+                    </span>
                   </div>
 
                   <p className="leading-relaxed">{testResult.message}</p>
@@ -512,10 +565,13 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                   {testResult.error418 && (
                     <div className="rounded-lg bg-amber-500/15 border border-amber-500/30 p-2.5 text-[11px] text-amber-900 dark:text-amber-200 space-y-1">
                       <div className="font-bold flex items-center gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5" /> MSG91 Error 418 IP Restriction:
+                        <ShieldCheck className="h-3.5 w-3.5" /> MSG91 Error 418
+                        IP Restriction:
                       </div>
                       <p>
-                        MSG91 account me IP Whitelist enabled hai. MSG91 Dashboard me jakar AuthKey ki IP restriction DISABLE karein, ya server IP whitelist karein:
+                        MSG91 account me IP Whitelist enabled hai. MSG91
+                        Dashboard me jakar AuthKey ki IP restriction DISABLE
+                        karein, ya server IP whitelist karein:
                       </p>
                       {testResult.serverIp && (
                         <div className="flex items-center gap-2 mt-1">
@@ -540,7 +596,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         View Raw Carrier Response
                       </summary>
                       <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono p-1">
-                        {typeof testResult.raw === "string" ? testResult.raw : JSON.stringify(testResult.raw, null, 2)}
+                        {typeof testResult.raw === "string"
+                          ? testResult.raw
+                          : JSON.stringify(testResult.raw, null, 2)}
                       </pre>
                     </details>
                   )}
@@ -552,79 +610,92 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
           {/* TAB 2: PROVIDERS & CREDENTIALS */}
           {activeTab === "providers" && (
             <div className="space-y-4">
-              <div className="text-xs text-muted-foreground">
-                Select your preferred SMS provider and enter credentials. Click <strong>Save & Set Active Gateway</strong> to start sending messages through it.
+              <div className="text-xs text-foreground/70">
+                Choose a provider, enter its credentials, and save it as active.
               </div>
 
               {/* Provider Selector Tabs */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/60">
+              <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-muted/35 p-1.5 sm:grid-cols-5">
                 <button
                   type="button"
                   onClick={() => setSelectedProvider("fast2sms")}
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all text-center ${
+                  className={`flex min-h-[64px] flex-col items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition-all ${
                     selectedProvider === "fast2sms"
                       ? "bg-background text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   ⚡ Fast2SMS
-                  <span className="block text-[9px] font-normal text-emerald-500 font-sans">Simple • No DLT</span>
+                  <span className="mt-1 block text-[10px] font-medium leading-snug text-emerald-700 dark:text-emerald-300 font-sans">
+                    Simple • No DLT
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedProvider("msg91")}
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all text-center ${
+                  className={`flex min-h-[64px] flex-col items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition-all ${
                     selectedProvider === "msg91"
                       ? "bg-background text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   📱 MSG91
-                  <span className="block text-[9px] font-normal text-muted-foreground font-sans">Flow & HTTP</span>
+                  <span className="mt-1 block text-[10px] font-medium leading-snug text-foreground/70 font-sans">
+                    Flow & HTTP
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedProvider("twilio")}
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all text-center ${
+                  className={`flex min-h-[64px] flex-col items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition-all ${
                     selectedProvider === "twilio"
                       ? "bg-background text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   🌐 Twilio
-                  <span className="block text-[9px] font-normal text-muted-foreground font-sans">Global SMS</span>
+                  <span className="mt-1 block text-[10px] font-medium leading-snug text-foreground/70 font-sans">
+                    Global SMS
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedProvider("textlocal")}
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all text-center ${
+                  className={`flex min-h-[64px] flex-col items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition-all ${
                     selectedProvider === "textlocal"
                       ? "bg-background text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   📩 Textlocal
-                  <span className="block text-[9px] font-normal text-muted-foreground font-sans">India / UK</span>
+                  <span className="mt-1 block text-[10px] font-medium leading-snug text-foreground/70 font-sans">
+                    India / UK
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedProvider("custom")}
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition-all text-center ${
+                  className={`flex min-h-[64px] flex-col items-center justify-center rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition-all ${
                     selectedProvider === "custom"
                       ? "bg-background text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   🛠️ Custom API
-                  <span className="block text-[9px] font-normal text-muted-foreground font-sans">Any REST URL</span>
+                  <span className="mt-1 block text-[10px] font-medium leading-snug text-foreground/70 font-sans">
+                    Any REST URL
+                  </span>
                 </button>
               </div>
 
               {/* Provider Config Forms */}
-              <form onSubmit={handleSaveActiveConfig} className="space-y-4 pt-1">
+              <form
+                onSubmit={handleSaveActiveConfig}
+                className="space-y-4 pt-1"
+              >
                 {/* 1. Fast2SMS Form */}
                 {selectedProvider === "fast2sms" && (
-                  <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3.5">
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-xs sm:p-5">
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
                         <Zap className="h-4 w-4 text-emerald-500" />
@@ -634,13 +705,13 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         href="https://www.fast2sms.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                        className="dashboard-accent-link inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
                       >
                         fast2sms.com <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Fast2SMS is the easiest option for Indian colleges. <strong>No DLT registration required</strong> for Quick SMS route! Just copy your API Authorization key from Fast2SMS dashboard.
+                    <p className="text-xs text-foreground/70">
+                      Enter the API key and select the required SMS route.
                     </p>
 
                     <div className="space-y-1.5">
@@ -656,22 +727,30 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">SMS Route</label>
+                        <label className="text-xs font-semibold text-foreground">
+                          SMS Route
+                        </label>
                         <select
                           value={fast2smsRoute}
                           onChange={(e) => setFast2smsRoute(e.target.value)}
                           className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
                         >
-                          <option value="q">Quick SMS (route=q, No DLT required)</option>
-                          <option value="otp">OTP / Fast Delivery (route=otp)</option>
+                          <option value="q">
+                            Quick SMS (route=q, No DLT required)
+                          </option>
+                          <option value="otp">
+                            OTP / Fast Delivery (route=otp)
+                          </option>
                           <option value="v3">V3 Route (route=v3)</option>
                           <option value="dlt">DLT Approved (route=dlt)</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">Language Mode</label>
+                        <label className="text-xs font-semibold text-foreground">
+                          Language Mode
+                        </label>
                         <div className="h-9 flex items-center text-xs text-muted-foreground px-2">
                           Auto (English / Marathi / Hindi Unicode supported)
                         </div>
@@ -682,7 +761,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
                 {/* 2. MSG91 Form */}
                 {selectedProvider === "msg91" && (
-                  <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3.5">
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-xs sm:p-5">
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
                         <MessageSquare className="h-4 w-4 text-blue-500" />
@@ -692,7 +771,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         href="https://control.msg91.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                        className="dashboard-accent-link inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
                       >
                         msg91.com <ExternalLink className="h-3 w-3" />
                       </a>
@@ -711,9 +790,11 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">Sender ID</label>
+                        <label className="text-xs font-semibold text-foreground">
+                          Sender ID
+                        </label>
                         <Input
                           placeholder="e.g. EDUTRK"
                           value={msg91SenderId}
@@ -723,7 +804,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">Route</label>
+                        <label className="text-xs font-semibold text-foreground">
+                          Route
+                        </label>
                         <Input
                           placeholder="e.g. 4"
                           value={msg91Route}
@@ -733,7 +816,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-foreground">
                           Flow Template ID (Optional)
@@ -762,7 +845,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
                 {/* 3. Twilio Form */}
                 {selectedProvider === "twilio" && (
-                  <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3.5">
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-xs sm:p-5">
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
                         <Globe className="h-4 w-4 text-purple-500" />
@@ -772,14 +855,16 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         href="https://console.twilio.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                        className="dashboard-accent-link inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
                       >
                         twilio.com <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Account SID *</label>
+                      <label className="text-xs font-semibold text-foreground">
+                        Account SID *
+                      </label>
                       <Input
                         placeholder="e.g. ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                         value={twilioAccountSid}
@@ -789,7 +874,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Auth Token *</label>
+                      <label className="text-xs font-semibold text-foreground">
+                        Auth Token *
+                      </label>
                       <Input
                         type="password"
                         placeholder="Twilio Auth Token"
@@ -800,7 +887,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">From Phone Number *</label>
+                      <label className="text-xs font-semibold text-foreground">
+                        From Phone Number *
+                      </label>
                       <Input
                         placeholder="e.g. +1234567890"
                         value={twilioFromNumber}
@@ -813,7 +902,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
                 {/* 4. Textlocal Form */}
                 {selectedProvider === "textlocal" && (
-                  <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3.5">
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-xs sm:p-5">
                     <div className="flex items-center justify-between">
                       <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
                         <MessageSquare className="h-4 w-4 text-amber-500" />
@@ -823,14 +912,16 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         href="https://www.textlocal.in"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-primary hover:underline flex items-center gap-1"
+                        className="dashboard-accent-link inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
                       >
                         textlocal.in <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Textlocal API Key *</label>
+                      <label className="text-xs font-semibold text-foreground">
+                        Textlocal API Key *
+                      </label>
                       <Input
                         type="password"
                         placeholder="Textlocal API Key"
@@ -841,7 +932,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">Sender Name</label>
+                      <label className="text-xs font-semibold text-foreground">
+                        Sender Name
+                      </label>
                       <Input
                         placeholder="e.g. TXTLCL"
                         value={textlocalSender}
@@ -855,29 +948,37 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
                 {/* 5. Custom API / Webhook Form */}
                 {selectedProvider === "custom" && (
-                  <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3.5">
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-xs sm:p-5">
                     <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
                       <Code2 className="h-4 w-4 text-emerald-500" />
                       Custom Gateway / Webhook / Any REST API
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Use this to connect any SMS gateway in the world (e.g. 2Factor, SMSHorizon, Kaleyra, IndiaSMS). Placeholders: <code>{"{clean10}"}</code>, <code>{"{with91}"}</code>, <code>{"{message}"}</code>, <code>{"{apiKey}"}</code>.
+                    <p className="text-xs text-foreground/70">
+                      Connect any REST SMS gateway using{" "}
+                      <code>{"{clean10}"}</code>, <code>{"{with91}"}</code>,{" "}
+                      <code>{"{message}"}</code>, or <code>{"{apiKey}"}</code>.
                     </p>
 
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="col-span-1 space-y-1">
-                        <label className="text-xs font-semibold text-foreground">Method</label>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="space-y-1 sm:col-span-1">
+                        <label className="text-xs font-semibold text-foreground">
+                          Method
+                        </label>
                         <select
                           value={customMethod}
-                          onChange={(e) => setCustomMethod(e.target.value as any)}
+                          onChange={(e) =>
+                            setCustomMethod(e.target.value as any)
+                          }
                           className="w-full h-9 rounded-md border border-input bg-background px-2 text-xs"
                         >
                           <option value="POST">POST</option>
                           <option value="GET">GET</option>
                         </select>
                       </div>
-                      <div className="col-span-3 space-y-1">
-                        <label className="text-xs font-semibold text-foreground">Gateway Endpoint URL *</label>
+                      <div className="space-y-1 sm:col-span-1 lg:col-span-3">
+                        <label className="text-xs font-semibold text-foreground">
+                          Gateway Endpoint URL *
+                        </label>
                         <Input
                           placeholder="https://api.sms-provider.com/v1/send"
                           value={customUrl}
@@ -888,9 +989,11 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="space-y-1">
-                        <label className="text-xs font-semibold text-foreground">Custom Headers (JSON)</label>
+                        <label className="text-xs font-semibold text-foreground">
+                          Custom Headers (JSON)
+                        </label>
                         <textarea
                           rows={3}
                           value={customHeaders}
@@ -900,7 +1003,9 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-foreground">
-                          {customMethod === "POST" ? "Payload Template (JSON)" : "Query Parameters"}
+                          {customMethod === "POST"
+                            ? "Payload Template (JSON)"
+                            : "Query Parameters"}
                         </label>
                         <textarea
                           rows={3}
@@ -928,7 +1033,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     ) : (
                       <>
                         <Check className="h-3.5 w-3.5 mr-1.5" />
-                        Save & Set {selectedProvider.toUpperCase()} as Active Gateway
+                        Save & Set {selectedProvider.toUpperCase()} as Active
+                        Gateway
                       </>
                     )}
                   </Button>
@@ -958,55 +1064,67 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                   <ShieldCheck className="h-4 w-4 text-emerald-500" />
                   Server Public IP & Whitelisting
                 </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  If your SMS carrier (like MSG91) requires server IP whitelisting or returns Error 418, whitelist this cloud server IP in your carrier account:
+                <p className="text-foreground/70 leading-relaxed">
+                  Use this server IP when a carrier requires whitelisting or
+                  reports Error 418:
                 </p>
                 <div className="flex items-center gap-2">
-                  <code className="bg-background px-3 py-1.5 rounded-lg border border-border font-mono font-bold text-sm text-primary">
-                    {status?.serverIp || "34.34.254.233"}
+                  <code className="rounded-lg border border-border bg-muted/30 px-3 py-1.5 font-mono text-sm font-bold text-foreground/70">
+                    {status?.serverIp || "Unavailable"}
                   </code>
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => handleCopyIp(status?.serverIp || "34.34.254.233")}
+                    onClick={() =>
+                      status?.serverIp && handleCopyIp(status.serverIp)
+                    }
+                    disabled={!status?.serverIp}
                     className="h-8 text-xs font-semibold"
                   >
-                    {copiedIp ? <Check className="h-3.5 w-3.5 text-emerald-500 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                    {copiedIp ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-500 mr-1" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 mr-1" />
+                    )}
                     {copiedIp ? "Copied!" : "Copy Server IP"}
                   </Button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-bold text-foreground">Frequently Asked Questions (FAQ)</h4>
+                <h4 className="font-bold text-foreground">Troubleshooting</h4>
 
-                <div className="rounded-lg border border-border/70 p-3 space-y-1">
-                  <div className="font-semibold text-foreground">
-                    Q: Muze simple plain SMS bhejna hai bina kisi DLT issue ke. Kaunsa provider use karein?
-                  </div>
-                  <p className="text-muted-foreground">
-                    <strong>Fast2SMS</strong> use karein! Fast2SMS me 30 second me account ban jata hai, aur bina DLT registration ke Quick SMS (route=q) se seedha 10-digit number par real cellular SMS send hota hai.
+                <details className="group rounded-lg border border-border/70 bg-background">
+                  <summary className="cursor-pointer list-none px-3 py-2.5 font-semibold text-foreground">
+                    Which provider should I use for simple SMS?
+                  </summary>
+                  <p className="border-t border-border/60 px-3 py-2.5 text-muted-foreground">
+                    Use <strong>Fast2SMS</strong> with the Quick SMS route when
+                    DLT registration is not required.
                   </p>
-                </div>
+                </details>
 
-                <div className="rounded-lg border border-border/70 p-3 space-y-1">
-                  <div className="font-semibold text-foreground">
-                    Q: MSG91 me Error 418 aa raha hai, iska kya solution hai?
-                  </div>
-                  <p className="text-muted-foreground">
-                    MSG91 dashboard me jakar <strong>Authkey</strong> settings kholein. Wahan "IP Restriction" toggle ko <strong>DISABLE</strong> karein, ya upar diya gaya Server IP ({status?.serverIp || "34.34.254.233"}) whitelist karein.
+                <details className="group rounded-lg border border-border/70 bg-background">
+                  <summary className="cursor-pointer list-none px-3 py-2.5 font-semibold text-foreground">
+                    How do I fix MSG91 Error 418?
+                  </summary>
+                  <p className="border-t border-border/60 px-3 py-2.5 text-muted-foreground">
+                    Disable IP Restriction for the MSG91 AuthKey, or whitelist
+                    the server IP shown above (
+                    {status?.serverIp || "Unavailable"}).
                   </p>
-                </div>
+                </details>
 
-                <div className="rounded-lg border border-border/70 p-3 space-y-1">
-                  <div className="font-semibold text-foreground">
-                    Q: Kya attendence mark karte waqt parents ko automatic message jayega?
-                  </div>
-                  <p className="text-muted-foreground">
-                    Haan! Jab teacher ya admin Absentee mark karte hain, EduTrack background me active SMS provider ke through parents ke registered mobile number par notification bhej deta hai.
+                <details className="group rounded-lg border border-border/70 bg-background">
+                  <summary className="cursor-pointer list-none px-3 py-2.5 font-semibold text-foreground">
+                    Are attendance alerts sent automatically?
+                  </summary>
+                  <p className="border-t border-border/60 px-3 py-2.5 text-muted-foreground">
+                    Attendance alerts use the active provider and the parent
+                    mobile number registered for the student.
                   </p>
-                </div>
+                </details>
               </div>
             </div>
           )}

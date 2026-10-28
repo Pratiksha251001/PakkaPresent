@@ -306,7 +306,7 @@ export const HODStudents: React.FC = () => {
           email:
             form.email.trim() ||
             account.email ||
-            `${form.roll_number.toLowerCase()}@student.edutrack.edu`,
+            `${form.roll_number.toLowerCase()}@student.pakkapresent.edu`,
         });
       }
 
@@ -739,8 +739,8 @@ export const HODStudents: React.FC = () => {
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Total Students:{" "}
-            <strong className="text-foreground">{filtered.length}</strong>
+            <strong className="text-foreground">{filtered.length}</strong>{" "}
+            {filtered.length === 1 ? "student" : "students"}
           </div>
         </div>
       </div>
@@ -761,7 +761,7 @@ export const HODStudents: React.FC = () => {
                   Student Name
                 </TableHead>
                 <TableHead className="min-w-[110px] font-bold">
-                  Class / Sem
+                  Semester / Class
                 </TableHead>
                 <TableHead className="min-w-[180px] font-bold">
                   Guardian Contact

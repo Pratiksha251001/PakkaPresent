@@ -88,9 +88,9 @@ export const StudentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+        <p className="dashboard-accent-text text-xs font-bold uppercase tracking-[0.18em]">
           Student Portal
         </p>
         <h1 className="mt-1 font-display text-2xl font-bold tracking-tight">
@@ -99,9 +99,9 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-l-4 border-l-primary">
+        <Card className="dashboard-primary-metric border-l-4">
           <CardContent className="pt-5">
-            <CalendarCheck className="h-5 w-5 text-primary" />
+            <CalendarCheck className="h-5 w-5 dashboard-accent-text" />
             <p className="mt-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Overall Attendance
             </p>
@@ -152,7 +152,7 @@ export const StudentDashboard: React.FC = () => {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <CalendarCheck className="h-4 w-4 text-primary" /> Recent
+              <CalendarCheck className="h-4 w-4 dashboard-accent-text" /> Recent
               Attendance
             </CardTitle>
           </CardHeader>
@@ -212,12 +212,13 @@ export const StudentDashboard: React.FC = () => {
           <Card className="h-full transition-colors hover:border-primary/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <UserRound className="h-4 w-4 text-primary" /> Profile Summary
+                <UserRound className="h-4 w-4 dashboard-accent-text" /> Profile
+                Summary
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
+                <div className="dashboard-profile-avatar flex h-11 w-11 items-center justify-center rounded-full font-bold">
                   {initials}
                 </div>
                 <div>
@@ -227,28 +228,24 @@ export const StudentDashboard: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between gap-3">
+              <div className="dashboard-definition-list text-sm">
+                <div className="contents">
                   <span className="text-muted-foreground">Department</span>
-                  <span className="font-medium text-right">
-                    {department?.name || "—"}
-                  </span>
+                  <span className="font-medium">{department?.name || "—"}</span>
                 </div>
-                <div className="flex justify-between gap-3">
+                <div className="contents">
                   <span className="text-muted-foreground">Email</span>
-                  <span className="font-medium text-right">
-                    {student.email || "—"}
-                  </span>
+                  <span className="font-medium">{student.email || "—"}</span>
                 </div>
-                <div className="flex justify-between gap-3">
+                <div className="contents">
                   <span className="text-muted-foreground">Parent</span>
-                  <span className="font-medium text-right">
+                  <span className="font-medium">
                     {student.parent_name || "—"}
                   </span>
                 </div>
-                <div className="flex justify-between gap-3">
+                <div className="contents">
                   <span className="text-muted-foreground">Parent Mobile</span>
-                  <span className="font-medium text-right font-mono">
+                  <span className="font-medium font-mono">
                     {student.parent_mobile || "—"}
                   </span>
                 </div>
@@ -259,14 +256,15 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Megaphone className="h-4 w-4 text-primary" /> Important Notices
+            <Megaphone className="h-4 w-4 dashboard-accent-text" /> Important
+            Notices
           </CardTitle>
         </CardHeader>
         <CardContent>
           {notices.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
+            <p className="dashboard-empty-state flex items-center justify-center rounded-xl py-4 text-center text-sm text-muted-foreground">
               No important notices right now.
             </p>
           ) : (

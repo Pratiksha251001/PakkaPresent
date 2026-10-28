@@ -63,6 +63,8 @@ interface CrudPageProps<T> {
     label: string;
     onClick: () => void;
   };
+  recordLabel?: string;
+  singularRecordLabel?: string;
 }
 
 export function CrudPage<T extends { id: string }>({
@@ -75,6 +77,8 @@ export function CrudPage<T extends { id: string }>({
   sortItems,
   extraHeaderActions,
   emptyStateAction,
+  recordLabel = "records",
+  singularRecordLabel,
 }: CrudPageProps<T>) {
   const [data, setData] = useState<T[]>(() => (localDb as any)[table] || []);
   const [search, setSearch] = useState("");
@@ -117,7 +121,7 @@ export function CrudPage<T extends { id: string }>({
     );
   }, [data, search, searchKeys, sortItems]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const totalPages = Math.ceil(filtered.length / pageSize);
   const pageItems = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   const openAdd = () => {
@@ -748,7 +752,7 @@ export function CrudPage<T extends { id: string }>({
               {columns.map((c) => (
                 <TableHead key={c.header}>{c.header}</TableHead>
               ))}
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -756,7 +760,7 @@ export function CrudPage<T extends { id: string }>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length + 1}
-                  className="py-10 text-center text-muted-foreground"
+                  className="py-7 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-3">
                     <span>No records found.</span>
@@ -779,21 +783,23 @@ export function CrudPage<T extends { id: string }>({
                   {columns.map((c) => (
                     <TableCell key={c.header}>{c.render(item)}</TableCell>
                   ))}
-                  <TableCell className="text-right space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(item)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                  <TableCell className="text-center whitespace-nowrap">
+                    <div className="inline-flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(item)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -802,7 +808,12 @@ export function CrudPage<T extends { id: string }>({
         </Table>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground pt-2">
-          <span>{filtered.length} total records</span>
+          <span>
+            {filtered.length}{" "}
+            {filtered.length === 1 && singularRecordLabel
+              ? singularRecordLabel
+              : recordLabel}
+          </span>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -813,12 +824,12 @@ export function CrudPage<T extends { id: string }>({
               Previous
             </Button>
             <span>
-              {page + 1} / {totalPages}
+              {filtered.length === 0 ? "0 / 0" : `${page + 1} / ${totalPages}`}
             </span>
             <Button
               variant="outline"
               size="sm"
-              disabled={page >= totalPages - 1}
+              disabled={totalPages === 0 || page >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
             >
               Next

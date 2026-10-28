@@ -1,6 +1,6 @@
-# EduTrack – Smart Attendance & Parent Alert System
+# PakkaPresent – Smart Attendance & Parent Alert System
 
-EduTrack is an enterprise-ready, role-based attendance management and parent alert web application designed for engineering colleges and universities. It streamlines student attendance tracking, class and subject allocations, syllabus importing, defaulter monitoring (<75%), and automated multi-lingual parent notifications.
+PakkaPresent is an enterprise-ready, role-based attendance management and parent alert web application designed for engineering colleges and universities. It streamlines student attendance tracking, class and subject allocations, syllabus importing, defaulter monitoring (<75%), and automated multi-lingual parent notifications.
 
 ---
 
@@ -28,18 +28,22 @@ EduTrack is an enterprise-ready, role-based attendance management and parent ale
 Anyone can clone and run this project locally in less than 2 minutes.
 
 ### 1. Prerequisites
+
 Ensure you have installed on your machine:
+
 - **Node.js**: Version 18.0.0 or higher ([Download Node.js](https://nodejs.org/))
 - **npm** (comes with Node.js) or **pnpm** / **bun** / **yarn**
 - **Git** ([Download Git](https://git-scm.com/))
 
 ### 2. Clone the Repository
+
 ```bash
-git clone https://github.com/Pratiksha251001/EduTrack.git
-cd EduTrack
+git clone https://github.com/Pratiksha251001/PakkaPresent.git
+cd PakkaPresent
 ```
 
 ### 3. Install Dependencies
+
 ```bash
 npm install
 ```
@@ -115,6 +119,7 @@ npm run build
 ```
 
 Open your browser and navigate to:
+
 ```text
 http://localhost:3000
 ```
@@ -154,13 +159,13 @@ The frontend uses Supabase directly for configured database access and sends bac
 
 When launching the application, you can quickly test different roles using the interactive role selector on the login screen, or sign in using these default credentials:
 
-| Role | Email | Default Password | Access Level |
-|---|---|---|---|
-| **Admin / Principal** | `admin@smit.edu` | `Admin@123` | Full administrative control, departments, teachers |
-| **HOD (Computer Engg)** | `hod.cse@smit.edu` | `Hod@123` | Department classes, faculty subject allocation |
-| **Class Coordinator** | `teacher1@smit.edu` | `Teacher@123` | Division tracking (CSE-A), batch defaulter alerts |
-| **Subject Faculty** | `teacher2@smit.edu` | `Teacher@123` | Lecture attendance marking, session records |
-| **Student** | `student1@smit.edu` | `Student@123` | Attendance stats, subject ledger, notice board |
+| Role                    | Email               | Default Password | Access Level                                       |
+| ----------------------- | ------------------- | ---------------- | -------------------------------------------------- |
+| **Admin / Principal**   | `admin@smit.edu`    | `Admin@123`      | Full administrative control, departments, teachers |
+| **HOD (Computer Engg)** | `hod.cse@smit.edu`  | `Hod@123`        | Department classes, faculty subject allocation     |
+| **Class Coordinator**   | `teacher1@smit.edu` | `Teacher@123`    | Division tracking (CSE-A), batch defaulter alerts  |
+| **Subject Faculty**     | `teacher2@smit.edu` | `Teacher@123`    | Lecture attendance marking, session records        |
+| **Student**             | `student1@smit.edu` | `Student@123`    | Attendance stats, subject ledger, notice board     |
 
 ---
 
@@ -171,19 +176,19 @@ To import university syllabus schemes and subjects automatically:
 1. Log in as **Admin** or **HOD**.
 2. Navigate to **Subjects** from the navigation menu.
 3. Click the **"Import Syllabus (PDF / Scheme)"** button at the top right.
-4. Upload your University Curriculum or Scheme PDF file (e.g. *Savitribai Phule Pune University (SPPU)*, *Mumbai University*, *VTU*, or any standard academic syllabus).
+4. Upload your University Curriculum or Scheme PDF file (e.g. _Savitribai Phule Pune University (SPPU)_, _Mumbai University_, _VTU_, or any standard academic syllabus).
 5. The built-in PDF parser extracts:
    - Subject Code (e.g., `310241`, `CS601`)
    - Subject Title & Course Name
    - Lecture, Tutorial, Practical (L-T-P) hours & Credits
 6. Review the extracted subjects, select the target academic year / semester and department, and click **"Save & Allocate to Classes"**.
-7. Faculty members can now be assigned to specific divisions (e.g. *CSE-A*, *CSE-B*) for those imported subjects.
+7. Faculty members can now be assigned to specific divisions (e.g. _CSE-A_, _CSE-B_) for those imported subjects.
 
 ---
 
 ## 📊 Role-Based Reports & Official University Export
 
-EduTrack includes an audit-ready reporting engine supporting multi-tier roles:
+PakkaPresent includes an audit-ready reporting engine supporting multi-tier roles:
 
 - **Role Scoping Matrix**:
   - **Admin / Principal**: Full college authorization across all departments (CSE, IT, ECE, MECH, etc.) and all 4 engineering years (FE, SE, TE, BE).
@@ -203,7 +208,7 @@ EduTrack includes an audit-ready reporting engine supporting multi-tier roles:
 To comply with university norms requiring minimum 75% attendance for examination eligibility:
 
 1. Navigate to **Reports** or click **"Alert Defaulter Parents (Monthly)"**.
-2. Select any calendar month and academic year (e.g., *September 2026*).
+2. Select any calendar month and academic year (e.g., _September 2026_).
 3. The system scans all lecture sessions recorded in that specific month and detects students below 75%.
 4. **Trilingual SMS Templates**:
    - English, Hindi, and Marathi automated templates detailing month name, student roll number, subject/division, and recorded attendance percentage.
@@ -220,17 +225,19 @@ To comply with university norms requiring minimum 75% attendance for examination
 If you are developing inside **Google AI Studio** or a container environment, changes made in the web editor must be pushed to your GitHub repository using one of the following methods:
 
 ### Method A: Use AI Studio GitHub Export (Easiest)
+
 1. In the upper right-hand corner of Google AI Studio, open the **Project Menu** (three dots or Settings gear).
 2. Click **Export to GitHub**.
-3. Select your repository `Pratiksha251001/EduTrack` and confirm the export branch (e.g. `main`).
+3. Select your repository `Pratiksha251001/PakkaPresent` and confirm the export branch (e.g. `main`).
 
 ### Method B: Download ZIP & Push from Your Terminal
+
 1. From the top-right menu, select **Download as ZIP**.
 2. Extract the ZIP file on your computer.
 3. Open a terminal inside the extracted directory and run:
    ```bash
    git init
-   git remote add origin https://github.com/Pratiksha251001/EduTrack.git
+   git remote add origin https://github.com/Pratiksha251001/PakkaPresent.git
    git branch -M main
    git add .
    git commit -m "feat: Add class subject import and attendance enhancements"
@@ -238,6 +245,7 @@ If you are developing inside **Google AI Studio** or a container environment, ch
    ```
 
 ### Method C: Standard Git Workflow (If working locally)
+
 ```bash
 git status
 git add .
@@ -250,7 +258,7 @@ git push origin main
 ## 📁 Project Structure
 
 ```text
-EduTrack/
+PakkaPresent/
 ├── dist/                     # Compiled production build output
 ├── public/                   # Static assets, logos & favicon
 ├── src/
@@ -316,16 +324,16 @@ EduTrack/
 
 In the project directory, you can run:
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Starts the Express server and Vite development server on port `3000` |
-| `npm run build` | Compiles the frontend and packages the server bundle into `dist/` |
-| `npm run start` | Runs the compiled production server |
-| `npm run lint` | Runs TypeScript type checking (`tsc --noEmit`) |
-| `npm run preview` | Previews the production Vite build locally |
+| Command           | Purpose                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| `npm run dev`     | Starts the Express server and Vite development server on port `3000` |
+| `npm run build`   | Compiles the frontend and packages the server bundle into `dist/`    |
+| `npm run start`   | Runs the compiled production server                                  |
+| `npm run lint`    | Runs TypeScript type checking (`tsc --noEmit`)                       |
+| `npm run preview` | Previews the production Vite build locally                           |
 
 ---
 
 ## 📄 License & Academic Note
 
-EduTrack is designed for academic institutions to streamline attendance tracking, prevent student absenteeism, and bridge communication between colleges and parents. Designed and developed with care.
+PakkaPresent is designed for academic institutions to streamline attendance tracking, prevent student absenteeism, and bridge communication between colleges and parents. Designed and developed with care.

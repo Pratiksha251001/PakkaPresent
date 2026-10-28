@@ -42,6 +42,8 @@ export const Students: React.FC = () => {
       <CrudPage<Student>
         title="Students"
         table="students"
+        recordLabel="students"
+        singularRecordLabel="student"
         searchKeys={["full_name", "roll_number", "parent_mobile"]}
         extraHeaderActions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -66,7 +68,10 @@ export const Students: React.FC = () => {
             required: true,
             options: [
               { value: "", label: "Unassigned" },
-              ...departments.map((d) => ({ value: d.id, label: `${d.code} - ${d.name}` })),
+              ...departments.map((d) => ({
+                value: d.id,
+                label: `${d.code} - ${d.name}`,
+              })),
             ],
           },
           {
@@ -80,7 +85,11 @@ export const Students: React.FC = () => {
             })),
           },
           { key: "class_name", label: "Class / Division" },
-          { key: "parent_name", label: "Parent / Guardian Name", required: true },
+          {
+            key: "parent_name",
+            label: "Parent / Guardian Name",
+            required: true,
+          },
           {
             key: "parent_mobile",
             label: "Parent Mobile",
@@ -90,8 +99,17 @@ export const Students: React.FC = () => {
             key: "student_mobile",
             label: "Student Mobile",
           },
-          { key: "email", label: "Student Email", type: "email", required: true },
-          { key: "parent_email", label: "Parent Email (verification required)", type: "email" },
+          {
+            key: "email",
+            label: "Student Email",
+            type: "email",
+            required: true,
+          },
+          {
+            key: "parent_email",
+            label: "Parent Email (verification required)",
+            type: "email",
+          },
         ]}
         columns={[
           {
@@ -124,7 +142,12 @@ export const Students: React.FC = () => {
           {
             header: "Semester",
             render: (s) => (
-              <Badge variant="outline">Semester {s.semester}</Badge>
+              <Badge
+                variant="outline"
+                className="min-w-24 justify-center whitespace-nowrap"
+              >
+                Semester {s.semester}
+              </Badge>
             ),
           },
           {
@@ -156,7 +179,10 @@ export const Students: React.FC = () => {
                   </div>
                 )}
                 {s.email && (
-                  <div className="text-[11px] text-muted-foreground">
+                  <div
+                    className="max-w-56 truncate text-[11px] text-muted-foreground"
+                    title={s.email || ""}
+                  >
                     {s.email}
                   </div>
                 )}

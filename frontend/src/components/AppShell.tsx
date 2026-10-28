@@ -24,10 +24,11 @@ import { useTheme } from "../context/ThemeContext";
 import { college } from "../lib/college";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { EduTrackLogo } from "./EduTrackLogo";
+import { PakkaPresentLogo } from "./PakkaPresentLogo";
 import { NotificationBell } from "./NotificationBell";
 import { Msg91SetupModal } from "./Msg91SetupModal";
 import { getSmsGatewayStatus, SmsGatewayStatus } from "../lib/smsService";
+import { localDb } from "../lib/supabase";
 import {
   getNotificationsForUser,
   getStoredNotifications,
@@ -49,16 +50,23 @@ export const AppShell: React.FC = () => {
   const [smsGatewayStatus, setSmsGatewayStatus] =
     useState<SmsGatewayStatus | null>(null);
 
+  const departmentDisplay = React.useMemo(() => {
+    if (!user?.department_id) return null;
+    const department = localDb.departments.find(
+      (item) => item.id === user.department_id,
+    );
+    return department?.code || department?.name || user.department_id;
+  }, [user?.department_id]);
   const RoleIcon =
     role === "admin"
       ? Shield
       : role === "hod"
-      ? Building2
-      : role === "class_coordinator"
-      ? UserCog
-      : role === "student"
-      ? GraduationCap
-      : Users;
+        ? Building2
+        : role === "class_coordinator"
+          ? UserCog
+          : role === "student"
+            ? GraduationCap
+            : Users;
 
   React.useEffect(() => {
     if (role && role !== "student") {
@@ -171,10 +179,10 @@ export const AppShell: React.FC = () => {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] transition-transform duration-300 ease-in-out lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r-2 border-white/20 bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] transition-transform duration-300 ease-in-out lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-20 shrink-0 items-center justify-between border-b border-[hsl(var(--sidebar-border))] px-5">
-          <EduTrackLogo size="md" variant="horizontal" colorMode="onDark" />
+          <PakkaPresentLogo size="md" variant="horizontal" colorMode="onDark" />
           <button
             className="lg:hidden text-[hsl(var(--sidebar-foreground))] hover:opacity-80"
             onClick={() => setMobileOpen(false)}
@@ -185,32 +193,30 @@ export const AppShell: React.FC = () => {
         <Link
           to="/profile"
           onClick={() => setMobileOpen(false)}
-          className="mx-4 my-3 block shrink-0 rounded-xl bg-[hsl(var(--sidebar-accent))] p-3 border border-[hsl(var(--sidebar-border))] hover:opacity-90 transition-opacity"
+          className="mx-4 my-3 block shrink-0 rounded-2xl border-2 border-white/20 bg-[hsl(var(--sidebar-accent))] p-3 shadow-[0_4px_0_0_rgba(0,0,0,0.22)] transition-transform hover:-translate-y-0.5"
           title="View My Profile & Credentials"
         >
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="truncate text-xs font-semibold">
-                  {user?.full_name || "User"}
-                </p>
-                {isDemo && (
-                  <span className="rounded bg-amber-400/20 px-1 py-0.2 text-[9px] font-bold text-amber-300 uppercase">
-                    Demo
-                  </span>
-                )}
-              </div>
-              <p className="truncate text-[10px] opacity-70">{user?.email}</p>
+          <div className="min-w-0 space-y-1.5">
+            <p className="line-clamp-2 text-xs font-semibold leading-4">
+              {user?.full_name || "User"}
+            </p>
+            <p className="truncate text-[10px] text-white/75">{user?.email}</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {isDemo && (
+                <span className="rounded bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">
+                  Demo
+                </span>
+              )}
+              <Badge
+                variant="default"
+                className="max-w-full border-[hsl(var(--sidebar-primary))]/30 bg-[hsl(var(--sidebar-primary))]/20 text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--sidebar-primary))]"
+              >
+                {role?.replace("_", " ")}
+              </Badge>
             </div>
-            <Badge
-              variant="default"
-              className="bg-[hsl(var(--sidebar-primary))]/20 text-[hsl(var(--sidebar-primary))] border-[hsl(var(--sidebar-primary))]/30 text-[10px] uppercase font-bold tracking-wider ml-2 shrink-0"
-            >
-              {role?.replace("_", " ")}
-            </Badge>
           </div>
         </Link>
-        <nav className="flex-1 min-h-0 space-y-1.5 px-4 py-1 overflow-y-auto overscroll-contain custom-sidebar-scroll">
+        <nav className="flex-1 min-h-0 space-y-2 px-4 py-1 overflow-y-auto overscroll-contain custom-sidebar-scroll">
           {mainNavItems.map((item) => {
             const active = location.pathname === item.path;
             const Icon = item.icon;
@@ -312,7 +318,7 @@ export const AppShell: React.FC = () => {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:ml-72">
         {/* Mobile Header */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
+        <header className="flex h-16 items-center justify-between border-b-2 border-foreground/25 bg-card px-4 shadow-[0_3px_0_0_hsl(var(--foreground)/0.08)] lg:hidden">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
@@ -320,7 +326,7 @@ export const AppShell: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <EduTrackLogo size="sm" variant="horizontal" />
+            <PakkaPresentLogo size="sm" variant="horizontal" />
           </div>
           <div className="flex items-center gap-2">
             {role && role !== "student" && (
@@ -350,7 +356,7 @@ export const AppShell: React.FC = () => {
             </Badge>
             <Link
               to="/profile"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 bg-card text-primary hover:bg-muted/80 transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 bg-card dashboard-accent-text hover:bg-muted/80 transition-colors"
               title="View Profile"
             >
               <RoleIcon className="h-4 w-4" />
@@ -359,14 +365,14 @@ export const AppShell: React.FC = () => {
         </header>
 
         {/* Desktop Header Topbar */}
-        <header className="hidden lg:flex h-16 items-center justify-between border-b border-border/80 bg-card/60 px-8 backdrop-blur-md sticky top-0 z-30">
+        <header className="hidden lg:flex h-16 items-center justify-between border-b-2 border-foreground/25 bg-card/95 px-8 backdrop-blur-md sticky top-0 z-50">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="font-semibold text-foreground tracking-wide">
                 {college.shortName}
               </span>
               <span>•</span>
-              <span className="capitalize font-medium text-primary">
+              <span className="dashboard-accent-text capitalize font-semibold">
                 {role?.replace("_", " ")} Portal
               </span>
               {(role === "student"
@@ -375,7 +381,7 @@ export const AppShell: React.FC = () => {
                 <>
                   <span>•</span>
                   <span className="truncate max-w-56">
-                    {role === "student" ? user.roll_number : user.department_id}
+                    {role === "student" ? user.roll_number : departmentDisplay}
                   </span>
                 </>
               )}
@@ -421,10 +427,10 @@ export const AppShell: React.FC = () => {
             </button>
             <Link
               to="/profile"
-              className="flex items-center gap-2.5 rounded-xl border border-border/70 bg-card px-3 py-1.5 hover:bg-muted/60 hover:border-primary/40 transition-colors shadow-2xs"
+              className="flex items-center gap-2.5 rounded-xl border border-border/70 bg-card px-3 py-1.5 hover:bg-muted/60 hover:border-[hsl(var(--dashboard-accent-border))]/60 transition-colors shadow-2xs"
               title="View Profile"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <div className="dashboard-profile-icon flex h-7 w-7 items-center justify-center rounded-lg">
                 <RoleIcon className="h-4 w-4" />
               </div>
               <span className="text-xs font-medium text-foreground max-w-36 truncate">
@@ -437,7 +443,7 @@ export const AppShell: React.FC = () => {
         {/* Demo / Study Mode Banner */}
         <DemoStudyBanner />
 
-        <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
+        <main className="app-dashboard-canvas flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
           <Outlet />
         </main>
       </div>

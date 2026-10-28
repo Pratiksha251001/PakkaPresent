@@ -428,7 +428,7 @@ export const Attendance: React.FC = () => {
       const cleanPhone = (st.parent_mobile || "").replace(/[^0-9]/g, "");
       const hasMobile = cleanPhone.length >= 10;
       const studentEmail =
-        st.email || `${st.roll_number.toLowerCase()}@student.edutrack.edu`;
+        st.email || `${st.roll_number.toLowerCase()}@student.pakkapresent.edu`;
 
       // 1. Channel: SMS
       if (channels.includes("sms")) {
@@ -857,7 +857,8 @@ export const Attendance: React.FC = () => {
             <div className="flex items-center gap-2">
               <h3 className="font-display text-lg font-bold">Student Roster</h3>
               <Badge variant="outline" className="text-xs font-semibold">
-                {displayedStudents.length} Students
+                {displayedStudents.length}{" "}
+                {displayedStudents.length === 1 ? "Student" : "Students"}
               </Badge>
               {selectedClassName !== "all" && (
                 <Badge
@@ -939,9 +940,7 @@ export const Attendance: React.FC = () => {
                     <TableHead className="min-w-[190px] font-bold">
                       Guardian Contact
                     </TableHead>
-                    <TableHead className="min-w-[100px] text-center font-bold">
-                      Status
-                    </TableHead>
+
                     <TableHead className="min-w-[220px] text-right font-bold pr-4">
                       Attendance Action
                     </TableHead>
@@ -1003,14 +1002,7 @@ export const Attendance: React.FC = () => {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={isAbsent ? "destructive" : "success"}
-                            className="uppercase text-[10px] font-bold px-2 py-0.5 tracking-wider"
-                          >
-                            {status}
-                          </Badge>
-                        </TableCell>
+
                         <TableCell className="text-right pr-4">
                           <div className="inline-flex items-center gap-1.5">
                             <Button

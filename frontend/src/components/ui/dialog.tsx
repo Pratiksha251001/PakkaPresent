@@ -53,18 +53,18 @@ export const DialogContent: React.FC<DialogPartProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-[#191a23]/75 backdrop-blur-sm transition-opacity"
         onClick={() => onOpenChange?.(false)}
       />
       <div
         {...props}
-        className={`relative z-[101] w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl transition-all ${className}`}
+        className={`relative z-[101] w-full max-w-lg rounded-2xl border-2 border-foreground bg-card p-6 shadow-[0_8px_0_0_hsl(var(--foreground)/0.28)] transition-all ${className}`}
       >
         {children}
         <button
           type="button"
           onClick={() => onOpenChange?.(false)}
-          className="absolute right-3.5 top-3.5 z-50 rounded-lg p-1.5 text-muted-foreground hover:bg-muted/80 hover:text-foreground focus:outline-none transition-all cursor-pointer"
+          className="absolute right-3.5 top-3.5 z-50 rounded-full border-2 border-transparent p-1.5 text-muted-foreground transition-all hover:border-foreground/30 hover:bg-primary hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
           aria-label="Close dialog"
           title="Close dialog"
         >
@@ -88,7 +88,7 @@ export const DialogHeader: React.FC<DialogPartProps> = ({
 export const DialogTitle: React.FC<
   React.HTMLAttributes<HTMLHeadingElement>
 > = ({ className = "", children, ...props }) => (
-  <h2 {...props} className={`font-display text-lg font-semibold ${className}`}>
+  <h2 {...props} className={`font-display text-xl font-extrabold ${className}`}>
     {children}
   </h2>
 );
