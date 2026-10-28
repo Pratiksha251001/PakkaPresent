@@ -1486,3 +1486,13 @@ html {
     background: hsl(var(--border) / 0.5);
   }
 }
+/* Theme-aware startup loader contrast */
+.app-startup-spinner {
+  border-color: hsl(var(--dashboard-accent));
+  border-top-color: transparent;
+}
+
+.dark .app-startup-spinner {
+  border-color: hsl(var(--primary));
+  border-top-color: transparent;
+}
