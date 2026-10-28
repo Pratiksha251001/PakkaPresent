@@ -123,7 +123,7 @@ function registerParentNotificationDispatch(
                   message,
                   student_name: student.full_name,
                   attendance_rate: String(rate ?? ""),
-                  college_name: "EduTrack",
+                  college_name: "PakkaPresent",
                 },
               }),
             },

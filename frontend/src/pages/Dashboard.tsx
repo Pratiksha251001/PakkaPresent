@@ -91,12 +91,12 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-l-4 border-l-primary">
+        <Card className="dashboard-primary-metric border-l-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Total Active Students
             </CardTitle>
-            <GraduationCap className="h-5 w-5 text-primary" />
+            <GraduationCap className="h-5 w-5 dashboard-accent-text" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-display font-extrabold">
@@ -156,7 +156,7 @@ export const Dashboard: React.FC = () => {
       {role === "admin" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-l-4 border-l-cyan-500">
-            <CardContent className="pt-5">
+            <CardContent className="py-4">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Departments
               </p>
@@ -166,7 +166,7 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
           <Card className="border-l-4 border-l-violet-500">
-            <CardContent className="pt-5">
+            <CardContent className="py-4">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Teachers
               </p>
@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
           <Card className="border-l-4 border-l-emerald-500">
-            <CardContent className="pt-5">
+            <CardContent className="py-4">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Class Coordinators
               </p>
@@ -186,7 +186,7 @@ export const Dashboard: React.FC = () => {
             </CardContent>
           </Card>
           <Card className="border-l-4 border-l-amber-500">
-            <CardContent className="pt-5">
+            <CardContent className="py-4">
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Institution
               </p>
@@ -202,8 +202,8 @@ export const Dashboard: React.FC = () => {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base font-bold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" /> Daily Attendance
-              Trend (%)
+              <TrendingUp className="h-4 w-4 dashboard-accent-text" /> Daily
+              Attendance Trend (%)
             </CardTitle>
           </CardHeader>
           <CardContent className="h-72">
@@ -214,18 +214,45 @@ export const Dashboard: React.FC = () => {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="date" fontSize={12} />
-                  <YAxis domain={[50, 100]} fontSize={12} unit="%" />
+                  <CartesianGrid
+                    stroke="hsl(var(--chart-grid))"
+                    strokeDasharray="4 4"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    fontSize={12}
+                    tick={{ fill: "hsl(var(--chart-label))" }}
+                    axisLine={{ stroke: "hsl(var(--chart-axis))" }}
+                    tickLine={{ stroke: "hsl(var(--chart-axis))" }}
+                  />
+                  <YAxis
+                    domain={[50, 100]}
+                    fontSize={12}
+                    unit="%"
+                    tick={{ fill: "hsl(var(--chart-label))" }}
+                    axisLine={{ stroke: "hsl(var(--chart-axis))" }}
+                    tickLine={{ stroke: "hsl(var(--chart-axis))" }}
+                  />
                   <Tooltip
                     formatter={(value: any) => [`${value}%`, "Attendance"]}
                   />
                   <Line
                     type="monotone"
                     dataKey="rate"
-                    stroke="oklch(42% 0.09 158)"
+                    stroke="hsl(var(--chart-line))"
                     strokeWidth={3}
-                    dot={{ r: 4 }}
+                    dot={{
+                      r: 4,
+                      fill: "hsl(var(--card))",
+                      stroke: "hsl(var(--chart-line))",
+                      strokeWidth: 3,
+                    }}
+                    activeDot={{
+                      r: 6,
+                      fill: "hsl(var(--card))",
+                      stroke: "hsl(var(--chart-line))",
+                      strokeWidth: 3,
+                    }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -254,7 +281,7 @@ export const Dashboard: React.FC = () => {
                 {defaulters.map((st) => (
                   <div
                     key={st.id}
-                    className="flex items-center justify-between rounded-lg border border-border p-2.5"
+                    className="dashboard-nested-row flex items-center justify-between rounded-lg p-2.5"
                   >
                     <div>
                       <p className="text-sm font-semibold">{st.full_name}</p>

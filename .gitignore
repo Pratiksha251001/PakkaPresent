@@ -28,3 +28,5 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+# AI Studio generated workspace
+.aistudio/

@@ -338,7 +338,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const defaultAdminEmail =
       import.meta.env.VITE_DEFAULT_ADMIN_EMAIL?.trim().toLowerCase() ||
-      "edutrack.work@gmail.com";
+      "pakkapresent@gmail.com";
     const defaultAdminName =
       import.meta.env.VITE_DEFAULT_ADMIN_NAME?.trim() ||
       "Institutional Administrator";
@@ -352,7 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       hod: {
         id: "hod-user-id",
-        email: "hod.cse@edutrack.edu",
+        email: "hod.cse@pakkapresent.edu",
         full_name: "Dr. Robert Vance (HOD)",
         department_id: "dept-1",
         teacher_id: "t-1",
@@ -360,7 +360,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       teacher: {
         id: "teacher-user-id",
-        email: "s.jenkins@edutrack.edu",
+        email: "s.jenkins@pakkapresent.edu",
         full_name: "Prof. Sarah Jenkins",
         department_id: "dept-1",
         teacher_id: "t-2",
@@ -368,7 +368,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       class_coordinator: {
         id: "cc-user-id",
-        email: "e.watson@edutrack.edu",
+        email: "e.watson@pakkapresent.edu",
         full_name: "Prof. Emily Watson (Class Coordinator)",
         department_id: "dept-1",
         teacher_id: "t-4",
@@ -376,7 +376,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       student: {
         id: "student-user-id",
-        email: "alex.h@student.edutrack.edu",
+        email: "alex.h@student.pakkapresent.edu",
         full_name: "Alexander Hayes",
         department_id: "dept-1",
         student_id: "st-1",

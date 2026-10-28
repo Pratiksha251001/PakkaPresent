@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { college } from "../lib/college";
-import { EduTrackLogo } from "./EduTrackLogo";
+import { PakkaPresentLogo } from "./PakkaPresentLogo";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
@@ -119,7 +119,7 @@ export const ForcePasswordChangeModal: React.FC = () => {
       >
         {/* Top Institutional Badge */}
         <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-          <EduTrackLogo size="sm" variant="horizontal" />
+          <PakkaPresentLogo size="sm" variant="horizontal" />
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
             <span className="font-medium text-amber-600 dark:text-amber-400">
@@ -322,7 +322,7 @@ export const ForcePasswordChangeModal: React.FC = () => {
         </form>
 
         <div className="mt-5 text-center text-[11px] text-muted-foreground border-t border-border pt-3">
-          EduTrack · Official Security Safeguard
+          PakkaPresent · Official Security Safeguard
         </div>
       </div>
     </div>

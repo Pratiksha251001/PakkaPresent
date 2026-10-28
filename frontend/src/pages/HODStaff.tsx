@@ -1731,35 +1731,47 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
         {/* TABULAR FORM VIEW (PERMANENT) */}
         {/* ========================================================================= */}
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <Table className="w-full text-xs">
-              <TableHeader className="bg-muted/70 border-b border-border">
+          <div
+            className={
+              sortedTeachers.length === 0
+                ? "overflow-hidden"
+                : "overflow-x-auto"
+            }
+          >
+            <Table className="w-full text-xs [&_th]:px-2 [&_td]:px-2">
+              <TableHeader
+                className={
+                  sortedTeachers.length === 0
+                    ? "hidden"
+                    : "border-b border-border bg-muted/70"
+                }
+              >
                 <TableRow>
                   <TableHead className="w-12 text-center font-bold">
                     #
                   </TableHead>
-                  <TableHead className="min-w-[210px] font-bold">
+                  <TableHead className="min-w-[170px] font-bold">
                     Faculty Member
                   </TableHead>
-                  <TableHead className="min-w-[110px] font-bold">
+                  <TableHead className="min-w-[110px] pl-3 font-bold">
                     College ID
                   </TableHead>
-                  <TableHead className="min-w-[130px] font-bold">
+                  <TableHead className="min-w-[120px] font-bold">
                     Academic Role
                   </TableHead>
-                  <TableHead className="min-w-[170px] font-bold">
+                  <TableHead className="min-w-[125px] font-bold">
                     Coordinated Classes
                   </TableHead>
-                  <TableHead className="min-w-[190px] font-bold">
+                  <TableHead className="min-w-[160px] font-bold">
                     Teaching Subjects
                   </TableHead>
-                  <TableHead className="min-w-[150px] font-bold">
+                  <TableHead className="min-w-[135px] font-bold">
                     Contact Details
                   </TableHead>
-                  <TableHead className="min-w-[110px] font-bold">
+                  <TableHead className="min-w-[100px] font-bold">
                     Portal Access
                   </TableHead>
-                  <TableHead className="min-w-[120px] text-right font-bold pr-4">
+                  <TableHead className="min-w-[105px] text-center font-bold">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -1769,18 +1781,21 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   <TableRow>
                     <TableCell
                       colSpan={9}
-                      className="py-14 text-center text-muted-foreground"
+                      className="py-9 text-center text-muted-foreground"
                     >
                       <div className="max-w-md mx-auto space-y-3">
                         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
                           <Users className="h-6 w-6" />
                         </div>
                         <p className="text-sm font-semibold text-foreground">
-                          No {mode} found matching query
+                          {search.trim()
+                            ? `No ${mode} match your search`
+                            : `No ${mode} added yet`}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Add staff manually or use the Excel / CSV import to
-                          load multiple faculty teachers at once.
+                          {search.trim()
+                            ? "Try a different name, ID, mobile number, designation, or qualification."
+                            : "Add staff manually or import multiple faculty members from Excel or CSV."}
                         </p>
                         <div className="flex items-center justify-center gap-2 pt-2">
                           <Button
@@ -1836,10 +1851,10 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                     return (
                       <TableRow
                         key={teacher.id}
-                        className="hover:bg-muted/40 transition-colors"
+                        className="group transition-colors hover:bg-muted/40"
                       >
                         {/* 1. Index # */}
-                        <TableCell className="text-center font-mono text-xs text-muted-foreground font-semibold">
+                        <TableCell className="text-center font-mono text-xs font-semibold text-muted-foreground">
                           {idx + 1}
                         </TableCell>
 
@@ -1870,7 +1885,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         </TableCell>
 
                         {/* 3. College Employee ID */}
-                        <TableCell>
+                        <TableCell className="pl-3">
                           <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded border border-border text-foreground">
                             {teacher.employee_id}
                           </span>
@@ -1896,7 +1911,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         {/* 5. Coordinated Classes */}
                         <TableCell>
                           {isCC ? (
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            <div className="flex flex-wrap gap-1 max-w-[160px]">
                               {teacherCoordinatedClasses.length > 0 ? (
                                 teacherCoordinatedClasses.map((c) => (
                                   <Badge
@@ -1953,7 +1968,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         {/* 6. Teaching Subjects */}
                         <TableCell>
                           {teacherTs.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 max-w-[210px]">
+                            <div className="flex flex-col items-start gap-1 max-w-[180px]">
                               {Object.entries(groupedTs).map(
                                 ([sId, cNames]) => {
                                   const sub = departmentSubjects.find(
@@ -1963,7 +1978,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                                     <Badge
                                       key={sId}
                                       variant="outline"
-                                      className="text-[10px] font-mono bg-muted/60 text-foreground border-border/80"
+                                      className="max-w-[175px] whitespace-normal break-words text-left leading-4 text-[10px] font-mono bg-muted/60 text-foreground border-border/80"
                                       title={sub?.name || ""}
                                     >
                                       {sub?.code || "SUB"}
@@ -2011,7 +2026,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                             )}
                             {teacher.email && (
                               <span
-                                className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate max-w-[150px]"
+                                className="flex items-center gap-1.5 text-[11px] text-muted-foreground max-w-[145px]"
                                 title={teacher.email}
                               >
                                 <Mail className="h-3 w-3 shrink-0" />
@@ -2038,8 +2053,8 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         </TableCell>
 
                         {/* 10. Actions */}
-                        <TableCell className="text-right pr-4">
-                          <div className="flex items-center justify-end gap-1">
+                        <TableCell className="text-center">
+                          <div className="inline-flex items-center justify-center gap-1">
                             <Button
                               variant="ghost"
                               size="icon"

@@ -497,7 +497,7 @@ export const SmsLogs: React.FC = () => {
                             <XCircle className="h-3 w-3 mr-1 inline" />
                           )}
                           {log.status === "sent"
-                            ? "Marked Sent (Not Delivery Confirmed)"
+                            ? "Accepted · Delivery pending"
                             : log.status === "pending"
                               ? "Pending"
                               : "Failed"}
@@ -510,43 +510,34 @@ export const SmsLogs: React.FC = () => {
                       </div>
                     </TableCell>
 
-                    {/* Message Cell with only Arrow Icon */}
-                    <TableCell className="text-xs max-w-md align-top py-3">
-                      {isExpanded ? (
-                        <div className="space-y-1">
-                          <div className="whitespace-pre-line text-foreground/90 bg-muted/20 p-2.5 rounded-lg border border-border/40 font-sans leading-relaxed text-xs">
-                            {cleanMsg}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(log.id)}
-                            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors inline-flex items-center"
-                            title="Collapse message"
-                            aria-label="Collapse message"
-                          >
-                            <ChevronUp className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <p
-                            onClick={() => toggleExpand(log.id)}
-                            className="line-clamp-1 text-muted-foreground hover:text-foreground cursor-pointer font-sans text-xs bg-muted/10 px-2.5 py-1 rounded border border-border/30 transition-colors flex-1"
-                            title="Click to view full message"
-                          >
-                            {cleanMsg.replace(/\s+/g, " ")}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(log.id)}
-                            className="p-1 rounded text-primary hover:text-primary/80 hover:bg-muted/50 transition-colors shrink-0 inline-flex items-center"
-                            title="Expand message"
-                            aria-label="Expand message"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
+                    {/* Unified message expansion control */}
+                    <TableCell className="max-w-md py-3 align-top text-xs">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(log.id)}
+                        className="flex w-full items-start gap-2 rounded-lg border border-border/50 bg-muted/10 px-2.5 py-2 text-left font-sans text-xs transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-expanded={isExpanded}
+                        title={
+                          isExpanded ? "Collapse message" : "View full message"
+                        }
+                      >
+                        <span
+                          className={
+                            isExpanded
+                              ? "flex-1 whitespace-pre-line leading-relaxed text-foreground/90"
+                              : "line-clamp-1 flex-1 text-muted-foreground"
+                          }
+                        >
+                          {isExpanded
+                            ? cleanMsg
+                            : cleanMsg.replace(/\s+/g, " ")}
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        )}
+                      </button>
                     </TableCell>
                   </TableRow>
                 );

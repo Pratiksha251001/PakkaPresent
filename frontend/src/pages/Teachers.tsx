@@ -34,6 +34,7 @@ export const Teachers: React.FC = () => {
         title="Teachers & Faculty"
         table="teachers"
         searchKeys={["full_name", "employee_id", "email", "mobile", "role"]}
+        recordLabel="faculty members"
         sortItems={(a, b) =>
           ({ hod: 0, class_coordinator: 1, lecturer: 2 })[a.role] -
           { hod: 0, class_coordinator: 1, lecturer: 2 }[b.role]
@@ -62,7 +63,12 @@ export const Teachers: React.FC = () => {
             required: true,
           },
           { key: "full_name", label: "Full Name", required: true },
-          { key: "email", label: "Email Address", type: "email", required: true },
+          {
+            key: "email",
+            label: "Email Address",
+            type: "email",
+            required: true,
+          },
           {
             key: "mobile",
             label: "Mobile Number (Optional)",
@@ -163,29 +169,31 @@ export const Teachers: React.FC = () => {
           },
           {
             header: "Faculty Name",
-            render: (t) => <span className="font-semibold block">{t.full_name}</span>,
+            render: (t) => (
+              <span className="font-semibold block">{t.full_name}</span>
+            ),
           },
           {
             header: "Role",
             render: (t) => {
               const coordClass = localDb.academic_classes.find(
-                (c) => c.coordinator_teacher_id === t.id
+                (c) => c.coordinator_teacher_id === t.id,
               );
               const yrCode =
                 t.assigned_year === 1
                   ? "FY"
                   : t.assigned_year === 2
-                  ? "SY"
-                  : t.assigned_year === 3
-                  ? "TY"
-                  : t.assigned_year === 4
-                  ? "BE"
-                  : "";
+                    ? "SY"
+                    : t.assigned_year === 3
+                      ? "TY"
+                      : t.assigned_year === 4
+                        ? "BE"
+                        : "";
               const label = coordClass?.name || yrCode;
 
               return (
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                  className={`inline-flex max-w-[11rem] items-center whitespace-normal break-words px-2 py-0.5 rounded text-xs leading-4 font-medium border ${
                     t.role === "hod"
                       ? "bg-primary/10 text-primary border-primary/25 font-semibold"
                       : t.role === "class_coordinator"
@@ -193,11 +201,20 @@ export const Teachers: React.FC = () => {
                         : "bg-muted/60 text-muted-foreground border-border/60"
                   }`}
                 >
-                  {t.role === "class_coordinator"
-                    ? `Class Coordinator${label ? ` [${label}]` : ""}`
-                    : t.role === "hod"
-                      ? "HOD & Lecturer"
-                      : "Lecturer"}
+                  {t.role === "class_coordinator" ? (
+                    <span className="flex flex-col items-start leading-tight">
+                      <span>Class Coordinator</span>
+                      {label && (
+                        <span className="mt-0.5 text-[10px] font-medium opacity-80">
+                          {label}
+                        </span>
+                      )}
+                    </span>
+                  ) : t.role === "hod" ? (
+                    "HOD & Lecturer"
+                  ) : (
+                    "Lecturer"
+                  )}
                 </span>
               );
             },

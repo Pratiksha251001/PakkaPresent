@@ -26,7 +26,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           className={cn(
-            "flex h-9 w-full rounded-lg border border-input bg-card px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-10 w-full rounded-xl border-2 border-foreground/45 bg-card px-3 py-2 text-sm font-medium shadow-none transition-colors focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50",
             className,
           )}
           {...props}
@@ -70,7 +70,7 @@ export const SelectTrigger: React.FC<
       {...props}
       onClick={() => context?.setOpen(!context.open)}
       className={cn(
-        "flex h-9 w-full items-center justify-between rounded-lg border border-input bg-card px-3 py-1 text-sm shadow-sm",
+        "flex h-10 w-full items-center justify-between rounded-xl border-2 border-foreground/45 bg-card px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
     >
@@ -79,12 +79,13 @@ export const SelectTrigger: React.FC<
   );
 };
 
-export const SelectValue: React.FC<{ placeholder?: string }> = ({
-  placeholder,
-}) => {
+export const SelectValue: React.FC<{
+  placeholder?: string;
+  displayValue?: string;
+}> = ({ placeholder, displayValue }) => {
   const context = useContext(SelectContext);
   const label = context?.value;
-  return <span>{label || placeholder || ""}</span>;
+  return <span>{displayValue || label || placeholder || ""}</span>;
 };
 
 export const SelectContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
@@ -98,7 +99,7 @@ export const SelectContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
     <div
       {...props}
       className={cn(
-        "absolute left-0 top-full z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-card p-1 shadow-lg",
+        "absolute left-0 top-full z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border-2 border-foreground bg-card p-1 shadow-[0_5px_0_0_hsl(var(--foreground)/0.22)]",
         className,
       )}
     >
@@ -116,7 +117,7 @@ export const SelectItem: React.FC<
       type="button"
       {...props}
       className={cn(
-        "block w-full rounded-md px-3 py-2 text-left text-sm hover:bg-muted",
+        "block w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
       onClick={() => {

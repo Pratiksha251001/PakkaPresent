@@ -134,13 +134,15 @@ function printAsciiTerminalBanner() {
     "\n\x1b[36m======================================================================\x1b[0m",
   );
   console.log(
-    "\x1b[1;32m  🎓 EDUTRACK INSTITUTIONAL BACKEND ENGINE — ONLINE\x1b[0m",
+    "\x1b[1;32m  🎓 PAKKAPRESENT INSTITUTIONAL BACKEND ENGINE — ONLINE\x1b[0m",
   );
   console.log(
     "\x1b[36m======================================================================\x1b[0m",
   );
   console.log(`\x1b[34m• Service:\x1b[0m      Node.js Express + TypeScript`);
-  console.log(`\x1b[34m• Host/Port:\x1b[0m    0.0.0.0:${process.env.PORT || 4000}`);
+  console.log(
+    `\x1b[34m• Host/Port:\x1b[0m    0.0.0.0:${process.env.PORT || 4000}`,
+  );
   console.log(`\x1b[34m• Supabase URL:\x1b[0m ${supabaseUrl}`);
   console.log(
     `\x1b[34m• Target DB:\x1b[0m    PostgreSQL (Cloud Supabase Engine)`,
@@ -164,7 +166,7 @@ async function startServer() {
   app.use(express.json());
 
   printAsciiTerminalBanner();
-  addLog("info", `Starting EduTrack backend server on port ${PORT}...`);
+  addLog("info", `Starting PakkaPresent backend server on port ${PORT}...`);
 
   // API 1: Health check
   app.get("/api/health", (req, res) => {
@@ -172,7 +174,7 @@ async function startServer() {
       status: "ok",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      service: "EduTrack Backend",
+      service: "PakkaPresent Backend",
       dbConnected: isDbConnected,
     });
   });
@@ -224,7 +226,10 @@ async function startServer() {
   // UNIVERSAL MULTI-PROVIDER SMS GATEWAY PROXY APIs
   // Supports: Fast2SMS (India Plain SMS), MSG91, Twilio, Textlocal, Custom REST APIs
   // =========================================================================
-  const SMS_CONFIG_FILE = path.resolve(process.cwd(), "sms-gateway-config.json");
+  const SMS_CONFIG_FILE = path.resolve(
+    process.cwd(),
+    "sms-gateway-config.json",
+  );
 
   interface SmsConfigStore {
     activeProvider: "fast2sms" | "msg91" | "twilio" | "textlocal" | "custom";
@@ -260,9 +265,15 @@ async function startServer() {
 
   function loadSmsConfig(): SmsConfigStore {
     const defaultConfig: SmsConfigStore = {
-      activeProvider: (process.env.SMS_PROVIDER as any) || (process.env.MSG91_AUTHKEY ? "msg91" : "fast2sms"),
+      activeProvider:
+        (process.env.SMS_PROVIDER as any) ||
+        (process.env.MSG91_AUTHKEY ? "msg91" : "fast2sms"),
       fast2sms: {
-        apiKey: (process.env.FAST2SMS_API_KEY || process.env.VITE_FAST2SMS_API_KEY || "").trim(),
+        apiKey: (
+          process.env.FAST2SMS_API_KEY ||
+          process.env.VITE_FAST2SMS_API_KEY ||
+          ""
+        ).trim(),
         route: "q",
       },
       msg91: {
@@ -287,10 +298,22 @@ async function startServer() {
         sender: (process.env.TEXTLOCAL_SENDER || "TXTLCL").trim(),
       },
       custom: {
-        url: (process.env.CUSTOM_SMS_URL || process.env.VITE_SMS_API_URL || "").trim(),
+        url: (
+          process.env.CUSTOM_SMS_URL ||
+          process.env.VITE_SMS_API_URL ||
+          ""
+        ).trim(),
         method: "POST",
-        headers: JSON.stringify({ "Content-Type": "application/json" }, null, 2),
-        bodyTemplate: JSON.stringify({ to: "{clean10}", message: "{message}" }, null, 2),
+        headers: JSON.stringify(
+          { "Content-Type": "application/json" },
+          null,
+          2,
+        ),
+        bodyTemplate: JSON.stringify(
+          { to: "{clean10}", message: "{message}" },
+          null,
+          2,
+        ),
         apiKey: (process.env.CUSTOM_SMS_API_KEY || "").trim(),
         senderId: "EDUTRK",
       },
@@ -306,7 +329,10 @@ async function startServer() {
           fast2sms: { ...defaultConfig.fast2sms, ...(parsed.fast2sms || {}) },
           msg91: { ...defaultConfig.msg91, ...(parsed.msg91 || {}) },
           twilio: { ...defaultConfig.twilio, ...(parsed.twilio || {}) },
-          textlocal: { ...defaultConfig.textlocal, ...(parsed.textlocal || {}) },
+          textlocal: {
+            ...defaultConfig.textlocal,
+            ...(parsed.textlocal || {}),
+          },
           custom: { ...defaultConfig.custom, ...(parsed.custom || {}) },
         };
       }
@@ -366,16 +392,25 @@ async function startServer() {
     };
   }
 
-  function isProviderConfigured(provider: string, cfg: SmsConfigStore): boolean {
+  function isProviderConfigured(
+    provider: string,
+    cfg: SmsConfigStore,
+  ): boolean {
     switch (provider) {
       case "fast2sms":
         return Boolean(cfg.fast2sms?.apiKey && cfg.fast2sms.apiKey.length > 5);
       case "msg91":
         return Boolean(cfg.msg91?.authKey && cfg.msg91.authKey.length > 5);
       case "twilio":
-        return Boolean(cfg.twilio?.accountSid && cfg.twilio?.authToken && cfg.twilio?.fromNumber);
+        return Boolean(
+          cfg.twilio?.accountSid &&
+          cfg.twilio?.authToken &&
+          cfg.twilio?.fromNumber,
+        );
       case "textlocal":
-        return Boolean(cfg.textlocal?.apiKey && cfg.textlocal.apiKey.length > 5);
+        return Boolean(
+          cfg.textlocal?.apiKey && cfg.textlocal.apiKey.length > 5,
+        );
       case "custom":
         return Boolean(cfg.custom?.url && cfg.custom.url.startsWith("http"));
       default:
@@ -394,7 +429,7 @@ async function startServer() {
     },
     providerName: string,
     cfg: SmsConfigStore,
-    overrideOpts?: any
+    overrideOpts?: any,
   ): Promise<{
     success: boolean;
     provider: string;
@@ -416,7 +451,12 @@ async function startServer() {
 
     // PROVIDER 1: Fast2SMS (India Plain Direct SMS, No DLT needed)
     if (providerName === "fast2sms") {
-      const apiKey = (overrideOpts?.apiKey || overrideOpts?.authKey || cfg.fast2sms.apiKey || "").trim();
+      const apiKey = (
+        overrideOpts?.apiKey ||
+        overrideOpts?.authKey ||
+        cfg.fast2sms.apiKey ||
+        ""
+      ).trim();
       if (!apiKey) {
         return {
           success: false,
@@ -446,10 +486,12 @@ async function startServer() {
       });
 
       const fData: any = await fRes.json().catch(() => ({}));
-      const ok = fRes.ok && (fData.return === true || fData.status_code === 200);
+      const ok =
+        fRes.ok && (fData.return === true || fData.status_code === 200);
       const msgDetails = Array.isArray(fData.message)
         ? fData.message.join(", ")
-        : fData.message || (ok ? "Dispatched via Fast2SMS" : `Fast2SMS HTTP ${fRes.status}`);
+        : fData.message ||
+          (ok ? "Dispatched via Fast2SMS" : `Fast2SMS HTTP ${fRes.status}`);
 
       return {
         success: ok,
@@ -462,7 +504,12 @@ async function startServer() {
 
     // PROVIDER 2: MSG91
     if (providerName === "msg91") {
-      const authKey = (overrideOpts?.authKey || overrideOpts?.apiKey || cfg.msg91.authKey || "").trim();
+      const authKey = (
+        overrideOpts?.authKey ||
+        overrideOpts?.apiKey ||
+        cfg.msg91.authKey ||
+        ""
+      ).trim();
       if (!authKey) {
         return {
           success: false,
@@ -470,8 +517,16 @@ async function startServer() {
           details: "MSG91 AuthKey not configured.",
         };
       }
-      const senderId = (overrideOpts?.senderId || cfg.msg91.senderId || "EDUTRK").trim();
-      const templateId = (overrideOpts?.templateId || cfg.msg91.templateId || "").trim();
+      const senderId = (
+        overrideOpts?.senderId ||
+        cfg.msg91.senderId ||
+        "EDUTRK"
+      ).trim();
+      const templateId = (
+        overrideOpts?.templateId ||
+        cfg.msg91.templateId ||
+        ""
+      ).trim();
       const route = (overrideOpts?.route || cfg.msg91.route || "4").trim();
       const dltTeId = (overrideOpts?.dltTeId || cfg.msg91.dltTeId || "").trim();
 
@@ -492,19 +547,25 @@ async function startServer() {
             ],
           };
 
-          const flowRes = await fetch("https://control.msg91.com/api/v5/flow/", {
-            method: "POST",
-            headers: {
-              authkey: authKey,
-              "content-type": "application/json",
-              accept: "application/json",
+          const flowRes = await fetch(
+            "https://control.msg91.com/api/v5/flow/",
+            {
+              method: "POST",
+              headers: {
+                authkey: authKey,
+                "content-type": "application/json",
+                accept: "application/json",
+              },
+              body: JSON.stringify(flowPayload),
+              signal: AbortSignal.timeout(10000),
             },
-            body: JSON.stringify(flowPayload),
-            signal: AbortSignal.timeout(10000),
-          });
+          );
 
           const flowData: any = await flowRes.json().catch(() => ({}));
-          if (flowRes.ok && (flowData.type === "success" || flowRes.status === 200)) {
+          if (
+            flowRes.ok &&
+            (flowData.type === "success" || flowRes.status === 200)
+          ) {
             return {
               success: true,
               provider: "MSG91 Flow",
@@ -528,14 +589,21 @@ async function startServer() {
       });
       if (dltTeId) queryParams.append("DLT_TE_ID", dltTeId);
 
-      const httpRes = await fetch(`https://control.msg91.com/api/sendhttp.php?${queryParams.toString()}`, {
-        method: "GET",
-        signal: AbortSignal.timeout(10000),
-      });
+      const httpRes = await fetch(
+        `https://control.msg91.com/api/sendhttp.php?${queryParams.toString()}`,
+        {
+          method: "GET",
+          signal: AbortSignal.timeout(10000),
+        },
+      );
 
       const respText = await httpRes.text();
       const is418 = respText.includes("418");
-      const ok = httpRes.ok && !respText.toLowerCase().includes("error") && !respText.toLowerCase().includes("invalid") && !is418;
+      const ok =
+        httpRes.ok &&
+        !respText.toLowerCase().includes("error") &&
+        !respText.toLowerCase().includes("invalid") &&
+        !is418;
 
       return {
         success: ok,
@@ -544,22 +612,37 @@ async function startServer() {
         error418: is418,
         details: is418
           ? "MSG91 Error 418: IP whitelist active in MSG91 dashboard. Whitelist your server IP or disable IP restriction in MSG91 Authkey settings."
-          : (ok ? `Accepted by MSG91 (${respText.trim()})` : `MSG91: ${respText.trim() || `HTTP ${httpRes.status}`}`),
+          : ok
+            ? `Accepted by MSG91 (${respText.trim()})`
+            : `MSG91: ${respText.trim() || `HTTP ${httpRes.status}`}`,
         raw: respText.trim(),
       };
     }
 
     // PROVIDER 3: Twilio
     if (providerName === "twilio") {
-      const accountSid = (overrideOpts?.accountSid || cfg.twilio.accountSid || "").trim();
-      const authToken = (overrideOpts?.authToken || cfg.twilio.authToken || "").trim();
-      const fromNumber = (overrideOpts?.fromNumber || cfg.twilio.fromNumber || "").trim();
+      const accountSid = (
+        overrideOpts?.accountSid ||
+        cfg.twilio.accountSid ||
+        ""
+      ).trim();
+      const authToken = (
+        overrideOpts?.authToken ||
+        cfg.twilio.authToken ||
+        ""
+      ).trim();
+      const fromNumber = (
+        overrideOpts?.fromNumber ||
+        cfg.twilio.fromNumber ||
+        ""
+      ).trim();
 
       if (!accountSid || !authToken || !fromNumber) {
         return {
           success: false,
           provider: "Twilio",
-          details: "Twilio credentials incomplete (Account SID, Auth Token, From Number required).",
+          details:
+            "Twilio credentials incomplete (Account SID, Auth Token, From Number required).",
         };
       }
 
@@ -568,16 +651,20 @@ async function startServer() {
       params.append("From", fromNumber);
       params.append("Body", text);
 
-      const authHeader = "Basic " + Buffer.from(`${accountSid}:${authToken}`).toString("base64");
-      const twRes = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-        method: "POST",
-        headers: {
-          Authorization: authHeader,
-          "Content-Type": "application/x-www-form-urlencoded",
+      const authHeader =
+        "Basic " + Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+      const twRes = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
+          signal: AbortSignal.timeout(10000),
         },
-        body: params.toString(),
-        signal: AbortSignal.timeout(10000),
-      });
+      );
 
       const twData: any = await twRes.json().catch(() => ({}));
       const ok = twRes.ok && Boolean(twData.sid);
@@ -585,15 +672,27 @@ async function startServer() {
         success: ok,
         provider: "Twilio",
         messageId: twData.sid,
-        details: ok ? `Delivered via Twilio (${twData.status})` : (twData.message || twData.error_message || `Twilio HTTP ${twRes.status}`),
+        details: ok
+          ? `Delivered via Twilio (${twData.status})`
+          : twData.message ||
+            twData.error_message ||
+            `Twilio HTTP ${twRes.status}`,
         raw: twData,
       };
     }
 
     // PROVIDER 4: Textlocal
     if (providerName === "textlocal") {
-      const apiKey = (overrideOpts?.apiKey || cfg.textlocal.apiKey || "").trim();
-      const sender = (overrideOpts?.sender || cfg.textlocal.sender || "TXTLCL").trim();
+      const apiKey = (
+        overrideOpts?.apiKey ||
+        cfg.textlocal.apiKey ||
+        ""
+      ).trim();
+      const sender = (
+        overrideOpts?.sender ||
+        cfg.textlocal.sender ||
+        "TXTLCL"
+      ).trim();
       if (!apiKey) {
         return {
           success: false,
@@ -621,14 +720,21 @@ async function startServer() {
         success: ok,
         provider: "Textlocal",
         messageId: tlData.batch_id,
-        details: ok ? "Accepted by Textlocal" : (tlData.errors?.[0]?.message || `Textlocal HTTP ${tlRes.status}`),
+        details: ok
+          ? "Accepted by Textlocal"
+          : tlData.errors?.[0]?.message || `Textlocal HTTP ${tlRes.status}`,
         raw: tlData,
       };
     }
 
     // PROVIDER 5: Custom Gateway / Webhook / Any REST API
     if (providerName === "custom") {
-      const customUrl = (overrideOpts?.customUrl || overrideOpts?.url || cfg.custom.url || "").trim();
+      const customUrl = (
+        overrideOpts?.customUrl ||
+        overrideOpts?.url ||
+        cfg.custom.url ||
+        ""
+      ).trim();
       if (!customUrl) {
         return {
           success: false,
@@ -636,7 +742,12 @@ async function startServer() {
           details: "Custom Gateway URL is not configured.",
         };
       }
-      const method = ((overrideOpts?.customMethod || overrideOpts?.method || cfg.custom.method || "POST") as string).toUpperCase();
+      const method = (
+        (overrideOpts?.customMethod ||
+          overrideOpts?.method ||
+          cfg.custom.method ||
+          "POST") as string
+      ).toUpperCase();
 
       const replacePlaceholders = (str: string) => {
         return str
@@ -648,18 +759,32 @@ async function startServer() {
           .replace(/{encodedMessage}/g, encodeURIComponent(text))
           .replace(/{studentName}/g, recipient.studentName || "")
           .replace(/{subject}/g, recipient.subject || "")
-          .replace(/{date}/g, recipient.date || new Date().toISOString().split("T")[0])
+          .replace(
+            /{date}/g,
+            recipient.date || new Date().toISOString().split("T")[0],
+          )
           .replace(/{apiKey}/g, overrideOpts?.apiKey || cfg.custom.apiKey || "")
-          .replace(/{senderId}/g, overrideOpts?.senderId || cfg.custom.senderId || "EDUTRK");
+          .replace(
+            /{senderId}/g,
+            overrideOpts?.senderId || cfg.custom.senderId || "EDUTRK",
+          );
       };
 
       const finalUrl = replacePlaceholders(customUrl);
 
-      let reqHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      const rawHeaders = overrideOpts?.customHeaders || overrideOpts?.headers || cfg.custom.headers;
+      let reqHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      const rawHeaders =
+        overrideOpts?.customHeaders ||
+        overrideOpts?.headers ||
+        cfg.custom.headers;
       if (rawHeaders) {
         try {
-          const parsed = typeof rawHeaders === "string" ? JSON.parse(replacePlaceholders(rawHeaders)) : rawHeaders;
+          const parsed =
+            typeof rawHeaders === "string"
+              ? JSON.parse(replacePlaceholders(rawHeaders))
+              : rawHeaders;
           reqHeaders = { ...reqHeaders, ...parsed };
         } catch {}
       }
@@ -671,7 +796,11 @@ async function startServer() {
       };
 
       if (method === "POST" || method === "PUT" || method === "PATCH") {
-        const rawBody = overrideOpts?.customBody || overrideOpts?.bodyTemplate || cfg.custom.bodyTemplate || '{"to":"{clean10}","message":"{message}"}';
+        const rawBody =
+          overrideOpts?.customBody ||
+          overrideOpts?.bodyTemplate ||
+          cfg.custom.bodyTemplate ||
+          '{"to":"{clean10}","message":"{message}"}';
         fetchOpts.body = replacePlaceholders(rawBody);
       }
 
@@ -682,12 +811,23 @@ async function startServer() {
         parsedBody = JSON.parse(respText);
       } catch {}
 
-      const ok = cRes.ok && !respText.toLowerCase().includes("error") && !respText.toLowerCase().includes("failed");
+      const ok =
+        cRes.ok &&
+        !respText.toLowerCase().includes("error") &&
+        !respText.toLowerCase().includes("failed");
       return {
         success: ok,
         provider: "Custom API Gateway",
-        messageId: parsedBody?.id || parsedBody?.message_id || parsedBody?.request_id || (ok ? "CUSTOM-SENT" : undefined),
-        details: parsedBody?.message || (ok ? "Delivered successfully via Custom API" : `Custom Gateway HTTP ${cRes.status}: ${respText.slice(0, 150)}`),
+        messageId:
+          parsedBody?.id ||
+          parsedBody?.message_id ||
+          parsedBody?.request_id ||
+          (ok ? "CUSTOM-SENT" : undefined),
+        details:
+          parsedBody?.message ||
+          (ok
+            ? "Delivered successfully via Custom API"
+            : `Custom Gateway HTTP ${cRes.status}: ${respText.slice(0, 150)}`),
         raw: parsedBody || respText,
       };
     }
@@ -713,12 +853,16 @@ async function startServer() {
       totalDispatched: totalSmsDispatchedCount,
       lastDispatchedAt: lastSmsDispatchedTimestamp,
       serverIp,
-      healthStatus: isConfigured ? `Active (${activeProvider.toUpperCase()} Gateway Ready)` : "Simulation Mode (No credentials set)",
+      healthStatus: isConfigured
+        ? `Active (${activeProvider.toUpperCase()} Gateway Ready)`
+        : "Simulation Mode (No credentials set)",
       // Provider configs (masking sensitive parts slightly where applicable)
       fast2sms: {
         apiKey: smsConfig.fast2sms?.apiKey || "",
         route: smsConfig.fast2sms?.route || "q",
-        isConfigured: Boolean(smsConfig.fast2sms?.apiKey && smsConfig.fast2sms.apiKey.length > 5),
+        isConfigured: Boolean(
+          smsConfig.fast2sms?.apiKey && smsConfig.fast2sms.apiKey.length > 5,
+        ),
       },
       msg91: {
         authKey: smsConfig.msg91?.authKey || "",
@@ -726,27 +870,39 @@ async function startServer() {
         templateId: smsConfig.msg91?.templateId || "",
         route: smsConfig.msg91?.route || "4",
         dltTeId: smsConfig.msg91?.dltTeId || "",
-        isConfigured: Boolean(smsConfig.msg91?.authKey && smsConfig.msg91.authKey.length > 5),
+        isConfigured: Boolean(
+          smsConfig.msg91?.authKey && smsConfig.msg91.authKey.length > 5,
+        ),
       },
       twilio: {
         accountSid: smsConfig.twilio?.accountSid || "",
         authToken: smsConfig.twilio?.authToken || "",
         fromNumber: smsConfig.twilio?.fromNumber || "",
-        isConfigured: Boolean(smsConfig.twilio?.accountSid && smsConfig.twilio?.authToken && smsConfig.twilio?.fromNumber),
+        isConfigured: Boolean(
+          smsConfig.twilio?.accountSid &&
+          smsConfig.twilio?.authToken &&
+          smsConfig.twilio?.fromNumber,
+        ),
       },
       textlocal: {
         apiKey: smsConfig.textlocal?.apiKey || "",
         sender: smsConfig.textlocal?.sender || "TXTLCL",
-        isConfigured: Boolean(smsConfig.textlocal?.apiKey && smsConfig.textlocal.apiKey.length > 5),
+        isConfigured: Boolean(
+          smsConfig.textlocal?.apiKey && smsConfig.textlocal.apiKey.length > 5,
+        ),
       },
       custom: {
         url: smsConfig.custom?.url || "",
         method: smsConfig.custom?.method || "POST",
         headers: smsConfig.custom?.headers || "{}",
-        bodyTemplate: smsConfig.custom?.bodyTemplate || '{"to":"{clean10}","message":"{message}"}',
+        bodyTemplate:
+          smsConfig.custom?.bodyTemplate ||
+          '{"to":"{clean10}","message":"{message}"}',
         apiKey: smsConfig.custom?.apiKey || "",
         senderId: smsConfig.custom?.senderId || "EDUTRK",
-        isConfigured: Boolean(smsConfig.custom?.url && smsConfig.custom.url.startsWith("http")),
+        isConfigured: Boolean(
+          smsConfig.custom?.url && smsConfig.custom.url.startsWith("http"),
+        ),
       },
       // Backward compatibility fields
       senderId: smsConfig.msg91?.senderId || "EDUTRK",
@@ -774,51 +930,111 @@ async function startServer() {
       apiKey,
     } = req.body || {};
 
-    const chosenProvider = (activeProvider || provider || smsConfig.activeProvider || "fast2sms").toLowerCase();
-    if (["fast2sms", "msg91", "twilio", "textlocal", "custom"].includes(chosenProvider)) {
+    const chosenProvider = (
+      activeProvider ||
+      provider ||
+      smsConfig.activeProvider ||
+      "fast2sms"
+    ).toLowerCase();
+    if (
+      ["fast2sms", "msg91", "twilio", "textlocal", "custom"].includes(
+        chosenProvider,
+      )
+    ) {
       smsConfig.activeProvider = chosenProvider as any;
     }
 
     if (fast2sms) {
       smsConfig.fast2sms = {
-        apiKey: typeof fast2sms.apiKey === "string" ? fast2sms.apiKey.trim() : smsConfig.fast2sms.apiKey,
-        route: typeof fast2sms.route === "string" ? fast2sms.route.trim() : smsConfig.fast2sms.route,
+        apiKey:
+          typeof fast2sms.apiKey === "string"
+            ? fast2sms.apiKey.trim()
+            : smsConfig.fast2sms.apiKey,
+        route:
+          typeof fast2sms.route === "string"
+            ? fast2sms.route.trim()
+            : smsConfig.fast2sms.route,
       };
     }
 
     if (msg91) {
       smsConfig.msg91 = {
-        authKey: typeof msg91.authKey === "string" ? msg91.authKey.trim() : smsConfig.msg91.authKey,
-        senderId: typeof msg91.senderId === "string" ? msg91.senderId.trim() : smsConfig.msg91.senderId,
-        templateId: typeof msg91.templateId === "string" ? msg91.templateId.trim() : smsConfig.msg91.templateId,
-        route: typeof msg91.route === "string" ? msg91.route.trim() : smsConfig.msg91.route,
-        dltTeId: typeof msg91.dltTeId === "string" ? msg91.dltTeId.trim() : smsConfig.msg91.dltTeId,
+        authKey:
+          typeof msg91.authKey === "string"
+            ? msg91.authKey.trim()
+            : smsConfig.msg91.authKey,
+        senderId:
+          typeof msg91.senderId === "string"
+            ? msg91.senderId.trim()
+            : smsConfig.msg91.senderId,
+        templateId:
+          typeof msg91.templateId === "string"
+            ? msg91.templateId.trim()
+            : smsConfig.msg91.templateId,
+        route:
+          typeof msg91.route === "string"
+            ? msg91.route.trim()
+            : smsConfig.msg91.route,
+        dltTeId:
+          typeof msg91.dltTeId === "string"
+            ? msg91.dltTeId.trim()
+            : smsConfig.msg91.dltTeId,
       };
     }
 
     if (twilio) {
       smsConfig.twilio = {
-        accountSid: typeof twilio.accountSid === "string" ? twilio.accountSid.trim() : smsConfig.twilio.accountSid,
-        authToken: typeof twilio.authToken === "string" ? twilio.authToken.trim() : smsConfig.twilio.authToken,
-        fromNumber: typeof twilio.fromNumber === "string" ? twilio.fromNumber.trim() : smsConfig.twilio.fromNumber,
+        accountSid:
+          typeof twilio.accountSid === "string"
+            ? twilio.accountSid.trim()
+            : smsConfig.twilio.accountSid,
+        authToken:
+          typeof twilio.authToken === "string"
+            ? twilio.authToken.trim()
+            : smsConfig.twilio.authToken,
+        fromNumber:
+          typeof twilio.fromNumber === "string"
+            ? twilio.fromNumber.trim()
+            : smsConfig.twilio.fromNumber,
       };
     }
 
     if (textlocal) {
       smsConfig.textlocal = {
-        apiKey: typeof textlocal.apiKey === "string" ? textlocal.apiKey.trim() : smsConfig.textlocal.apiKey,
-        sender: typeof textlocal.sender === "string" ? textlocal.sender.trim() : smsConfig.textlocal.sender,
+        apiKey:
+          typeof textlocal.apiKey === "string"
+            ? textlocal.apiKey.trim()
+            : smsConfig.textlocal.apiKey,
+        sender:
+          typeof textlocal.sender === "string"
+            ? textlocal.sender.trim()
+            : smsConfig.textlocal.sender,
       };
     }
 
     if (custom) {
       smsConfig.custom = {
-        url: typeof custom.url === "string" ? custom.url.trim() : smsConfig.custom.url,
+        url:
+          typeof custom.url === "string"
+            ? custom.url.trim()
+            : smsConfig.custom.url,
         method: custom.method === "GET" ? "GET" : "POST",
-        headers: typeof custom.headers === "string" ? custom.headers.trim() : smsConfig.custom.headers,
-        bodyTemplate: typeof custom.bodyTemplate === "string" ? custom.bodyTemplate.trim() : smsConfig.custom.bodyTemplate,
-        apiKey: typeof custom.apiKey === "string" ? custom.apiKey.trim() : smsConfig.custom.apiKey,
-        senderId: typeof custom.senderId === "string" ? custom.senderId.trim() : smsConfig.custom.senderId,
+        headers:
+          typeof custom.headers === "string"
+            ? custom.headers.trim()
+            : smsConfig.custom.headers,
+        bodyTemplate:
+          typeof custom.bodyTemplate === "string"
+            ? custom.bodyTemplate.trim()
+            : smsConfig.custom.bodyTemplate,
+        apiKey:
+          typeof custom.apiKey === "string"
+            ? custom.apiKey.trim()
+            : smsConfig.custom.apiKey,
+        senderId:
+          typeof custom.senderId === "string"
+            ? custom.senderId.trim()
+            : smsConfig.custom.senderId,
       };
     }
 
@@ -843,8 +1059,14 @@ async function startServer() {
     }
 
     saveSmsConfig(smsConfig);
-    const configured = isProviderConfigured(smsConfig.activeProvider, smsConfig);
-    addLog("success", `[SMS Gateway] Updated active provider to ${smsConfig.activeProvider.toUpperCase()} (Configured: ${configured})`);
+    const configured = isProviderConfigured(
+      smsConfig.activeProvider,
+      smsConfig,
+    );
+    addLog(
+      "success",
+      `[SMS Gateway] Updated active provider to ${smsConfig.activeProvider.toUpperCase()} (Configured: ${configured})`,
+    );
 
     res.json({
       success: true,
@@ -856,9 +1078,14 @@ async function startServer() {
 
   // API 6: Dispatch SMS batch (Attendance, Absentee, General Alerts)
   app.post("/api/sms/send", async (req, res) => {
-    const rawRecipients = req.body?.recipients || req.body?.smsList || req.body?.items || [];
+    const rawRecipients =
+      req.body?.recipients || req.body?.smsList || req.body?.items || [];
     const recipients = Array.isArray(rawRecipients) ? rawRecipients : [];
-    const chosenProvider = (req.body?.provider || smsConfig.activeProvider || "fast2sms").toLowerCase();
+    const chosenProvider = (
+      req.body?.provider ||
+      smsConfig.activeProvider ||
+      "fast2sms"
+    ).toLowerCase();
 
     if (!Array.isArray(recipients) || recipients.length === 0) {
       return res.status(400).json({
@@ -872,13 +1099,19 @@ async function startServer() {
 
     const isConfigured = isProviderConfigured(chosenProvider, smsConfig);
 
-    addLog("info", `[SMS Gateway] Dispatch request received for ${recipients.length} recipient(s) via ${chosenProvider.toUpperCase()}...`);
+    addLog(
+      "info",
+      `[SMS Gateway] Dispatch request received for ${recipients.length} recipient(s) via ${chosenProvider.toUpperCase()}...`,
+    );
 
     // If no credentials configured, simulate delivery gracefully
     if (!isConfigured) {
       totalSmsDispatchedCount += recipients.length;
       lastSmsDispatchedTimestamp = new Date().toISOString();
-      addLog("warn", `[SMS Gateway] No credentials configured for ${chosenProvider.toUpperCase()}. Logged in simulation mode.`);
+      addLog(
+        "warn",
+        `[SMS Gateway] No credentials configured for ${chosenProvider.toUpperCase()}. Logged in simulation mode.`,
+      );
       return res.json({
         success: true,
         simulated: true,
@@ -901,7 +1134,12 @@ async function startServer() {
       let failCount = 0;
 
       for (const rec of recipients) {
-        const dispatchRes = await executeSingleSmsDispatch(rec, chosenProvider, smsConfig, req.body);
+        const dispatchRes = await executeSingleSmsDispatch(
+          rec,
+          chosenProvider,
+          smsConfig,
+          req.body,
+        );
         if (dispatchRes.success) {
           sentCount++;
           results.push({
@@ -924,7 +1162,10 @@ async function startServer() {
 
       totalSmsDispatchedCount += sentCount;
       lastSmsDispatchedTimestamp = new Date().toISOString();
-      addLog("success", `[SMS Gateway] Live dispatch via ${chosenProvider.toUpperCase()} complete: ${sentCount} sent, ${failCount} failed.`);
+      addLog(
+        "success",
+        `[SMS Gateway] Live dispatch via ${chosenProvider.toUpperCase()} complete: ${sentCount} sent, ${failCount} failed.`,
+      );
 
       return res.json({
         success: sentCount > 0 || failCount === 0,
@@ -935,7 +1176,10 @@ async function startServer() {
         results,
       });
     } catch (err: any) {
-      addLog("error", `[SMS Gateway] Error during batch dispatch: ${err?.message}`);
+      addLog(
+        "error",
+        `[SMS Gateway] Error during batch dispatch: ${err?.message}`,
+      );
       return res.status(500).json({
         success: false,
         simulated: false,
@@ -948,19 +1192,38 @@ async function startServer() {
   app.post("/api/sms/test", async (req, res) => {
     const { mobile, message, provider, testConfig } = req.body || {};
     if (!mobile) {
-      return res.status(400).json({ success: false, message: "Mobile number is required." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Mobile number is required." });
     }
 
-    const chosenProvider = (provider || testConfig?.provider || smsConfig.activeProvider || "fast2sms").toLowerCase();
-    const testText = message || `[EduTrack] Test message from ${chosenProvider.toUpperCase()} Gateway. Verified at ${new Date().toLocaleTimeString()}.`;
+    const chosenProvider = (
+      provider ||
+      testConfig?.provider ||
+      smsConfig.activeProvider ||
+      "fast2sms"
+    ).toLowerCase();
+    const testText =
+      message ||
+      `[PakkaPresent] Test message from ${chosenProvider.toUpperCase()} Gateway. Verified at ${new Date().toLocaleTimeString()}.`;
     const serverIp = await getPublicIp();
 
-    addLog("info", `[SMS Gateway] Diagnostic test triggered for mobile: ${mobile} via ${chosenProvider.toUpperCase()}`);
+    addLog(
+      "info",
+      `[SMS Gateway] Diagnostic test triggered for mobile: ${mobile} via ${chosenProvider.toUpperCase()}`,
+    );
 
     // Merge any temporary test config passed from UI with saved config
     const activeCfg: SmsConfigStore = {
       ...smsConfig,
-      ...(testConfig ? { [chosenProvider]: { ...(smsConfig as any)[chosenProvider], ...testConfig } } : {}),
+      ...(testConfig
+        ? {
+            [chosenProvider]: {
+              ...(smsConfig as any)[chosenProvider],
+              ...testConfig,
+            },
+          }
+        : {}),
     };
 
     const isConfigured = isProviderConfigured(chosenProvider, activeCfg);
@@ -983,13 +1246,16 @@ async function startServer() {
         { mobile, message: testText },
         chosenProvider,
         activeCfg,
-        testConfig || req.body
+        testConfig || req.body,
       );
 
       if (dispatchRes.success) {
         totalSmsDispatchedCount += 1;
         lastSmsDispatchedTimestamp = new Date().toISOString();
-        addLog("success", `[SMS Gateway] Test SMS accepted by ${chosenProvider.toUpperCase()}! Details: ${dispatchRes.details}`);
+        addLog(
+          "success",
+          `[SMS Gateway] Test SMS accepted by ${chosenProvider.toUpperCase()}! Details: ${dispatchRes.details}`,
+        );
         return res.json({
           success: true,
           simulated: false,
@@ -1000,7 +1266,10 @@ async function startServer() {
           messageId: dispatchRes.messageId,
         });
       } else {
-        addLog("warn", `[SMS Gateway] Test SMS rejected by ${chosenProvider.toUpperCase()}: ${dispatchRes.details}`);
+        addLog(
+          "warn",
+          `[SMS Gateway] Test SMS rejected by ${chosenProvider.toUpperCase()}: ${dispatchRes.details}`,
+        );
         return res.status(200).json({
           success: false,
           simulated: false,
@@ -1018,7 +1287,9 @@ async function startServer() {
         success: false,
         simulated: false,
         serverIp,
-        message: err?.message || `Failed to connect to ${chosenProvider.toUpperCase()} server.`,
+        message:
+          err?.message ||
+          `Failed to connect to ${chosenProvider.toUpperCase()} server.`,
       });
     }
   });
@@ -1047,7 +1318,10 @@ async function startServer() {
   );
 
   app.listen(PORT, "0.0.0.0", () => {
-    addLog("info", `EduTrack backend API available at http://localhost:${PORT}`);
+    addLog(
+      "info",
+      `PakkaPresent backend API available at http://localhost:${PORT}`,
+    );
   });
 }
 

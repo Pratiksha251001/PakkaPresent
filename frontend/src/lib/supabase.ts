@@ -369,7 +369,7 @@ class LocalDatabase {
         this.users.push({
           id: t.user_id || `user-${t.id}`,
           full_name: t.full_name,
-          email: t.email || `${t.employee_id.toLowerCase()}@edutrack.edu`,
+          email: t.email || `${t.employee_id.toLowerCase()}@pakkapresent.edu`,
           role:
             t.role === "hod"
               ? "hod"

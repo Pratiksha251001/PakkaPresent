@@ -49,7 +49,9 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
       )
     ) {
       localDb.clearAllDefaultData();
-      setStatusMessage("All default data removed! Departments, faculty, students, and subjects are now at 0 records.");
+      setStatusMessage(
+        "All default data removed! Departments, faculty, students, and subjects are now at 0 records.",
+      );
       onDataChanged?.();
       setTimeout(() => setStatusMessage(null), 3500);
     }
@@ -62,7 +64,9 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
       )
     ) {
       localDb.clearDemoStudents();
-      setStatusMessage("Demo students and sample data cleared! Roster is now clean.");
+      setStatusMessage(
+        "Demo students and sample data cleared! Roster is now clean.",
+      );
       onDataChanged?.();
       setTimeout(() => setStatusMessage(null), 3500);
     }
@@ -88,7 +92,9 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
       const res = await apiFetch("/api/db/test-connection", { method: "POST" });
       const elapsed = Date.now() - start;
       setPingLatency(elapsed);
-      setStatusMessage(`Database ping verified: ${elapsed}ms. PostgreSQL connection active.`);
+      setStatusMessage(
+        `Database ping verified: ${elapsed}ms. PostgreSQL connection active.`,
+      );
     } catch {
       const elapsed = Date.now() - start;
       setPingLatency(elapsed);
@@ -115,8 +121,8 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                 </h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                Run this schema query in Supabase to create all required tables and
-                store your institutional records permanently.
+                Run this schema query in Supabase to create all required tables
+                and store your institutional records permanently.
               </p>
             </div>
           </div>
@@ -156,7 +162,9 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                 disabled={pinging}
                 className="text-xs h-7 gap-1 font-mono bg-background"
               >
-                <RefreshCw className={`h-3 w-3 ${pinging ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`h-3 w-3 ${pinging ? "animate-spin" : ""}`}
+                />
                 Ping DB
               </Button>
               <Button
@@ -180,7 +188,9 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 inline-block" />
                 </div>
                 <TerminalIcon className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-slate-300">backend-terminal ~ database connection setup</span>
+                <span className="text-slate-300">
+                  backend-terminal ~ database connection setup
+                </span>
               </div>
               <span className="text-emerald-400 flex items-center gap-1 text-[11px]">
                 <CheckCircle2 className="h-3 w-3" />
@@ -190,19 +200,26 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
 
             <div className="p-3.5 space-y-1 text-slate-300 text-[11.5px] leading-relaxed max-h-48 overflow-y-auto">
               <div className="text-cyan-400 font-bold">
-                [00:00:01] [INFO] EduTrack Node.js Backend Service online (Port: 3000)
+                [00:00:01] [INFO] PakkaPresent Node.js Backend Service online
+                (Port: 3000)
               </div>
               <div className="text-slate-400">
-                [00:00:01] [DATABASE] Target: {isSupabaseConfigured ? `Supabase Cloud PostgreSQL (${supabaseUrl})` : "Local Browser & IndexedDB Storage Engine"}
+                [00:00:01] [DATABASE] Target:{" "}
+                {isSupabaseConfigured
+                  ? `Supabase Cloud PostgreSQL (${supabaseUrl})`
+                  : "Local Browser & IndexedDB Storage Engine"}
               </div>
               <div className="text-emerald-400 font-semibold">
-                [00:00:02] [CONNECTED] Handshake Status: 200 OK | Database is CONNECTED & ACTIVE
+                [00:00:02] [CONNECTED] Handshake Status: 200 OK | Database is
+                CONNECTED & ACTIVE
               </div>
               <div className="text-slate-400">
-                [00:00:02] [DATABASE] Tables verified: [departments, teachers, students, academic_classes, subjects, attendance, sms_logs]
+                [00:00:02] [DATABASE] Tables verified: [departments, teachers,
+                students, academic_classes, subjects, attendance, sms_logs]
               </div>
               <div className="text-emerald-400">
-                [00:00:03] [READY] Institutional roster clean. Ready to store newly created records.
+                [00:00:03] [READY] Institutional roster clean. Ready to store
+                newly created records.
               </div>
             </div>
           </div>
@@ -223,7 +240,8 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                   Default Demo Data Management
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Wipe all mock data (departments, faculty, students, subjects) to 0 records so only your custom records exist.
+                  Wipe all mock data (departments, faculty, students, subjects)
+                  to 0 records so only your custom records exist.
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -264,7 +282,10 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                   1
                 </span>
                 <div>
-                  <strong className="text-foreground">Open Supabase SQL Editor:</strong> Go to{" "}
+                  <strong className="text-foreground">
+                    Open Supabase SQL Editor:
+                  </strong>{" "}
+                  Go to{" "}
                   <a
                     href="https://supabase.com/dashboard"
                     target="_blank"
@@ -273,7 +294,8 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                   >
                     supabase.com/dashboard <ExternalLink className="h-3 w-3" />
                   </a>{" "}
-                  and click on your project, then open <strong>SQL Editor</strong> in the left sidebar.
+                  and click on your project, then open{" "}
+                  <strong>SQL Editor</strong> in the left sidebar.
                 </div>
               </div>
 
@@ -282,9 +304,12 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                   2
                 </span>
                 <div>
-                  <strong className="text-foreground">Paste and Run Query:</strong> Click the{" "}
-                  <strong>Copy SQL Query</strong> button below, paste it into the Supabase SQL
-                  Editor, and click <strong>Run</strong>.
+                  <strong className="text-foreground">
+                    Paste and Run Query:
+                  </strong>{" "}
+                  Click the <strong>Copy SQL Query</strong> button below, paste
+                  it into the Supabase SQL Editor, and click{" "}
+                  <strong>Run</strong>.
                 </div>
               </div>
 
@@ -293,9 +318,12 @@ export const DatabaseSetupModal: React.FC<DatabaseSetupModalProps> = ({
                   3
                 </span>
                 <div>
-                  <strong className="text-foreground">Start Creating Data:</strong> Once the query
-                  completes, your tables (departments, teachers, students, attendance, sms_logs) are
-                  live! Whenever you add an HOD, Class Coordinator, or Student, it will be saved in
+                  <strong className="text-foreground">
+                    Start Creating Data:
+                  </strong>{" "}
+                  Once the query completes, your tables (departments, teachers,
+                  students, attendance, sms_logs) are live! Whenever you add an
+                  HOD, Class Coordinator, or Student, it will be saved in
                   Supabase.
                 </div>
               </div>

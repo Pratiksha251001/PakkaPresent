@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="pakkapresent-logo-title">
+  <title id="pakkapresent-logo-title">PakkaPresent logo</title>
+  <rect width="200" height="200" rx="48" fill="#14161F" />
+  <g transform="translate(5 0)">
+    <rect x="45" y="45" width="56" height="110" rx="28" transform="rotate(-30 73 100)" fill="#FFFFFF" />
+    <circle cx="128" cy="82" r="38" fill="#B4FF39" stroke="#14161F" stroke-width="10" />
+  </g>
+</svg>

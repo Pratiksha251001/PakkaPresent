@@ -48,7 +48,7 @@ export const BackendTerminalModal: React.FC<BackendTerminalModalProps> = ({
       id: "2",
       timestamp: "00:00:01",
       type: "highlight",
-      text: "  🎓 EDUTRACK INSTITUTIONAL BACKEND ENGINE — ONLINE",
+      text: "  🎓 PAKKAPRESENT INSTITUTIONAL BACKEND ENGINE — ONLINE",
     },
     {
       id: "3",
@@ -78,7 +78,7 @@ export const BackendTerminalModal: React.FC<BackendTerminalModalProps> = ({
       id: "7",
       timestamp: "00:00:02",
       type: "cmd",
-      text: "$ edutrack-service --verify-database --handshake",
+      text: "$ pakkapresent-service --verify-database --handshake",
     },
     {
       id: "8",
@@ -108,7 +108,7 @@ export const BackendTerminalModal: React.FC<BackendTerminalModalProps> = ({
       id: "12",
       timestamp: "00:00:03",
       type: "success",
-      text: "✔ EduTrack app available at http://localhost:3000",
+      text: "✔ PakkaPresent app available at http://localhost:3000",
     },
     {
       id: "13",
@@ -250,7 +250,7 @@ export const BackendTerminalModal: React.FC<BackendTerminalModalProps> = ({
             </div>
             <TerminalIcon className="h-4 w-4 text-emerald-400" />
             <span className="font-mono text-xs font-semibold text-slate-300">
-              edutrack-backend ~ npm run dev
+              pakkapresent-backend ~ npm run dev
             </span>
           </div>
 

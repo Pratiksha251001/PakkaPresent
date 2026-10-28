@@ -77,7 +77,8 @@ export const HODClasses: React.FC = () => {
     }
     const handleUpdate = () => refreshClasses();
     window.addEventListener("edutrack_data_updated", handleUpdate);
-    return () => window.removeEventListener("edutrack_data_updated", handleUpdate);
+    return () =>
+      window.removeEventListener("edutrack_data_updated", handleUpdate);
   }, [departmentId]);
 
   const coordinators = teachers.filter(
@@ -172,7 +173,8 @@ export const HODClasses: React.FC = () => {
       return;
     }
     const semesterNum = Number(form.semester);
-    const yearNum = Number(form.year) || getEngineeringYearFromSemester(semesterNum);
+    const yearNum =
+      Number(form.year) || getEngineeringYearFromSemester(semesterNum);
 
     const data = {
       name: form.name.trim(),
@@ -234,10 +236,13 @@ export const HODClasses: React.FC = () => {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-bold">
-                {editing ? "Edit Engineering Class" : "Add Engineering Class & Division"}
+                {editing
+                  ? "Edit Engineering Class"
+                  : "Add Engineering Class & Division"}
               </h2>
               <p className="text-xs text-muted-foreground">
-                Set Year (1-4), Division (A or B for 2nd, 3rd, 4th), Semester, and Class Coordinator.
+                Set Year (1-4), Division (A or B for 2nd, 3rd, 4th), Semester,
+                and Class Coordinator.
               </p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
@@ -317,7 +322,10 @@ export const HODClasses: React.FC = () => {
               <Select
                 value={form.coordinator_teacher_id}
                 onChange={(event) =>
-                  setForm({ ...form, coordinator_teacher_id: event.target.value })
+                  setForm({
+                    ...form,
+                    coordinator_teacher_id: event.target.value,
+                  })
                 }
                 options={[
                   { value: "", label: "No coordinator assigned" },
@@ -361,7 +369,8 @@ export const HODClasses: React.FC = () => {
             />
           </div>
           <div className="text-xs text-muted-foreground">
-            Total Classes: <strong className="text-foreground">{filtered.length}</strong>
+            <strong className="text-foreground">{filtered.length}</strong>{" "}
+            {filtered.length === 1 ? "class" : "classes"}
           </div>
         </div>
       </div>
@@ -375,12 +384,24 @@ export const HODClasses: React.FC = () => {
             <TableHeader className="bg-muted/70 border-b border-border">
               <TableRow>
                 <TableHead className="w-12 text-center font-bold">#</TableHead>
-                <TableHead className="min-w-[150px] font-bold">Class / Section</TableHead>
-                <TableHead className="min-w-[130px] font-bold">Engineering Year</TableHead>
-                <TableHead className="min-w-[110px] text-center font-bold">Division</TableHead>
-                <TableHead className="min-w-[180px] font-bold">Class Coordinator (CC)</TableHead>
-                <TableHead className="min-w-[100px] text-center font-bold">Enrolled Students</TableHead>
-                <TableHead className="min-w-[100px] text-right font-bold pr-4">Actions</TableHead>
+                <TableHead className="min-w-[150px] font-bold">
+                  Class / Section
+                </TableHead>
+                <TableHead className="min-w-[130px] font-bold">
+                  Engineering Year
+                </TableHead>
+                <TableHead className="min-w-[110px] text-center font-bold">
+                  Division
+                </TableHead>
+                <TableHead className="min-w-[180px] font-bold">
+                  Class Coordinator (CC)
+                </TableHead>
+                <TableHead className="min-w-[100px] text-center font-bold">
+                  Enrolled Students
+                </TableHead>
+                <TableHead className="min-w-[100px] text-center font-bold">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border">
@@ -398,8 +419,9 @@ export const HODClasses: React.FC = () => {
                         No classes found for the selected filter
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Click &quot;Setup Standard Divisions (A &amp; B)&quot; to automatically
-                        create divisions for 2nd, 3rd, and 4th years, or add classes manually.
+                        Click &quot;Setup Standard Divisions (A &amp; B)&quot;
+                        to automatically create divisions for 2nd, 3rd, and 4th
+                        years, or add classes manually.
                       </p>
                       <div className="flex items-center justify-center gap-2 pt-2">
                         <Button
@@ -424,16 +446,28 @@ export const HODClasses: React.FC = () => {
                   const coordinator = teachers.find(
                     (teacher) => teacher.id === item.coordinator_teacher_id,
                   );
-                  const yearNum = item.year || getEngineeringYearFromSemester(item.semester);
-                  const yearObj = ENGINEERING_YEARS.find((y) => y.year === yearNum);
+                  const yearNum =
+                    item.year || getEngineeringYearFromSemester(item.semester);
+                  const yearObj = ENGINEERING_YEARS.find(
+                    (y) => y.year === yearNum,
+                  );
 
                   // Detect division
                   let divLabel = "Single";
-                  let divBadgeVariant: "default" | "secondary" | "outline" = "outline";
-                  if (item.name.includes("-A") || item.name.endsWith(" A") || item.name.includes("Div A")) {
+                  let divBadgeVariant: "default" | "secondary" | "outline" =
+                    "outline";
+                  if (
+                    item.name.includes("-A") ||
+                    item.name.endsWith(" A") ||
+                    item.name.includes("Div A")
+                  ) {
                     divLabel = "Div A";
                     divBadgeVariant = "default";
-                  } else if (item.name.includes("-B") || item.name.endsWith(" B") || item.name.includes("Div B")) {
+                  } else if (
+                    item.name.includes("-B") ||
+                    item.name.endsWith(" B") ||
+                    item.name.includes("Div B")
+                  ) {
                     divLabel = "Div B";
                     divBadgeVariant = "secondary";
                   }
@@ -442,11 +476,15 @@ export const HODClasses: React.FC = () => {
                     (st) =>
                       st.class_id === item.id ||
                       st.class_name === item.name ||
-                      (st.semester === item.semester && st.class_name === item.name),
+                      (st.semester === item.semester &&
+                        st.class_name === item.name),
                   ).length;
 
                   return (
-                    <TableRow key={item.id} className="hover:bg-muted/40 transition-colors">
+                    <TableRow
+                      key={item.id}
+                      className="hover:bg-muted/40 transition-colors"
+                    >
                       <TableCell className="text-center font-mono text-muted-foreground">
                         {idx + 1}
                       </TableCell>
@@ -503,7 +541,7 @@ export const HODClasses: React.FC = () => {
                             </span>
                           </div>
                         ) : (
-                          <span className="italic text-muted-foreground text-xs">
+                          <span className="text-xs font-medium text-muted-foreground">
                             Not assigned
                           </span>
                         )}
@@ -516,8 +554,8 @@ export const HODClasses: React.FC = () => {
                         </span>
                       </TableCell>
 
-                      <TableCell className="text-right pr-4">
-                        <div className="flex items-center justify-end gap-1">
+                      <TableCell className="text-center">
+                        <div className="inline-flex items-center justify-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"

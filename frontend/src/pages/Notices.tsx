@@ -7,6 +7,7 @@ export const Notices: React.FC = () => (
   <CrudPage<Notice>
     title="Notices"
     table="notices"
+    recordLabel="notices"
     searchKeys={["title", "message", "audience", "status"]}
     fields={[
       { key: "title", label: "Notice Title", required: true },
@@ -46,7 +47,7 @@ export const Notices: React.FC = () => (
         header: "Status",
         render: (n) => (
           <Badge variant={n.status === "published" ? "success" : "secondary"}>
-            {n.status}
+            {n.status.charAt(0).toUpperCase() + n.status.slice(1)}
           </Badge>
         ),
       },

@@ -1,7 +1,12 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -30,7 +35,7 @@ export const ClassTeacherDashboard: React.FC = () => {
     const assignedIds = new Set(
       localDb.teacher_subjects
         .filter((ts) => ts.teacher_id === teacherId)
-        .map((ts) => ts.subject_id)
+        .map((ts) => ts.subject_id),
     );
     localDb.subjects.forEach((s) => {
       if ((s as any).teacher_id === teacherId) {
@@ -47,12 +52,18 @@ export const ClassTeacherDashboard: React.FC = () => {
     );
   }, [teacherId, user]);
 
-  const assignedSubjectIds = useMemo(() => new Set(mySubjects.map((s) => s.id)), [mySubjects]);
-  const assignedSemesters = useMemo(() => new Set(mySubjects.map((s) => s.semester)), [mySubjects]);
+  const assignedSubjectIds = useMemo(
+    () => new Set(mySubjects.map((s) => s.id)),
+    [mySubjects],
+  );
+  const assignedSemesters = useMemo(
+    () => new Set(mySubjects.map((s) => s.semester)),
+    [mySubjects],
+  );
 
   const myAssignmentsWithClasses = useMemo(() => {
     const rawTs = localDb.teacher_subjects.filter(
-      (ts) => ts.teacher_id === teacherId || ts.teacher_id === user?.id
+      (ts) => ts.teacher_id === teacherId || ts.teacher_id === user?.id,
     );
     if (rawTs.length > 0) {
       return rawTs.map((ts) => {
@@ -81,11 +92,13 @@ export const ClassTeacherDashboard: React.FC = () => {
 
   const todayAttendance = useMemo(() => {
     return localDb.attendance.filter(
-      (a) => a.date === todayStr && assignedSubjectIds.has(a.subject_id)
+      (a) => a.date === todayStr && assignedSubjectIds.has(a.subject_id),
     );
   }, [todayStr, assignedSubjectIds]);
 
-  const [allSmsLogs, setAllSmsLogs] = React.useState<any[]>(() => localDb.getSmsLogs());
+  const [allSmsLogs, setAllSmsLogs] = React.useState<any[]>(() =>
+    localDb.getSmsLogs(),
+  );
 
   React.useEffect(() => {
     const handleUpdate = () => setAllSmsLogs(localDb.getSmsLogs());
@@ -99,14 +112,18 @@ export const ClassTeacherDashboard: React.FC = () => {
 
   const smsLogs = useMemo(() => {
     if (assignedSubjectIds.size > 0) {
-      return allSmsLogs.filter((l) => l.subject_id && assignedSubjectIds.has(l.subject_id));
+      return allSmsLogs.filter(
+        (l) => l.subject_id && assignedSubjectIds.has(l.subject_id),
+      );
     }
     return allSmsLogs;
   }, [allSmsLogs, assignedSubjectIds]);
 
   const todaySmsLogs = useMemo(() => {
     return smsLogs.filter(
-      (l) => l.attendance_date === todayStr || (l.sent_at && l.sent_at.startsWith(todayStr))
+      (l) =>
+        l.attendance_date === todayStr ||
+        (l.sent_at && l.sent_at.startsWith(todayStr)),
     );
   }, [smsLogs, todayStr]);
 
@@ -119,21 +136,19 @@ export const ClassTeacherDashboard: React.FC = () => {
       (st) =>
         st.status === "active" &&
         (!user?.department_id || st.department_id === user.department_id) &&
-        (assignedSemesters.size === 0 || assignedSemesters.has(st.semester))
+        (assignedSemesters.size === 0 || assignedSemesters.has(st.semester)),
     ).length;
   }, [user, assignedSemesters]);
 
   return (
     <div className="space-y-6">
       {/* Hero Welcome Header */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.10] via-card to-card p-6 shadow-xs">
+      <div className="dashboard-hero relative overflow-hidden rounded-2xl p-6 shadow-xs">
         <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-2xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <Badge className="bg-primary/15 text-primary border-primary/20">
-                FACULTY PORTAL
-              </Badge>
+              <Badge className="dashboard-accent-badge">FACULTY PORTAL</Badge>
             </div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               Welcome back, {user?.full_name || "Faculty Member"}
@@ -143,7 +158,7 @@ export const ClassTeacherDashboard: React.FC = () => {
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Today's Date
             </p>
-            <p className="mt-0.5 font-display text-base font-bold text-primary">
+            <p className="dashboard-accent-text mt-0.5 font-display text-base font-bold">
               {new Date().toLocaleDateString(undefined, {
                 weekday: "short",
                 year: "numeric",
@@ -156,7 +171,7 @@ export const ClassTeacherDashboard: React.FC = () => {
       </div>
 
       {/* Primary Action Feature Banner */}
-      <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/[0.08] via-emerald-500/[0.03] to-card p-5 sm:p-6 shadow-xs">
+      <div className="dashboard-action-panel rounded-2xl p-5 shadow-xs sm:p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1 max-w-xl">
             <div className="flex items-center gap-2">
@@ -179,7 +194,7 @@ export const ClassTeacherDashboard: React.FC = () => {
             </Link>
             <Link to="/sms-logs">
               <Button variant="outline">
-                <MessageSquare className="mr-2 h-4 w-4 text-primary" />
+                <MessageSquare className="mr-2 h-4 w-4 dashboard-accent-text" />
                 SMS Logs
               </Button>
             </Link>
@@ -194,7 +209,7 @@ export const ClassTeacherDashboard: React.FC = () => {
             <span className="text-xs font-semibold text-muted-foreground uppercase">
               Assigned Subjects
             </span>
-            <BookOpen className="h-4 w-4 text-primary" />
+            <BookOpen className="h-4 w-4 dashboard-accent-text" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-foreground">
@@ -208,7 +223,7 @@ export const ClassTeacherDashboard: React.FC = () => {
             <span className="text-xs font-semibold text-muted-foreground uppercase">
               Students In Scope
             </span>
-            <Users className="h-4 w-4 text-primary" />
+            <Users className="h-4 w-4 dashboard-accent-text" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-foreground">
@@ -253,7 +268,7 @@ export const ClassTeacherDashboard: React.FC = () => {
           <Card className="p-5 border-border shadow-xs">
             <CardHeader className="p-0 pb-3 border-b border-border">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-primary" />
+                <ShieldCheck className="h-4 w-4 dashboard-accent-text" />
                 Faculty Quick Actions
               </CardTitle>
             </CardHeader>
@@ -263,7 +278,7 @@ export const ClassTeacherDashboard: React.FC = () => {
                 className="flex items-center justify-between p-3 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors text-xs font-medium"
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <div className="dashboard-accent-icon rounded-lg p-2">
                     <ClipboardCheck className="h-4 w-4" />
                   </div>
                   <span className="font-semibold text-foreground">
@@ -311,17 +326,21 @@ export const ClassTeacherDashboard: React.FC = () => {
           <Card className="p-5 border-border shadow-xs">
             <CardHeader className="p-0 pb-3 border-b border-border flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary" />
+                <MessageSquare className="h-4 w-4 dashboard-accent-text" />
                 Recent Parent SMS Alerts Dispatched
               </CardTitle>
-              <Link to="/sms-logs" className="text-xs text-primary hover:underline font-medium">
-                View all logs →
+              <Link
+                to="/sms-logs"
+                className="dashboard-accent-link text-xs font-semibold"
+              >
+                View All Logs →
               </Link>
             </CardHeader>
             <CardContent className="p-0 pt-3">
               {recentSmsLogs.length === 0 ? (
                 <div className="py-8 text-center text-xs text-muted-foreground">
-                  No parent SMS alerts dispatched yet. Mark attendance to trigger automatic notifications.
+                  No parent SMS alerts dispatched yet. Mark attendance to
+                  trigger automatic notifications.
                 </div>
               ) : (
                 <div className="divide-y divide-border/60">
@@ -336,21 +355,28 @@ export const ClassTeacherDashboard: React.FC = () => {
                             {log.student_name}
                           </span>
                           <Badge
-                            variant={log.status === "sent" ? "success" : "destructive"}
+                            variant={
+                              log.status === "sent" ? "success" : "destructive"
+                            }
                             className="text-[9px] uppercase px-1.5 py-0"
                           >
                             {log.status}
                           </Badge>
                         </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                        <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
                           <span>Phone: {log.parent_mobile || "Missing"}</span>
                           <span>•</span>
                           <span>Date: {log.attendance_date}</span>
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
-                        <span className="text-[11px] text-muted-foreground block font-mono">
-                          {log.sent_at ? new Date(log.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recent"}
+                        <span className="text-xs text-muted-foreground block font-mono">
+                          {log.sent_at
+                            ? new Date(log.sent_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "Recent"}
                         </span>
                       </div>
                     </div>
@@ -367,18 +393,20 @@ export const ClassTeacherDashboard: React.FC = () => {
         <CardHeader className="p-0 pb-3 border-b border-border flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-bold flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <BookOpen className="h-5 w-5 dashboard-accent-text" />
               My Assigned Subjects & Class Divisions
             </CardTitle>
           </div>
           <Badge variant="outline" className="text-xs">
-            {myAssignmentsWithClasses.length} Teaching Assignment{myAssignmentsWithClasses.length !== 1 ? 's' : ''}
+            {myAssignmentsWithClasses.length} Teaching Assignment
+            {myAssignmentsWithClasses.length !== 1 ? "s" : ""}
           </Badge>
         </CardHeader>
         <CardContent className="p-0 pt-4">
           {myAssignmentsWithClasses.length === 0 ? (
             <div className="py-8 text-center text-xs text-muted-foreground">
-              No specific subjects assigned yet. Contact your HOD or Class Coordinator to assign your classes.
+              No specific subjects assigned yet. Contact your HOD or Class
+              Coordinator to assign your classes.
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -393,11 +421,14 @@ export const ClassTeacherDashboard: React.FC = () => {
                         {item.subject_code}
                       </span>
                       {item.class_name ? (
-                        <Badge className="bg-primary/15 text-primary border-primary/25 font-bold text-xs">
+                        <Badge className="dashboard-class-badge font-bold text-xs">
                           {item.class_name}
                         </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-xs text-muted-foreground">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs text-muted-foreground"
+                        >
                           All Divisions
                         </Badge>
                       )}
@@ -412,13 +443,19 @@ export const ClassTeacherDashboard: React.FC = () => {
 
                   <div className="pt-2 border-t border-border/60 flex items-center justify-between">
                     <span className="text-[11px] text-muted-foreground">
-                      {item.class_name ? `Class: ${item.class_name}` : "Entire Cohort"}
+                      {item.class_name
+                        ? `Class: ${item.class_name}`
+                        : "Entire Cohort"}
                     </span>
                     <Link
-                      to={`/attendance?subject_id=${item.subject_id}${item.class_name ? `&class_name=${encodeURIComponent(item.class_name)}` : ''}`}
+                      to={`/attendance?subject_id=${item.subject_id}${item.class_name ? `&class_name=${encodeURIComponent(item.class_name)}` : ""}`}
                     >
-                      <Button size="sm" className="h-7 text-xs gap-1.5 font-semibold">
-                        <ClipboardCheck className="h-3.5 w-3.5" /> Mark Attendance
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs gap-1.5 font-semibold"
+                      >
+                        <ClipboardCheck className="h-3.5 w-3.5" /> Mark
+                        Attendance
                       </Button>
                     </Link>
                   </div>

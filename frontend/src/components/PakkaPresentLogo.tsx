@@ -1,6 +1,6 @@
 import React from "react";
 
-interface EduTrackLogoProps {
+interface PakkaPresentLogoProps {
   variant?: "full" | "horizontal" | "icon";
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
   className?: string;
@@ -9,7 +9,7 @@ interface EduTrackLogoProps {
   colorMode?: "auto" | "light" | "onDark";
 }
 
-export const EduTrackLogo: React.FC<EduTrackLogoProps> = ({
+export const PakkaPresentLogo: React.FC<PakkaPresentLogoProps> = ({
   variant = "horizontal",
   size = "md",
   className = "",
@@ -34,14 +34,14 @@ export const EduTrackLogo: React.FC<EduTrackLogoProps> = ({
       "2xl": "text-4xl sm:text-5xl",
     }[size] || "text-xl";
 
-  // Clean EduTrack monogram emblem
+  // Clean PakkaPresent monogram emblem
   const Emblem = (
     <div
-      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl ${iconDimensions}`}
+      className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl ${colorMode === "onDark" ? "border border-white/15" : "border border-transparent dark:border-white/15"} ${iconDimensions}`}
     >
       <img
-        src="/logo.png"
-        alt="EduTrack"
+        src="/pakkapresent-logo.svg"
+        alt="PakkaPresent"
         className="h-full w-full object-contain object-center block rounded-xl"
       />
     </div>
@@ -56,8 +56,7 @@ export const EduTrackLogo: React.FC<EduTrackLogoProps> = ({
   }
 
   const onDark = colorMode === "onDark";
-  const eduColor = onDark ? "text-white" : "text-slate-950 dark:text-white";
-  const trackColor = "text-emerald-600 dark:text-emerald-400";
+  const brandColor = onDark ? "text-white" : "text-[#14161F] dark:text-white";
   const secondaryColor = onDark
     ? "text-white/70"
     : "text-slate-500 dark:text-slate-400";
@@ -67,8 +66,8 @@ export const EduTrackLogo: React.FC<EduTrackLogoProps> = ({
       <div
         className={`flex items-center font-display font-black leading-none tracking-tight ${textSize}`}
       >
-        <span className={eduColor}>Edu</span>
-        <span className={trackColor}>Track</span>
+        <span className={brandColor}>Pakka</span>
+        <span className="text-[#8dde24]">Present</span>
       </div>
       {showTagline && (
         <p
@@ -82,7 +81,9 @@ export const EduTrackLogo: React.FC<EduTrackLogoProps> = ({
 
   if (variant === "full") {
     return (
-      <div className={`flex flex-col items-center justify-center text-center ${className}`}>
+      <div
+        className={`flex flex-col items-center justify-center text-center ${className}`}
+      >
         <div className="mx-auto">{Emblem}</div>
         <div className="mt-3">{Wordmark}</div>
       </div>

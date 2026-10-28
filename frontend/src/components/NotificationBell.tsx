@@ -25,13 +25,17 @@ import {
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 
-export const NotificationBell: React.FC<{ className?: string }> = ({ className = "" }) => {
+export const NotificationBell: React.FC<{ className?: string }> = ({
+  className = "",
+}) => {
   const { user, role } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState<"all" | "security" | "attendance">("all");
+  const [filter, setFilter] = useState<"all" | "security" | "attendance">(
+    "all",
+  );
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-    getStoredNotifications()
+    getStoredNotifications(),
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +50,10 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
     window.addEventListener("edutrack_notifications_updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
-      window.removeEventListener("edutrack_notifications_updated", handleUpdate);
+      window.removeEventListener(
+        "edutrack_notifications_updated",
+        handleUpdate,
+      );
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);
@@ -54,7 +61,10 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -75,7 +85,9 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
   // Filtered by selected tab
   const filteredNotifications = useMemo(() => {
     if (filter === "security") {
-      return userNotifications.filter((n) => n.type === "security_login_failed");
+      return userNotifications.filter(
+        (n) => n.type === "security_login_failed",
+      );
     }
     if (filter === "attendance") {
       return userNotifications.filter((n) => n.type === "attendance_submitted");
@@ -85,7 +97,8 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
   // Unread count
   const unreadCount = useMemo(() => {
-    return userNotifications.filter((n) => !isNotificationRead(n, userKey)).length;
+    return userNotifications.filter((n) => !isNotificationRead(n, userKey))
+      .length;
   }, [userNotifications, userKey]);
 
   const handleMarkAllRead = () => {
@@ -115,7 +128,10 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
       if (diffMins < 60) return `${diffMins}m ago`;
       const diffHours = Math.floor(diffMins / 60);
       if (diffHours < 24) return `${diffHours}h ago`;
-      return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      });
     } catch {
       return "Recent";
     }
@@ -128,7 +144,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
         type="button"
         id="btn-header-notification-bell"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/70 bg-card text-foreground transition-all hover:bg-muted/80 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border/70 bg-card text-foreground transition-all hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2"
         title="Notifications"
         aria-label="View notifications"
       >
@@ -142,17 +158,20 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[340px] sm:w-[400px] z-50 rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-xl animate-in fade-in-50 zoom-in-95">
+        <div className="absolute right-0 mt-2 w-[min(400px,calc(100vw-2rem))] z-[100] rounded-2xl border border-border/80 bg-popover text-popover-foreground shadow-xl animate-in fade-in-50 zoom-in-95">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border/60 p-3.5">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-400/70 bg-emerald-50 text-emerald-700 shadow-xs dark:border-emerald-500/60 dark:bg-emerald-500/15 dark:text-emerald-300">
                 <Bell className="h-3.5 w-3.5" />
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-sm">Notifications</span>
                 {unreadCount > 0 && (
-                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-bold h-4">
+                  <Badge
+                    variant="secondary"
+                    className="px-1.5 py-0 text-[10px] font-bold h-4"
+                  >
                     {unreadCount} new
                   </Badge>
                 )}
@@ -200,7 +219,9 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                 <ShieldAlert className="h-3 w-3" />
                 Security (
                 {
-                  userNotifications.filter((n) => n.type === "security_login_failed").length
+                  userNotifications.filter(
+                    (n) => n.type === "security_login_failed",
+                  ).length
                 }
                 )
               </button>
@@ -217,20 +238,24 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
               <ClipboardCheck className="h-3 w-3" />
               Attendance (
               {
-                userNotifications.filter((n) => n.type === "attendance_submitted").length
+                userNotifications.filter(
+                  (n) => n.type === "attendance_submitted",
+                ).length
               }
               )
             </button>
           </div>
 
           {/* List Body */}
-          <div className="max-h-[360px] overflow-y-auto divide-y divide-border/40">
+          <div className="max-h-[min(360px,calc(100vh-13rem))] overflow-y-auto overscroll-contain divide-y divide-border/40">
             {filteredNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 text-muted-foreground mb-2">
                   <Bell className="h-5 w-5 opacity-50" />
                 </div>
-                <p className="text-xs font-medium text-foreground">No notifications</p>
+                <p className="text-xs font-medium text-foreground">
+                  No notifications
+                </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {role === "admin"
                     ? "Security alerts and attendance notices will show here."
@@ -257,8 +282,8 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                         isSecurity
                           ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                           : isAttendance
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                          : "bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                            : "bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/30"
                       }`}
                     >
                       {isSecurity ? (
@@ -275,13 +300,16 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span
                           className={`text-xs font-semibold leading-tight line-clamp-1 ${
-                            !read ? "text-foreground font-bold" : "text-muted-foreground"
+                            !read
+                              ? "text-foreground font-bold"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {item.title}
                         </span>
                         <span className="text-[10px] text-muted-foreground shrink-0 whitespace-nowrap flex items-center gap-0.5">
-                          <Clock className="h-2.5 w-2.5 inline" /> {formatTimestamp(item.created_at)}
+                          <Clock className="h-2.5 w-2.5 inline" />{" "}
+                          {formatTimestamp(item.created_at)}
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
@@ -295,7 +323,8 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                             variant="outline"
                             className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20 text-[10px] px-1.5 py-0"
                           >
-                            Role: {String(item.metadata.attempted_role).toUpperCase()}
+                            Role:{" "}
+                            {String(item.metadata.attempted_role).toUpperCase()}
                           </Badge>
                         )}
                         {isAttendance && item.metadata?.semester && (
@@ -306,13 +335,14 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
                             Sem {item.metadata.semester}
                           </Badge>
                         )}
-                        {isAttendance && item.metadata?.absent_count !== undefined && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {item.metadata.absent_count > 0
-                              ? `${item.metadata.absent_count} absent (${item.metadata.sms_count || 0} SMS sent)`
-                              : "100% Present"}
-                          </span>
-                        )}
+                        {isAttendance &&
+                          item.metadata?.absent_count !== undefined && (
+                            <span className="text-[10px] text-muted-foreground">
+                              {item.metadata.absent_count > 0
+                                ? `${item.metadata.absent_count} absent (${item.metadata.sms_count || 0} SMS sent)`
+                                : "100% Present"}
+                            </span>
+                          )}
                       </div>
                     </div>
 
@@ -330,7 +360,7 @@ export const NotificationBell: React.FC<{ className?: string }> = ({ className =
             <Link
               to="/notifications"
               onClick={() => setIsOpen(false)}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="dashboard-accent-link inline-flex items-center gap-1 text-xs font-bold hover:underline"
             >
               <span>View All Notifications</span>
               <ChevronRight className="h-3.5 w-3.5" />

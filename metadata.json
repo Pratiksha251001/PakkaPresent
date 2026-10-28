@@ -1,5 +1,5 @@
 {
-  "name": "EduTrack - Smart Attendance System",
+  "name": "PakkaPresent - Smart Attendance System",
   "description": "Smart Attendance & Parent Alert System for college management — Manage Attendance, Alert Parents, Build Trust.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

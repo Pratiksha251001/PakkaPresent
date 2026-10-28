@@ -274,7 +274,7 @@ export const DefaulterDirectAlertModal: React.FC<
 
         // 2. Channel: SMS
         if (selectedChannels.includes("sms")) {
-          let smsMsg = `Dear Parent, ${t.name} (Roll ${t.roll}, ${t.className}) has CRITICAL LOW ATTENDANCE: ${t.percentage}% (Min req is 75%). Debarment risk for University exams. Kindly meet HOD immediately. - EduTrack`;
+          let smsMsg = `Dear Parent, ${t.name} (Roll ${t.roll}, ${t.className}) has CRITICAL LOW ATTENDANCE: ${t.percentage}% (Min req is 75%). Debarment risk for University exams. Kindly meet HOD immediately. - PakkaPresent`;
           if (customNote.trim()) {
             smsMsg += ` Note: ${customNote.trim()}`;
           }
