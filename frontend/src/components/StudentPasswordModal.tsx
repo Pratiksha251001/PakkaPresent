@@ -57,10 +57,10 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
 
   const handleResetToEnrollment = async () => {
     if (!student) return;
-    const password = student.roll_number?.trim();
-    if (!password || password.length < 8) {
+    const password = student.roll_number;
+    if (!password || password.length < 6 || /\s/.test(password)) {
       alert(
-        "The enrollment number must contain at least 8 characters before it can be used as a temporary password.",
+        "The enrollment number must contain at least 6 characters before it can be used as a temporary password.",
       );
       return;
     }
@@ -84,8 +84,8 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
 
   const handleSaveSinglePassword = async () => {
     if (!student) return;
-    const clean = newPassword.trim();
-    if (clean.length < 8) {
+    const clean = newPassword;
+    if (clean.length < 8 || /\s/.test(clean)) {
       alert("Password must be at least 8 characters long.");
       return;
     }
@@ -112,8 +112,8 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
 
   const handleExecuteBatchPassword = async () => {
     if (studentsList.length === 0) return;
-    const custom = batchCustomPassword.trim();
-    if (batchOption === "custom" && custom.length < 8) {
+    const custom = batchCustomPassword;
+    if (batchOption === "custom" && (custom.length < 8 || /\s/.test(custom))) {
       alert("Custom password must be at least 8 characters long.");
       return;
     }
@@ -122,9 +122,10 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
       for (const current of studentsList) {
         const password =
           batchOption === "enrollment" ? current.roll_number : custom;
-        if (!password || password.length < 8)
+        const minimumLength = batchOption === "enrollment" ? 6 : 8;
+        if (!password || password.length < minimumLength || /\s/.test(password))
           throw new Error(
-            `A valid 8-character password is required for ${current.full_name}.`,
+            `A valid ${minimumLength}-character password is required for ${current.full_name}.`,
           );
         await resetManagedAccountPassword({ studentId: current.id, password });
       }
