@@ -46,3 +46,12 @@ test("sign out clears tenant state", () => {
   assert.match(auth, /setInstitutionScope\(null\)/);
   assert.match(auth, /setNotificationInstitutionScope\(null\)/);
 });
+
+test("institution cache switching uses an explicit table list", () => {
+  assert.match(
+    db,
+    /const LOCAL_DATABASE_TABLES = \[[\s\S]*?"academic_classes",[\s\S]*?\] as const;/,
+  );
+  assert.match(db, /for \(const table of LOCAL_DATABASE_TABLES\)/);
+  assert.doesNotMatch(db, /for \(const table of TABLES\)/);
+});

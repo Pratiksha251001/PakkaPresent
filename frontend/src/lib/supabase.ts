@@ -258,6 +258,19 @@ export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
   return item;
 }
 
+const LOCAL_DATABASE_TABLES = [
+  "departments",
+  "teachers",
+  "subjects",
+  "students",
+  "attendance",
+  "sms_logs",
+  "class_coordinator_assignments",
+  "teacher_subjects",
+  "users",
+  "notices",
+  "academic_classes",
+] as const;
 class LocalDatabase {
   private activeInstitutionId: string | null = null;
 
@@ -268,7 +281,7 @@ class LocalDatabase {
   public async setInstitutionScope(institutionId: string | null) {
     if (this.activeInstitutionId === institutionId) return;
     this.activeInstitutionId = institutionId;
-    for (const table of TABLES) {
+    for (const table of LOCAL_DATABASE_TABLES) {
       (this as any)[table] = this.load(table, []);
     }
     if (institutionId && isSupabaseConfigured) {
