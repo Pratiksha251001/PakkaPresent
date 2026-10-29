@@ -179,10 +179,14 @@ export const AppShell: React.FC = () => {
         />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r-2 border-white/20 bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] transition-transform duration-300 ease-in-out lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r-2 border-[hsl(var(--sidebar-border))]/35 bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))] transition-transform duration-300 ease-in-out lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex h-20 shrink-0 items-center justify-between border-b border-[hsl(var(--sidebar-border))] px-5">
-          <PakkaPresentLogo size="md" variant="horizontal" colorMode="onDark" />
+          <PakkaPresentLogo
+            size="md"
+            variant="horizontal"
+            colorMode={theme === "dark" ? "onDark" : undefined}
+          />
           <button
             className="lg:hidden text-[hsl(var(--sidebar-foreground))] hover:opacity-80"
             onClick={() => setMobileOpen(false)}
@@ -193,14 +197,16 @@ export const AppShell: React.FC = () => {
         <Link
           to="/profile"
           onClick={() => setMobileOpen(false)}
-          className="mx-4 my-3 block shrink-0 rounded-2xl border-2 border-white/20 bg-[hsl(var(--sidebar-accent))] p-3 shadow-[0_4px_0_0_rgba(0,0,0,0.22)] transition-transform hover:-translate-y-0.5"
+          className="mx-4 my-3 block shrink-0 rounded-2xl border-2 border-[hsl(var(--sidebar-border))]/35 bg-[hsl(var(--sidebar-accent))] p-3 shadow-[0_4px_0_0_rgba(0,0,0,0.22)] transition-transform hover:-translate-y-0.5"
           title="View My Profile & Credentials"
         >
           <div className="min-w-0 space-y-1.5">
             <p className="line-clamp-2 text-xs font-semibold leading-4">
               {user?.full_name || "User"}
             </p>
-            <p className="truncate text-[10px] text-white/75">{user?.email}</p>
+            <p className="truncate text-[10px] text-[hsl(var(--sidebar-foreground))]/70">
+              {user?.email}
+            </p>
             <div className="flex flex-wrap items-center gap-1.5">
               {isDemo && (
                 <span className="rounded bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">
@@ -209,7 +215,7 @@ export const AppShell: React.FC = () => {
               )}
               <Badge
                 variant="default"
-                className="max-w-full border-[hsl(var(--sidebar-primary))]/30 bg-[hsl(var(--sidebar-primary))]/20 text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--sidebar-primary))]"
+                className={`max-w-full text-[10px] font-bold uppercase tracking-wider ${theme === "dark" ? "border-[hsl(var(--sidebar-primary))]/30 bg-[hsl(var(--sidebar-primary))]/20 text-[hsl(var(--sidebar-primary))]" : "border-[hsl(var(--dashboard-accent-border))]/55 bg-[hsl(var(--dashboard-accent-soft))] text-[hsl(var(--dashboard-accent))]"}`}
               >
                 {role?.replace("_", " ")}
               </Badge>
