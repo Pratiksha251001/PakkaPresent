@@ -74,7 +74,12 @@ const supabaseAdmin = serviceRoleKey
   : null;
 
 type AuthorizedRequest = express.Request & {
-  actor?: { id: string; role: string; departmentId?: string | null };
+  actor?: {
+    id: string;
+    role: string;
+    institutionId: string;
+    departmentId?: string | null;
+  };
 };
 
 async function requireRole(
@@ -102,18 +107,19 @@ async function requireRole(
 
   const { data: roleRow, error: roleError } = await supabaseAdmin
     .from("user_roles")
-    .select("role,department_id")
+    .select("role,department_id,institution_id")
     .eq("user_id", userData.user.id)
     .in("role", allowedRoles)
     .limit(1);
   const authorizedRole = roleRow?.[0];
-  if (roleError || !authorizedRole)
+  if (roleError || !authorizedRole || !authorizedRole.institution_id)
     return res
       .status(403)
       .json({ success: false, message: "This account is not authorized." });
   req.actor = {
     id: userData.user.id,
     role: authorizedRole.role,
+    institutionId: authorizedRole.institution_id,
     departmentId: authorizedRole.department_id,
   };
   next();
@@ -200,7 +206,7 @@ function printAsciiTerminalBanner(port: number) {
     "\n\x1b[36m======================================================================\x1b[0m",
   );
   console.log(
-    "\x1b[1;32m  🎓 PAKKAPRESENT INSTITUTIONAL BACKEND ENGINE — ONLINE\x1b[0m",
+    "\x1b[1;32m  PAKKAPRESENT INSTITUTIONAL BACKEND ENGINE - ONLINE\x1b[0m",
   );
   console.log(
     "\x1b[36m======================================================================\x1b[0m",
@@ -938,13 +944,19 @@ async function startServer() {
       const targetId = role === "student" ? studentId : teacherId;
       const { data: targetRecord, error: targetError } = await supabaseAdmin
         .from(targetTable)
-        .select("id,department_id,user_id")
+        .select("id,institution_id,department_id,user_id")
         .eq("id", targetId)
+        .eq("institution_id", actor.institutionId)
         .single();
       if (targetError || !targetRecord)
         return res.status(404).json({
           success: false,
           message: "The target student or staff record does not exist.",
+        });
+      if (targetRecord.institution_id !== actor.institutionId)
+        return res.status(403).json({
+          success: false,
+          message: "The target account belongs to another institution.",
         });
       if (targetRecord.user_id)
         return res.status(409).json({
@@ -978,6 +990,7 @@ async function startServer() {
           .from("profiles")
           .upsert({
             id: userId,
+            institution_id: actor.institutionId,
             full_name: String(fullName).trim(),
             email: normalizedEmail,
             must_change_password: true,
@@ -986,7 +999,12 @@ async function startServer() {
         const { error: roleError } = await supabaseAdmin
           .from("user_roles")
           .upsert(
-            { user_id: userId, role, department_id: departmentId || null },
+            {
+              user_id: userId,
+              institution_id: actor.institutionId,
+              role,
+              department_id: targetRecord.department_id,
+            },
             { onConflict: "user_id,role" },
           );
         if (roleError) throw new Error(roleError.message);
@@ -995,7 +1013,8 @@ async function startServer() {
         const { error: linkError } = await supabaseAdmin
           .from(table)
           .update({ user_id: userId })
-          .eq("id", entityId);
+          .eq("id", entityId)
+          .eq("institution_id", actor.institutionId);
         if (linkError) throw new Error(linkError.message);
         return res.status(201).json({ success: true, userId, role });
       } catch (error: any) {
@@ -1097,13 +1116,19 @@ async function startServer() {
       const entityId = studentId || teacherId;
       const { data: entity, error: entityError } = await supabaseAdmin
         .from(table)
-        .select("id,user_id,department_id")
+        .select("id,user_id,institution_id,department_id")
         .eq("id", entityId)
+        .eq("institution_id", actor.institutionId)
         .single();
       if (entityError || !entity?.user_id)
         return res.status(404).json({
           success: false,
           message: "No linked Supabase Auth account exists for this record.",
+        });
+      if (entity.institution_id !== actor.institutionId)
+        return res.status(403).json({
+          success: false,
+          message: "The linked account belongs to another institution.",
         });
       if (actor.role !== "admin" && entity.department_id !== actor.departmentId)
         return res.status(403).json({
@@ -1127,7 +1152,7 @@ async function startServer() {
         });
       const { data: rolesBefore, error: rolesReadError } = await supabaseAdmin
         .from("user_roles")
-        .select("role,department_id")
+        .select("role,department_id,institution_id")
         .eq("user_id", entity.user_id);
       if (rolesReadError)
         return res
@@ -1164,7 +1189,8 @@ async function startServer() {
         if (role === "hod") {
           const { data: existingHod, error: hodError } = await supabaseAdmin
             .from("user_roles")
-            .select("user_id,department_id")
+            .select("user_id,institution_id,department_id")
+            .eq("institution_id", actor.institutionId)
             .eq("role", "hod")
             .eq("department_id", targetDepartmentId)
             .neq("user_id", entity.user_id)
@@ -1194,6 +1220,7 @@ async function startServer() {
               .upsert(
                 {
                   user_id: existingHod.user_id,
+                  institution_id: actor.institutionId,
                   role: "teacher",
                   department_id: existingHod.department_id,
                 },
@@ -1213,6 +1240,7 @@ async function startServer() {
           .from("profiles")
           .upsert({
             id: entity.user_id,
+            institution_id: actor.institutionId,
             full_name: normalizedName,
             email: normalizedEmail,
             must_change_password: effectivePassword
@@ -1230,6 +1258,7 @@ async function startServer() {
           .from("user_roles")
           .insert({
             user_id: entity.user_id,
+            institution_id: actor.institutionId,
             role,
             department_id: targetDepartmentId,
           });
@@ -1238,7 +1267,8 @@ async function startServer() {
           const { error: departmentError } = await supabaseAdmin
             .from("departments")
             .update({ hod_id: teacherId })
-            .eq("id", targetDepartmentId);
+            .eq("id", targetDepartmentId)
+            .eq("institution_id", actor.institutionId);
           if (departmentError) throw new Error(departmentError.message);
         }
         const authUpdate: any = {
@@ -1337,7 +1367,7 @@ async function startServer() {
       const entityId = studentId || teacherId;
       const { data: entity, error: entityError } = await supabaseAdmin
         .from(table)
-        .select("user_id,department_id")
+        .select("user_id,institution_id,department_id")
         .eq("id", entityId)
         .single();
       if (entityError || !entity?.user_id)
@@ -1350,6 +1380,11 @@ async function startServer() {
         return res
           .status(401)
           .json({ success: false, message: "Authentication required." });
+      if (entity.institution_id !== actor.institutionId)
+        return res.status(403).json({
+          success: false,
+          message: "The linked account belongs to another institution.",
+        });
       if (actor.role === "class_coordinator" && table !== "students")
         return res.status(403).json({
           success: false,
@@ -1371,7 +1406,8 @@ async function startServer() {
       const { error: profileError } = await supabaseAdmin
         .from("profiles")
         .update({ must_change_password: true })
-        .eq("id", entity.user_id);
+        .eq("id", entity.user_id)
+        .eq("institution_id", actor.institutionId);
       if (profileError)
         return res
           .status(500)
@@ -1757,8 +1793,39 @@ async function startServer() {
               "SUPABASE_SERVICE_ROLE_KEY is required for authoritative SMS auditing.",
           });
         }
+
+        const actor = (req as AuthorizedRequest).actor;
+        if (!actor?.institutionId) {
+          return res.status(403).json({
+            success: false,
+            message: "Institution ownership is required.",
+          });
+        }
+
         for (const rec of recipients) {
-          const normalizedMobile = parseMobile(rec.mobile).with91;
+          if (!rec.studentId) {
+            throw new Error(
+              "studentId is required for authoritative SMS dispatch.",
+            );
+          }
+
+          const { data: trustedStudent, error: studentError } =
+            await supabaseAdmin
+              .from("students")
+              .select("id,institution_id,parent_mobile,full_name")
+              .eq("id", rec.studentId)
+              .eq("institution_id", actor.institutionId)
+              .single();
+
+          if (studentError || !trustedStudent) {
+            throw new Error(
+              "The SMS recipient does not belong to this institution.",
+            );
+          }
+
+          const normalizedMobile = parseMobile(
+            trustedStudent.parent_mobile,
+          ).with91;
           const idempotencyKey = [
             rec.studentId || "unknown-student",
             rec.subjectId || rec.subject || "attendance",
@@ -1769,6 +1836,7 @@ async function startServer() {
           const { data: existing, error: lookupError } = await supabaseAdmin
             .from("sms_logs")
             .select("id,status,provider_request_id")
+            .eq("institution_id", actor.institutionId)
             .eq("idempotency_key", idempotencyKey)
             .maybeSingle();
           if (lookupError)
@@ -1794,9 +1862,10 @@ async function startServer() {
             await supabaseAdmin
               .from("sms_logs")
               .insert({
-                student_id: rec.studentId || null,
+                institution_id: actor.institutionId,
+                student_id: trustedStudent.id,
                 subject_id: rec.subjectId || null,
-                student_name: rec.studentName || "Student",
+                student_name: trustedStudent.full_name,
                 parent_mobile: normalizedMobile,
                 message: rec.message,
                 status: "queued",
@@ -1816,7 +1885,12 @@ async function startServer() {
               `SMS reservation failed: ${reservationError?.message || "unknown error"}`,
             );
           const dispatchRes = await executeSingleSmsDispatch(
-            rec,
+            {
+              ...rec,
+              studentId: trustedStudent.id,
+              studentName: trustedStudent.full_name,
+              mobile: normalizedMobile,
+            },
             chosenProvider,
             smsConfig,
             { ...req.body, correlationId },
@@ -1830,7 +1904,8 @@ async function startServer() {
               failure_message: dispatchRes.success ? null : dispatchRes.details,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", reservation.id);
+            .eq("id", reservation.id)
+            .eq("institution_id", actor.institutionId);
           if (auditError)
             throw new Error(`SMS audit update failed: ${auditError.message}`);
           if (dispatchRes.success) {
@@ -2117,6 +2192,7 @@ async function startServer() {
         });
       }
       const {
+        studentId,
         to_email,
         subject,
         message,
@@ -2126,10 +2202,40 @@ async function startServer() {
         college_name,
       } = req.body || {};
 
-      if (!to_email) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Recipient email is required." });
+      if (!studentId || !to_email) {
+        return res.status(400).json({
+          success: false,
+          message: "A student and recipient email are required.",
+        });
+      }
+
+      if (!supabaseAdmin || !actor?.institutionId) {
+        return res.status(503).json({
+          success: false,
+          message: "Institution-aware email dispatch is unavailable.",
+        });
+      }
+
+      const { data: trustedStudent, error: studentError } = await supabaseAdmin
+        .from("students")
+        .select(
+          "id,institution_id,full_name,parent_name,parent_email,parent_email_approved_at",
+        )
+        .eq("id", studentId)
+        .eq("institution_id", actor.institutionId)
+        .single();
+
+      if (
+        studentError ||
+        !trustedStudent ||
+        !trustedStudent.parent_email_approved_at ||
+        trustedStudent.parent_email?.trim().toLowerCase() !==
+          String(to_email).trim().toLowerCase()
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "The email recipient is not approved for this institution.",
+        });
       }
 
       const serviceId = (process.env.EMAILJS_SERVICE_ID || "").trim();
@@ -2169,11 +2275,11 @@ async function startServer() {
               user_id: publicKey,
               accessToken: privateKey,
               template_params: {
-                to_email: to_email.trim(),
-                to_name: parent_name || student_name || "Parent/Guardian",
+                to_email: trustedStudent.parent_email,
+                to_name: trustedStudent.parent_name || "Parent/Guardian",
                 subject: subject || "College Attendance Alert",
                 message: message || "",
-                student_name: student_name || "Student",
+                student_name: trustedStudent.full_name,
                 attendance_rate: String(attendance_rate || ""),
                 college_name: college_name || "SMIT College of Engineering",
                 reply_to: "noreply@college.edu",

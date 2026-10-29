@@ -2,13 +2,22 @@ import { AppNotification, UserRoleType } from "./types";
 import { generateUuid, localDb } from "./supabase";
 
 const NOTIFICATIONS_STORAGE_KEY = "edutrack_local_notifications_v1";
+let activeInstitutionId: string | null = null;
+
+const getNotificationsStorageKey = () =>
+  `${NOTIFICATIONS_STORAGE_KEY}_${activeInstitutionId || "unscoped"}`;
+
+export function setNotificationInstitutionScope(institutionId: string | null) {
+  activeInstitutionId = institutionId;
+}
 
 const initialSampleNotifications: AppNotification[] = [
   {
     id: "notif-sample-1",
     type: "security_login_failed",
     title: "Security Alert: Failed Login Attempt",
-    message: 'Unsuccessful login attempt detected for HOD account with identifier "hod.cse@college.edu". Reason: Incorrect password entered.',
+    message:
+      'Unsuccessful login attempt detected for HOD account with identifier "hod.cse@college.edu". Reason: Incorrect password entered.',
     severity: "warning",
     target_roles: ["admin"],
     created_at: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
@@ -25,7 +34,8 @@ const initialSampleNotifications: AppNotification[] = [
     id: "notif-sample-2",
     type: "attendance_submitted",
     title: "Daily Attendance Submitted: Data Structures (Sem 3)",
-    message: "Prof. Rajesh Sharma submitted daily lecture attendance for Data Structures (CS-301) on today's session. 48 Present, 4 Absent. 4 parent SMS alerts dispatched.",
+    message:
+      "Prof. Rajesh Sharma submitted daily lecture attendance for Data Structures (CS-301) on today's session. 48 Present, 4 Absent. 4 parent SMS alerts dispatched.",
     severity: "success",
     target_roles: ["hod", "class_coordinator", "admin"],
     department_id: "dept-1",
@@ -50,14 +60,19 @@ const initialSampleNotifications: AppNotification[] = [
 export function getStoredNotifications(): AppNotification[] {
   if (typeof window === "undefined") return initialSampleNotifications;
   try {
-    const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+    const raw = localStorage.getItem(getNotificationsStorageKey());
     if (!raw) {
       // If demo data was not cleared, return sample alerts
-      const demoCleared = localStorage.getItem("edutrack_local_db_demo_cleared");
+      const demoCleared = localStorage.getItem(
+        "edutrack_local_db_demo_cleared",
+      );
       if (demoCleared === "true") {
         return [];
       }
-      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(initialSampleNotifications));
+      localStorage.setItem(
+        getNotificationsStorageKey(),
+        JSON.stringify(initialSampleNotifications),
+      );
       return initialSampleNotifications;
     }
     const parsed = JSON.parse(raw);
@@ -74,9 +89,14 @@ export function getStoredNotifications(): AppNotification[] {
 export function saveNotifications(notifications: AppNotification[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
+    localStorage.setItem(
+      getNotificationsStorageKey(),
+      JSON.stringify(notifications),
+    );
     window.dispatchEvent(
-      new CustomEvent("edutrack_notifications_updated", { detail: notifications })
+      new CustomEvent("edutrack_notifications_updated", {
+        detail: notifications,
+      }),
     );
   } catch (err) {
     console.error("Failed to save notifications to localStorage", err);
@@ -136,11 +156,12 @@ export function recordAttendanceSubmittedNotification(params: {
   smsCount: number;
 }): AppNotification {
   const notifications = getStoredNotifications();
-  const summary = params.absentCount > 0
-    ? `${params.absentCount} absentee(s). ${params.smsCount} parent SMS alert(s) dispatched.`
-    : "100% attendance achieved (0 absentees).";
+  const summary =
+    params.absentCount > 0
+      ? `${params.absentCount} absentee(s). ${params.smsCount} parent SMS alert(s) dispatched.`
+      : "100% attendance achieved (0 absentees).";
 
-  const classLabel = params.className ? ` · ${params.className}` : "";
+  const classLabel = params.className ? ` - ${params.className}` : "";
 
   const newNotif: AppNotification = {
     id: `notif-att-${Date.now()}-${generateUuid().slice(0, 8)}`,
@@ -190,7 +211,7 @@ export function recordAttendanceSubmittedNotification(params: {
 export function getNotificationsForUser(
   user: any,
   role: UserRoleType,
-  allNotifications?: AppNotification[]
+  allNotifications?: AppNotification[],
 ): AppNotification[] {
   const notifs = allNotifications || getStoredNotifications();
   if (!user || !role) return [];
@@ -203,9 +224,10 @@ export function getNotificationsForUser(
         t.id === user?.teacher_id ||
         (user?.email && t.email?.toLowerCase() === user.email.toLowerCase()) ||
         (user?.employee_id && t.employee_id === user.employee_id) ||
-        (t.is_class_coordinator && t.department_id === user?.department_id)
+        (t.is_class_coordinator && t.department_id === user?.department_id),
     );
-    coordinatorSemester = teacherRec?.assigned_semester || user?.assigned_semester || 5;
+    coordinatorSemester =
+      teacherRec?.assigned_semester || user?.assigned_semester || 5;
   }
 
   const userDept = user?.department_id || null;
@@ -225,23 +247,32 @@ export function getNotificationsForUser(
     if (item.type === "attendance_submitted") {
       if (role === "hod") {
         // HOD sees for all classes/teachers in their department
-        return !item.department_id || !userDept || item.department_id === userDept;
+        return (
+          !item.department_id || !userDept || item.department_id === userDept
+        );
       }
 
       if (role === "class_coordinator") {
         // CC sees for their specific class (semester + department)
-        const matchDept = !item.department_id || !userDept || item.department_id === userDept;
-        const matchSem = !item.semester || item.semester === coordinatorSemester;
+        const matchDept =
+          !item.department_id || !userDept || item.department_id === userDept;
+        const matchSem =
+          !item.semester || item.semester === coordinatorSemester;
         return matchDept && matchSem;
       }
 
       if (role === "teacher") {
         // Subject teacher sees if they are the teacher or teach that subject
-        if (item.teacher_id && (item.teacher_id === user.id || item.teacher_id === user.teacher_id)) {
+        if (
+          item.teacher_id &&
+          (item.teacher_id === user.id || item.teacher_id === user.teacher_id)
+        ) {
           return true;
         }
         const teachesSubject = localDb.teacher_subjects.some(
-          (ts) => (ts.teacher_id === user.id || ts.teacher_id === user.teacher_id) && ts.subject_id === item.subject_id
+          (ts) =>
+            (ts.teacher_id === user.id || ts.teacher_id === user.teacher_id) &&
+            ts.subject_id === item.subject_id,
         );
         return teachesSubject;
       }
@@ -264,7 +295,10 @@ export function getNotificationsForUser(
 /**
  * Checks if a notification is read by the current user.
  */
-export function isNotificationRead(item: AppNotification, userKey: string): boolean {
+export function isNotificationRead(
+  item: AppNotification,
+  userKey: string,
+): boolean {
   if (item.read) return true;
   if (item.read_by && item.read_by.includes(userKey)) return true;
   return false;

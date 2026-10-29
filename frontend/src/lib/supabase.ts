@@ -259,7 +259,22 @@ export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
 }
 
 class LocalDatabase {
-  private readonly storageKey = "edutrack_local_db";
+  private activeInstitutionId: string | null = null;
+
+  private get storageKey() {
+    return `edutrack_local_db_${this.activeInstitutionId || "unscoped"}`;
+  }
+
+  public async setInstitutionScope(institutionId: string | null) {
+    if (this.activeInstitutionId === institutionId) return;
+    this.activeInstitutionId = institutionId;
+    for (const table of TABLES) {
+      (this as any)[table] = this.load(table, []);
+    }
+    if (institutionId && isSupabaseConfigured) {
+      await this.syncFromSupabase();
+    }
+  }
 
   private liveFallback<T>(fallback: T[]): T[] {
     return isSupabaseConfigured ? [] : fallback;
