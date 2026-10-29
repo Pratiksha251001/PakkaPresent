@@ -51,11 +51,6 @@ interface AuthContextType {
   updateUserPassword: (
     newPassword: string,
   ) => Promise<{ ok: boolean; message?: string }>;
-  registerAdmin: (
-    fullName: string,
-    email: string,
-    password: string,
-  ) => Promise<{ ok: boolean; message?: string }>;
   loginWithCredentials: (
     role: UserRoleType,
     email: string,
@@ -540,85 +535,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     return { ok: true };
   };
 
-  const registerAdmin = async (
-    fullName: string,
-    email: string,
-    password: string,
-  ) => {
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (isSupabaseConfigured) {
-      const { data, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          data: { full_name: fullName.trim() },
-        },
-      });
-
-      if (error) {
-        return { ok: false, message: error.message };
-      }
-
-      if (!data.user) {
-        return {
-          ok: false,
-          message: "Supabase did not create the Admin account.",
-        };
-      }
-
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: data.user.id,
-        full_name: fullName.trim(),
-        email: normalizedEmail,
-        must_change_password: false,
-      });
-      if (profileError) {
-        return {
-          ok: false,
-          message: `Admin Auth account was created, but the profile could not be saved: ${profileError.message}`,
-        };
-      }
-
-      const { error: roleError } = await supabase.from("user_roles").upsert(
-        {
-          user_id: data.user.id,
-          role: "admin",
-          department_id: null,
-        },
-        { onConflict: "user_id,role" },
-      );
-      if (roleError) {
-        return {
-          ok: false,
-          message: `Admin profile was saved, but the Admin role could not be saved: ${roleError.message}`,
-        };
-      }
-
-      return {
-        ok: true,
-        message: data.session
-          ? undefined
-          : "Admin registered. Confirm the email in Supabase before signing in.",
-      };
-    }
-
-    if (getStorageItem("admin_account")) {
-      return {
-        ok: false,
-        message: "An Admin account already exists for this institution.",
-      };
-    }
-    const account = {
-      id: "admin-1",
-      full_name: fullName.trim(),
-      email: normalizedEmail,
-      password,
-    };
-    setStorageItem("admin_account", JSON.stringify(account));
-    return { ok: true };
-  };
-
   const loginWithCredentials = async (
     targetRole: UserRoleType,
     identifier: string,
@@ -784,7 +700,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         confirmLogout,
         setPassword,
         updateUserPassword,
-        registerAdmin,
         loginWithCredentials,
       }}
     >

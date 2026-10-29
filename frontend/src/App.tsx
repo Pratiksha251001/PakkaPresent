@@ -32,6 +32,9 @@ import { HODClasses } from "./pages/HODClasses";
 import { HODStudents } from "./pages/HODStudents";
 import { ClassTeacherLogin } from "./pages/ClassTeacherLogin";
 import { RoleLogin } from "./pages/RoleLogin";
+import { InstitutionOnboarding } from "./pages/InstitutionOnboarding";
+import { InstitutionOnboardingComplete } from "./pages/InstitutionOnboardingComplete";
+import { InstitutionAccessRequest } from "./pages/InstitutionAccessRequest";
 import { ClassTeacherDashboard } from "./pages/ClassTeacherDashboard";
 import { Notifications } from "./pages/Notifications";
 import { ForcePasswordChangeModal } from "./components/ForcePasswordChangeModal";
@@ -106,23 +109,34 @@ const RoleDashboard: React.FC = () => {
 };
 
 const LAST_PATH_KEY = "edutrack_last_active_path";
+const LEGACY_LAST_PATH_KEY = "smit_last_active_path";
+const PUBLIC_PATH_PREFIXES = [
+  "/login",
+  "/teacher/login",
+  "/institution/onboard",
+  "/institution/onboarding-complete",
+  "/institution/request-access",
+];
+
+const isRestorableAppPath = (path: string | null): path is string => {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) return false;
+  const pathname = path.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
+  if (pathname === "/") return false;
+  return !PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+};
 
 const RoutePathTracker: React.FC = () => {
   const location = useLocation();
   const { user, role } = useAuth();
 
   React.useEffect(() => {
-    // Only track authenticated internal app pages (not "/" or "/teacher/login")
-    if (
-      user &&
-      role &&
-      location.pathname !== "/" &&
-      location.pathname !== "/teacher/login"
-    ) {
-      const fullPath = location.pathname + location.search + location.hash;
+    const fullPath = location.pathname + location.search + location.hash;
+    if (user && role && isRestorableAppPath(fullPath)) {
       try {
         localStorage.setItem(LAST_PATH_KEY, fullPath);
-        localStorage.setItem("smit_last_active_path", fullPath);
+        localStorage.setItem(LEGACY_LAST_PATH_KEY, fullPath);
       } catch (e) {
         console.warn("Failed to persist last active path", e);
       }
@@ -151,13 +165,16 @@ const RootRouteHandler: React.FC = () => {
   if (user && role && !isSwitching) {
     const savedPath =
       localStorage.getItem(LAST_PATH_KEY) ||
-      localStorage.getItem("smit_last_active_path");
+      localStorage.getItem(LEGACY_LAST_PATH_KEY);
     const defaultDashboard =
       role === "teacher" ? "/teacher/dashboard" : "/dashboard";
-    const targetPath =
-      savedPath && savedPath !== "/" && savedPath !== "/teacher/login"
-        ? savedPath
-        : defaultDashboard;
+    const targetPath = isRestorableAppPath(savedPath)
+      ? savedPath
+      : defaultDashboard;
+    if (savedPath && targetPath === defaultDashboard) {
+      localStorage.removeItem(LAST_PATH_KEY);
+      localStorage.removeItem(LEGACY_LAST_PATH_KEY);
+    }
 
     return <Navigate to={targetPath} replace />;
   }
@@ -176,7 +193,16 @@ export const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<RootRouteHandler />} />
             <Route path="/teacher/login" element={<ClassTeacherLogin />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/login/:role" element={<RoleLogin />} />
+            <Route
+              path="/institution/request-access"
+              element={<InstitutionAccessRequest />}
+            />
+            <Route
+              path="/institution/onboard/:invitationToken"
+              element={<InstitutionOnboarding />}
+            />
 
             <Route
               element={
@@ -333,6 +359,10 @@ export const App: React.FC = () => {
                 element={<Navigate to="/dashboard" replace />}
               />
             </Route>
+            <Route
+              path="/institution/onboarding-complete"
+              element={<InstitutionOnboardingComplete />}
+            />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

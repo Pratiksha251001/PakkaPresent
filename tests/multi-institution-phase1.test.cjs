@@ -84,7 +84,11 @@ test("rollback is guarded", () => {
 });
 test("baseline copies converge on the secured Phase 1 state", () => {
   for (const schema of schemas) {
-    assert.match(schema, /institution_id uuid not null default/);
+    assert.match(schema, /institution_id uuid not null references/);
+    assert.doesNotMatch(
+      schema,
+      /institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'/,
+    );
     assert.match(schema, /MITCORER Barshi/);
     assert.match(schema, /Baseline refused: conflicting MITCORER identity/);
     assert.match(schema, /on conflict \(id\) do update/);
@@ -111,7 +115,10 @@ test("baseline copies converge on the secured Phase 1 state", () => {
       /revoke all on public\.institutions from anon, authenticated/,
     );
     assert.match(schema, /institution_id is authoritative/);
-    assert.match(schema, /Additional onboarding is blocked until Phase 2/);
+    assert.match(
+      schema,
+      /New institutions are created only by the trusted onboarding backend/,
+    );
   }
 });
 test("Phase 2 security is not pretended", () => {

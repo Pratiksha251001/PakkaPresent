@@ -9,3 +9,5 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PLATFORM_ADMIN_TOKEN
+        sync: false

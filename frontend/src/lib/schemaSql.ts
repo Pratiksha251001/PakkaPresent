@@ -381,29 +381,29 @@ end $$;
 insert into public.institutions (id, official_name, display_name, code, dte_code, city, district, state, country, status)
 values ('6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid, 'MAEER''s MIT College of Railway Engineering and Research, Barshi', 'MITCORER Barshi', 'MITCORER', '06901', 'Barshi', 'Solapur', 'Maharashtra', 'India', 'active')
 on conflict (id) do update set official_name = excluded.official_name, display_name = excluded.display_name, code = excluded.code, dte_code = excluded.dte_code, city = excluded.city, district = excluded.district, state = excluded.state, country = excluded.country, status = excluded.status, updated_at = now();
-alter table public.departments add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.departments add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists departments_institution_id_idx on public.departments (institution_id);
-alter table public.profiles add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.profiles add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists profiles_institution_id_idx on public.profiles (institution_id);
-alter table public.user_roles add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.user_roles add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists user_roles_institution_id_idx on public.user_roles (institution_id);
-alter table public.teachers add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.teachers add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists teachers_institution_id_idx on public.teachers (institution_id);
-alter table public.students add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.students add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists students_institution_id_idx on public.students (institution_id);
-alter table public.academic_classes add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.academic_classes add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists academic_classes_institution_id_idx on public.academic_classes (institution_id);
-alter table public.class_coordinator_assignments add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.class_coordinator_assignments add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists class_coordinator_assignments_institution_id_idx on public.class_coordinator_assignments (institution_id);
-alter table public.subjects add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.subjects add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists subjects_institution_id_idx on public.subjects (institution_id);
-alter table public.teacher_subjects add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.teacher_subjects add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists teacher_subjects_institution_id_idx on public.teacher_subjects (institution_id);
-alter table public.attendance add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.attendance add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists attendance_institution_id_idx on public.attendance (institution_id);
-alter table public.notices add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.notices add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists notices_institution_id_idx on public.notices (institution_id);
-alter table public.sms_logs add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+alter table public.sms_logs add column if not exists institution_id uuid not null references public.institutions(id) on delete restrict;
 create index if not exists sms_logs_institution_id_idx on public.sms_logs (institution_id);
 update public.departments set institution_name = 'MITCORER Barshi' where institution_name is distinct from 'MITCORER Barshi';
 comment on column public.departments.institution_name is 'Compatibility display field; institution_id is authoritative.';
@@ -415,7 +415,7 @@ create unique index if not exists students_institution_roll_number_key on public
 create unique index if not exists subjects_institution_code_key on public.subjects (institution_id, code);
 alter table public.institutions enable row level security;
 revoke all on public.institutions from anon, authenticated;
-comment on table public.institutions is 'Phase 1 ownership registry. Additional onboarding is blocked until Phase 2.';
+comment on table public.institutions is 'Institution ownership registry. New institutions are created only by the trusted onboarding backend.';
 
 -- Ensure single institutional admin index
 -- Replaced below by institution-scoped admin uniqueness.
@@ -442,6 +442,138 @@ begin
     alter publication supabase_realtime add table public.departments;
   end if;
 end $$;
+
+-- Multi-institution Phase 4A onboarding schema foundation
+-- Tenant ownership remains mandatory, but no table silently defaults to MITCORER.
+do $$ declare t text; begin
+  foreach t in array array['departments', 'profiles', 'user_roles', 'teachers', 'students', 'academic_classes', 'class_coordinator_assignments', 'subjects', 'teacher_subjects', 'attendance', 'notices', 'sms_logs', 'parent_notification_attempts'] loop
+    execute format('alter table public.%I alter column institution_id drop default', t);
+  end loop;
+end $$;
+create table if not exists public.institution_onboarding_attempts (
+  request_id uuid primary key default uuid_generate_v4(),
+  institution_id uuid references public.institutions(id) on delete set null,
+  administrator_user_id uuid references auth.users(id) on delete set null,
+  administrator_email_digest text,
+  status text not null check (status in ('started','completed','failed','recovery_required')),
+  failure_phase text, created_at timestamptz not null default now(), completed_at timestamptz,
+  constraint institution_onboarding_email_digest_format check (administrator_email_digest is null or administrator_email_digest ~ '^[a-f0-9]{64}$')
+);
+alter table public.institution_onboarding_attempts enable row level security;
+revoke all on public.institution_onboarding_attempts from public, anon, authenticated;
+grant select, insert, update, delete on public.institution_onboarding_attempts to service_role;
+comment on table public.institution_onboarding_attempts is 'Service-role-only onboarding recovery ledger. Passwords and onboarding tokens must never be stored.';
+comment on table public.institutions is 'Institution ownership registry. New institutions are created only by the trusted onboarding backend.';
+-- Multi-institution Phase 4E2 institution access-request ledger
+create table if not exists public.institution_access_requests (
+ id uuid primary key default uuid_generate_v4(), institution_name text not null,
+ institution_type text not null check (institution_type in ('college','university','school','training institute','other')),
+ institution_code text, dte_code text, contact_name text not null, designation text not null,
+ official_email text not null, phone text not null, city text not null, state text not null,
+ student_count integer check (student_count is null or student_count between 1 and 10000000),
+ message text not null, consent_to_contact boolean not null check (consent_to_contact),
+ consented_at timestamptz not null, status text not null default 'pending' check (status in ('pending','contacted','approved','rejected','expired','onboarding','onboarded')),
+ review_notes text, created_at timestamptz not null default now(), reviewed_at timestamptz, approved_at timestamptz, rejected_at timestamptz,
+ constraint institution_access_requests_name_length check (char_length(institution_name) between 2 and 200),
+ constraint institution_access_requests_email_normalized check (official_email=lower(btrim(official_email))),
+ constraint institution_access_requests_message_length check (char_length(message) between 10 and 2000)
+);
+create index if not exists institution_access_requests_status_created_idx on public.institution_access_requests(status,created_at desc);
+create index if not exists institution_access_requests_duplicate_idx on public.institution_access_requests(official_email,institution_name,created_at desc);
+alter table public.institution_access_requests enable row level security;
+revoke all on public.institution_access_requests from public, anon, authenticated;
+grant select, insert, update, delete on public.institution_access_requests to service_role;
+comment on table public.institution_access_requests is 'Service-role-only public institution access request ledger. Stores no passwords, invitation credentials, or client IP addresses.';
+
+-- Multi-institution Phase 4E3 invitation authorization
+create table if not exists public.institution_onboarding_invitations (
+  id uuid primary key default uuid_generate_v4(),
+  request_id uuid not null references public.institution_access_requests(id) on delete restrict,
+  token_digest text not null,
+  code_digest text not null,
+  status text not null default 'active' check (status in ('active','consumed','revoked','expired','recovery_required')),
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  consumed_at timestamptz,
+  revoked_at timestamptz,
+  institution_id uuid references public.institutions(id) on delete set null,
+  constraint institution_onboarding_invitation_token_digest_format check (token_digest ~ '^[a-f0-9]{64}$'),
+  constraint institution_onboarding_invitation_code_digest_format check (code_digest ~ '^[a-f0-9]{64}$'),
+  constraint institution_onboarding_invitation_expiry check (expires_at > created_at)
+);
+create unique index if not exists institution_onboarding_invitations_token_digest_key on public.institution_onboarding_invitations(token_digest);
+create unique index if not exists institution_onboarding_invitations_code_digest_key on public.institution_onboarding_invitations(code_digest);
+create unique index if not exists institution_onboarding_invitations_one_active_per_request on public.institution_onboarding_invitations(request_id) where status = 'active';
+create index if not exists institution_onboarding_invitations_status_expiry_idx on public.institution_onboarding_invitations(status, expires_at);
+alter table public.institution_onboarding_invitations enable row level security;
+revoke all on public.institution_onboarding_invitations from public, anon, authenticated;
+grant select, insert, update, delete on public.institution_onboarding_invitations to service_role;
+comment on table public.institution_onboarding_invitations is 'Service-role-only invitation authorization. Stores SHA-256 digests only; plain invitation credentials must never be persisted.';
+
+create or replace function public.approve_institution_access_request(
+  target_request_id uuid,
+  invitation_token_digest text,
+  onboarding_code_digest text,
+  invitation_expires_at timestamptz
+) returns table(invitation_id uuid)
+language plpgsql security definer set search_path = public
+as $$
+declare current_status text; new_invitation_id uuid;
+begin
+  if auth.role() <> 'service_role' then raise exception using errcode='42501', message='Service role required'; end if;
+  if invitation_token_digest !~ '^[a-f0-9]{64}$' or onboarding_code_digest !~ '^[a-f0-9]{64}$' then
+    raise exception using errcode='22023', message='Invalid invitation digest';
+  end if;
+  if invitation_expires_at <= now() then raise exception using errcode='22023', message='Invitation expiry must be in the future'; end if;
+  select status into current_status from public.institution_access_requests where id=target_request_id for update;
+  if not found then raise exception using errcode='P0002', message='Access request not found.'; end if;
+  if current_status not in ('pending','contacted') then raise exception using errcode='P0001', message='Access request is not eligible for approval.'; end if;
+  insert into public.institution_onboarding_invitations(request_id,token_digest,code_digest,expires_at)
+    values(target_request_id,invitation_token_digest,onboarding_code_digest,invitation_expires_at)
+    returning id into new_invitation_id;
+  update public.institution_access_requests set status='approved', reviewed_at=coalesce(reviewed_at,now()), approved_at=now(), rejected_at=null where id=target_request_id;
+  return query select new_invitation_id;
+end $$;
+revoke all on function public.approve_institution_access_request(uuid,text,text,timestamptz) from public, anon, authenticated;
+grant execute on function public.approve_institution_access_request(uuid,text,text,timestamptz) to service_role;
+
+-- Multi-institution Phase 4E4 invitation-bound onboarding
+alter table public.institution_onboarding_invitations drop constraint if exists institution_onboarding_invitations_status_check;
+alter table public.institution_onboarding_invitations add constraint institution_onboarding_invitations_status_check check (status in ('active','onboarding','consumed','revoked','expired','recovery_required'));
+create or replace function public.reserve_institution_onboarding(invitation_token_digest text,onboarding_code_digest text)
+returns table(invitation_id uuid,request_id uuid,institution_name text,institution_code text,dte_code text,official_email text)
+language plpgsql security definer set search_path=public as $$
+declare row_inv public.institution_onboarding_invitations%rowtype; transitioned_request_id uuid;
+begin
+ if auth.role()<>'service_role' then raise exception using errcode='42501',message='Service role required'; end if;
+ select * into row_inv from public.institution_onboarding_invitations where token_digest=invitation_token_digest for update;
+ if not found or row_inv.code_digest<>onboarding_code_digest then raise exception using errcode='P0002',message='Invalid onboarding invitation.'; end if;
+ if row_inv.status<>'active' then raise exception using errcode='P0001',message='Onboarding invitation is not active.'; end if;
+ if row_inv.expires_at<=now() then raise exception using errcode='P0001',message='Onboarding invitation has expired.'; end if;
+ update public.institution_access_requests set status='onboarding' where id=row_inv.request_id and status='approved' returning id into transitioned_request_id;
+ if transitioned_request_id is null then raise exception using errcode='P0001',message='Access request is no longer approved for onboarding.'; end if;
+ update public.institution_onboarding_invitations set status='onboarding' where id=row_inv.id and status='active';
+ if not found then raise exception using errcode='P0001',message='Onboarding invitation is no longer active.'; end if;
+ return query select row_inv.id,r.id,r.institution_name,r.institution_code,r.dte_code,r.official_email from public.institution_access_requests r where r.id=transitioned_request_id;
+end $$;
+create or replace function public.complete_institution_onboarding(target_invitation_id uuid,target_institution_id uuid)
+returns void language plpgsql security definer set search_path=public as $$ declare rid uuid; transitioned_request_id uuid; begin
+ if auth.role()<>'service_role' then raise exception using errcode='42501',message='Service role required'; end if;
+ select request_id into rid from public.institution_onboarding_invitations where id=target_invitation_id and status='onboarding' for update;
+ if rid is null then raise exception using errcode='P0001',message='Invitation reservation is no longer valid.'; end if;
+ update public.institution_access_requests set status='onboarded' where id=rid and status='onboarding' returning id into transitioned_request_id;
+ if transitioned_request_id is null then raise exception using errcode='P0001',message='Access request is no longer in onboarding.'; end if;
+ update public.institution_onboarding_invitations set status='consumed',consumed_at=now(),institution_id=target_institution_id where id=target_invitation_id and status='onboarding';
+ if not found then raise exception using errcode='P0001',message='Invitation reservation is no longer valid.'; end if;
+end $$;
+create or replace function public.release_institution_onboarding(target_invitation_id uuid,recovery_required boolean)
+returns void language plpgsql security definer set search_path=public as $$ declare rid uuid; begin
+ if auth.role()<>'service_role' then raise exception using errcode='42501',message='Service role required'; end if;
+ update public.institution_onboarding_invitations set status=case when recovery_required then 'recovery_required' else 'active' end where id=target_invitation_id and status='onboarding' returning request_id into rid;
+ if rid is not null then update public.institution_access_requests set status=case when recovery_required then 'onboarding' else 'approved' end where id=rid; end if;
+end $$;
+revoke all on function public.reserve_institution_onboarding(text,text),public.complete_institution_onboarding(uuid,uuid),public.release_institution_onboarding(uuid,boolean) from public,anon,authenticated;
+grant execute on function public.reserve_institution_onboarding(text,text),public.complete_institution_onboarding(uuid,uuid),public.release_institution_onboarding(uuid,boolean) to service_role;
 
 -- Multi-institution Phase 2A restrictive tenant security
 create or replace function public.current_user_institution_id()
