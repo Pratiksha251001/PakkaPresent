@@ -26,6 +26,11 @@ function registerParentNotificationDispatch(
       )
         return res.status(400).json({ success: false });
       if (!req.actor) return res.status(401).json({ success: false });
+      if (!req.actor.institutionId)
+        return res.status(403).json({
+          success: false,
+          message: "Institution ownership is required.",
+        });
       if (
         !env.EMAILJS_SERVICE_ID ||
         !env.EMAILJS_TEMPLATE_ID ||

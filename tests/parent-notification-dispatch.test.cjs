@@ -77,8 +77,10 @@ test("missing actor rejected before DB", async () => {
 });
 
 const id = "00000000-0000-4000-8000-000000000001";
+const institutionId = "22222222-2222-4222-8222-222222222222";
 const student = {
   id,
+  institution_id: institutionId,
   department_id: "dept-1",
   full_name: "Student Example",
   parent_name: "Guardian",
@@ -86,6 +88,21 @@ const student = {
   parent_email_approved_at: "2026-10-22T00:00:00Z",
   parent_email_approved_by: "11111111-1111-4111-8111-111111111111",
 };
+
+test("missing actor institution is rejected before database access", async () => {
+  const h = setup({ PARENT_ATTENDANCE_EMAIL_ENABLED: "true" });
+  const r = response();
+  await h.routes["/api/parents/attendance/notify"][1](
+    {
+      actor: { role: "admin", id: "actor" },
+      body: { studentId: id, kind: "daily_attendance", date: "2026-10-22" },
+    },
+    r,
+  );
+  assert.equal(r.code, 403);
+  assert.equal(h.called, 0);
+});
+
 const configured = {
   PARENT_ATTENDANCE_EMAIL_ENABLED: "true",
   EMAILJS_SERVICE_ID: "service",
@@ -152,7 +169,7 @@ async function invoke(h, kind = "low_attendance") {
   const r = response();
   await h.handler(
     {
-      actor: { role: "admin", id: "actor" },
+      actor: { role: "admin", id: "actor", institutionId },
       body: { studentId: id, kind, date: "2026-10-22" },
     },
     r,
