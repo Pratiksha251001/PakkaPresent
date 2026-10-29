@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2,
@@ -58,16 +58,6 @@ export const AccessHub: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [openWorkflow, setOpenWorkflow] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
-
-  useEffect(() => {
-    if (authLoading || !user) return;
-
-    const savedPath = localStorage.getItem("edutrack_last_authenticated_path");
-    if (savedPath && savedPath.startsWith("/") && savedPath !== "/") {
-      navigate(savedPath, { replace: true });
-    }
-  }, [authLoading, navigate, user]);
-
   const portalCards: PortalCard[] = [
     {
       title: "Admin Portal",
@@ -773,20 +763,30 @@ export const AccessHub: React.FC = () => {
               <div>
                 <p className="access-pos-footer__eyebrow">Portal assistance</p>
                 <h2 id="footer-help-title">
-                  Need help accessing your academic workspace?
+                  Bring PakkaPresent to your institution
                 </h2>
                 <p>
-                  Contact the support team for sign-in, role access, attendance,
-                  or reporting assistance.
+                  Submit your institution details for platform review. Approval
+                  is required before a private onboarding invitation is issued.
                 </p>
               </div>
-              <a
-                href="https://mail.google.com/mail/?view=cm&fs=1&to=pakkapresent@gmail.com"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Contact support <ArrowRight className="h-4 w-4" />
-              </a>
+              <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
+                <button
+                  type="button"
+                  onClick={() => navigate("/institution/request-access")}
+                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-primary bg-primary px-6 text-sm font-black text-primary-foreground transition-[transform,background-color] hover:-translate-y-0.5 hover:bg-[#c8ff86] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-[#292a32]"
+                >
+                  Request institution access <ArrowRight className="h-4 w-4" />
+                </button>
+                <a
+                  href="https://mail.google.com/mail/?view=cm&fs=1&to=pakkapresent@gmail.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-5 text-sm font-bold text-white hover:border-primary hover:text-primary"
+                >
+                  Contact support
+                </a>
+              </div>
             </section>
           </div>
 

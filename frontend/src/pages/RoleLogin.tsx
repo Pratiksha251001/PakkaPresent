@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import {
   ArrowRight,
   Building2,
@@ -55,6 +60,7 @@ const roleDetails: Record<
 export const RoleLogin: React.FC = () => {
   const { role: roleParam } = useParams<{ role: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loginWithCredentials } = useAuth();
   const role = roleParam as UserRoleType;
   const details = roleDetails[role];
@@ -143,6 +149,16 @@ export const RoleLogin: React.FC = () => {
             </p>
           </div>
 
+          {role === "admin" && location.state?.onboardingComplete && (
+            <div
+              className="relative z-10 mb-4 rounded-xl border border-emerald-700/30 bg-emerald-100 p-3 text-center text-xs font-bold text-emerald-950 dark:border-emerald-400/40 dark:bg-emerald-950/50 dark:text-emerald-100"
+              role="status"
+            >
+              {location.state.institutionName
+                ? `${location.state.institutionName} was created successfully. Sign in with the administrator account.`
+                : "Institution created successfully. Sign in with the administrator account."}
+            </div>
+          )}
           {error && (
             <div
               className="mb-4 relative z-10 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-center text-xs font-semibold text-destructive"

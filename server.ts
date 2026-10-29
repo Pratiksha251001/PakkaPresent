@@ -5,7 +5,13 @@ import path from "path";
 import express from "express";
 
 import parentNotificationDispatch from "./backend/parent-notification-dispatch.cjs";
+import institutionOnboarding from "./backend/institution-onboarding.cjs";
+import institutionAccessRequests from "./backend/institution-access-requests.cjs";
+import institutionInvitationApproval from "./backend/institution-invitation-approval.cjs";
 const { registerParentNotificationDispatch } = parentNotificationDispatch;
+const { registerInstitutionOnboarding } = institutionOnboarding;
+const { registerInstitutionAccessRequests } = institutionAccessRequests;
+const { registerInstitutionInvitationApproval } = institutionInvitationApproval;
 
 import cors from "cors";
 
@@ -778,6 +784,7 @@ async function executeSingleSmsDispatch(
 // =========================================================================
 async function startServer() {
   const app = express();
+  app.set("trust proxy", 1);
   const PORT = Number(process.env.PORT) || 3000;
 
   app.use(
@@ -788,6 +795,9 @@ async function startServer() {
     }),
   );
   app.use(express.json());
+  registerInstitutionOnboarding(app, { admin: supabaseAdmin });
+  registerInstitutionAccessRequests(app, { admin: supabaseAdmin });
+  registerInstitutionInvitationApproval(app, { admin: supabaseAdmin });
   registerParentNotificationDispatch(app, {
     admin: supabaseAdmin,
     requireManager: requireAccountManager,
