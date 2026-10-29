@@ -16,12 +16,16 @@ import {
   markCustomPasswordSet,
   hasCustomPassword,
 } from "../lib/authUtils";
-import { recordFailedLoginNotification } from "../lib/notificationService";
+import {
+  recordFailedLoginNotification,
+  setNotificationInstitutionScope,
+} from "../lib/notificationService";
 
 interface User {
   id: string;
   email: string;
   full_name: string;
+  institution_id: string;
   department_id?: string | null;
   student_id?: string | null;
   teacher_id?: string | null;
@@ -134,6 +138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const providerMounted = useRef(true);
   const clearAuthenticatedState = useCallback(() => {
     authEpoch.current += 1;
+    void localDb.setInstitutionScope(null);
+    setNotificationInstitutionScope(null);
     setUser(null);
     setRole(null);
     setIsDemo(false);
@@ -210,7 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const authUser = data.session.user;
         const { data: roles, error: roleError } = await supabase
           .from("user_roles")
-          .select("role,department_id")
+          .select("role,department_id,institution_id")
           .eq("user_id", authUser.id);
         if (!isCurrent()) return;
         if (roleError) throw roleError;
@@ -247,8 +253,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           clearAuthenticatedState();
           return;
         }
+        if (!roleRecord.institution_id) {
+          clearAuthenticatedState();
+          return;
+        }
+        await localDb.setInstitutionScope(roleRecord.institution_id);
+        setNotificationInstitutionScope(roleRecord.institution_id);
         const restoredUser = {
           id: authUser.id,
+          institution_id: roleRecord.institution_id,
           email: studentRecord?.email || authUser.email || "",
           full_name:
             studentRecord?.full_name ||
@@ -671,7 +684,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       const { data: roles, error: roleError } = await supabase
         .from("user_roles")
-        .select("role,department_id")
+        .select("role,department_id,institution_id")
         .eq("user_id", authData.user.id);
       if (!isCurrent()) return cancelled();
       if (roleError)
@@ -713,8 +726,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           "Your sign-in session expired. Please sign in again.",
         );
       }
+      if (!roleRecord.institution_id) {
+        return await rejectLogin("This account has no institution assignment.");
+      }
+      await localDb.setInstitutionScope(roleRecord.institution_id);
+      setNotificationInstitutionScope(roleRecord.institution_id);
       const authenticatedUser = {
         id: authData.user.id,
+        institution_id: roleRecord.institution_id,
         email: studentRecord?.email || authData.user.email || email,
         full_name:
           studentRecord?.full_name ||

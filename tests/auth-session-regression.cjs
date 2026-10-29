@@ -124,9 +124,12 @@ function harness(options = {}) {
       if (table === "user_roles") {
         if (rolesGate) await rolesGate.promise;
         return {
-          data: options.roles || [
-            { role: "teacher", department_id: "dept-test" },
-          ],
+          data: (
+            options.roles || [{ role: "teacher", department_id: "dept-test" }]
+          ).map((row) => ({
+            ...row,
+            institution_id: row.institution_id || "institution-test",
+          })),
           error: options.roleError || null,
         };
       }
@@ -191,7 +194,10 @@ function harness(options = {}) {
       if (name === "../lib/supabase")
         return {
           supabase: { auth, from },
-          localDb: db,
+          localDb: {
+            ...db,
+            setInstitutionScope: async () => {},
+          },
           isSupabaseConfigured: options.configured !== false,
         };
       if (name === "../lib/authUtils")
@@ -199,7 +205,10 @@ function harness(options = {}) {
           hasCustomPassword: () => true,
           isDefaultPassword: () => false,
         };
-      if (name === "../lib/notificationService") return {};
+      if (name === "../lib/notificationService")
+        return {
+          setNotificationInstitutionScope: () => {},
+        };
       throw new Error("Unexpected mocked import " + name);
     },
   };

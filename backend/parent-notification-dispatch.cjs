@@ -39,11 +39,14 @@ function registerParentNotificationDispatch(
         const { data: student, error } = await admin
           .from("students")
           .select(
-            "id,department_id,full_name,parent_name,parent_email,parent_email_approved_at,parent_email_approved_by",
+            "id,institution_id,department_id,full_name,parent_name,parent_email,parent_email_approved_at,parent_email_approved_by",
           )
           .eq("id", studentId)
+          .eq("institution_id", req.actor.institutionId)
           .single();
         if (error || !student) return res.status(404).json({ success: false });
+        if (student.institution_id !== req.actor.institutionId)
+          return res.status(403).json({ success: false });
         if (
           req.actor.role !== "admin" &&
           (!req.actor.departmentId ||
@@ -54,6 +57,7 @@ function registerParentNotificationDispatch(
         const { data: records, error: attendanceError } = await admin
           .from("attendance")
           .select("status")
+          .eq("institution_id", req.actor.institutionId)
           .eq("student_id", studentId)
           .lte("date", date);
         if (attendanceError || !Array.isArray(records))
