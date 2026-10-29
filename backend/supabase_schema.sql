@@ -11,7 +11,7 @@ create extension if not exists "uuid-ossp";
 create table if not exists public.departments (
   id uuid default uuid_generate_v4() primary key,
   name text not null,
-  code text not null unique,
+  code text not null,
   institution_name text default null,
   hod_id uuid,
   status text not null default 'active' check (status in ('active', 'inactive')),
@@ -21,7 +21,7 @@ create table if not exists public.departments (
 -- 2. Teachers Table
 create table if not exists public.teachers (
   id uuid default uuid_generate_v4() primary key,
-  employee_id text not null unique,
+  employee_id text not null,
   full_name text not null,
   designation text,
   qualification text,
@@ -92,7 +92,7 @@ create table if not exists public.class_coordinator_assignments (
 -- 7. Subjects Table
 create table if not exists public.subjects (
   id uuid default uuid_generate_v4() primary key,
-  code text not null unique,
+  code text not null,
   name text not null,
   department_id uuid references public.departments(id) on delete cascade,
   year integer check (year between 1 and 4),
@@ -117,7 +117,7 @@ create table if not exists public.teacher_subjects (
 -- 9. Students Table (Stores all student rosters and guardian contact numbers)
 create table if not exists public.students (
   id uuid default uuid_generate_v4() primary key,
-  roll_number text not null unique,
+  roll_number text not null,
   reg_number text,
   class_name text,
   full_name text not null,
@@ -344,8 +344,78 @@ alter table public.teachers add column if not exists experience_years text;
 alter table public.teachers add column if not exists password text;
 alter table public.academic_classes add column if not exists coordinator_teacher_id uuid references public.teachers(id) on delete set null;
 
+
+-- Multi-institution Phase 1 baseline compatibility
+create table if not exists public.institutions (
+  id uuid default uuid_generate_v4() primary key,
+  official_name text not null,
+  display_name text not null,
+  code text not null,
+  dte_code text,
+  city text,
+  district text,
+  state text,
+  country text not null default 'India',
+  status text not null default 'active' check (status in ('pending', 'active', 'inactive', 'suspended')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint institutions_code_nonempty check (btrim(code) <> ''),
+  constraint institutions_official_name_nonempty check (btrim(official_name) <> ''),
+  constraint institutions_display_name_nonempty check (btrim(display_name) <> '')
+);
+create unique index if not exists institutions_code_unique_ci on public.institutions (lower(code));
+create unique index if not exists institutions_dte_code_unique on public.institutions (dte_code) where dte_code is not null;
+do $$
+declare matches integer; conflicting integer;
+begin
+  select count(*) into matches from public.institutions where id = '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid or lower(code) = 'mitcorer' or dte_code = '06901';
+  select count(*) into conflicting from public.institutions where (lower(code) = 'mitcorer' or dte_code = '06901') and id <> '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid;
+  if conflicting > 0 or matches > 1 then raise exception 'Baseline refused: conflicting MITCORER identity'; end if;
+  if exists (select 1 from public.institutions where id = '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid and (lower(code) <> 'mitcorer' or dte_code is distinct from '06901')) then
+    raise exception 'Baseline refused: fixed MITCORER id has conflicting identity';
+  end if;
+end $$;
+insert into public.institutions (id, official_name, display_name, code, dte_code, city, district, state, country, status)
+values ('6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid, 'MAEER''s MIT College of Railway Engineering and Research, Barshi', 'MITCORER Barshi', 'MITCORER', '06901', 'Barshi', 'Solapur', 'Maharashtra', 'India', 'active')
+on conflict (id) do update set official_name = excluded.official_name, display_name = excluded.display_name, code = excluded.code, dte_code = excluded.dte_code, city = excluded.city, district = excluded.district, state = excluded.state, country = excluded.country, status = excluded.status, updated_at = now();
+alter table public.departments add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists departments_institution_id_idx on public.departments (institution_id);
+alter table public.profiles add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists profiles_institution_id_idx on public.profiles (institution_id);
+alter table public.user_roles add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists user_roles_institution_id_idx on public.user_roles (institution_id);
+alter table public.teachers add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists teachers_institution_id_idx on public.teachers (institution_id);
+alter table public.students add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists students_institution_id_idx on public.students (institution_id);
+alter table public.academic_classes add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists academic_classes_institution_id_idx on public.academic_classes (institution_id);
+alter table public.class_coordinator_assignments add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists class_coordinator_assignments_institution_id_idx on public.class_coordinator_assignments (institution_id);
+alter table public.subjects add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists subjects_institution_id_idx on public.subjects (institution_id);
+alter table public.teacher_subjects add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists teacher_subjects_institution_id_idx on public.teacher_subjects (institution_id);
+alter table public.attendance add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists attendance_institution_id_idx on public.attendance (institution_id);
+alter table public.notices add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists notices_institution_id_idx on public.notices (institution_id);
+alter table public.sms_logs add column if not exists institution_id uuid not null default '6f5f8c70-8b95-5f20-a567-43f379c38ec8'::uuid references public.institutions(id) on delete restrict;
+create index if not exists sms_logs_institution_id_idx on public.sms_logs (institution_id);
+update public.departments set institution_name = 'MITCORER Barshi' where institution_name is distinct from 'MITCORER Barshi';
+comment on column public.departments.institution_name is 'Compatibility display field; institution_id is authoritative.';
+drop index if exists public.one_admin_per_institution;
+create unique index if not exists one_admin_per_institution on public.user_roles (institution_id) where role = 'admin';
+create unique index if not exists departments_institution_code_key on public.departments (institution_id, code);
+create unique index if not exists teachers_institution_employee_id_key on public.teachers (institution_id, employee_id);
+create unique index if not exists students_institution_roll_number_key on public.students (institution_id, roll_number);
+create unique index if not exists subjects_institution_code_key on public.subjects (institution_id, code);
+alter table public.institutions enable row level security;
+revoke all on public.institutions from anon, authenticated;
+comment on table public.institutions is 'Phase 1 ownership registry. Additional onboarding is blocked until Phase 2.';
+
 -- Ensure single institutional admin index
-create unique index if not exists one_admin_per_institution on public.user_roles (role) where role = 'admin';
+-- Replaced below by institution-scoped admin uniqueness.
 
 -- Enable realtime updates for staff and department screens.
 do $$
