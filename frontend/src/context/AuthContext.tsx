@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { UserRoleType } from "../lib/types";
 import { setScopedPath } from "../lib/sessionScope";
+import { fetchInstitutionLogoPath } from "../lib/institutionBrandingService";
 import { localDb, supabase, isSupabaseConfigured } from "../lib/supabase";
 import {
   normalizeId,
@@ -27,6 +28,8 @@ interface User {
   email: string;
   full_name: string;
   institution_id: string;
+  institution_name: string;
+  institution_logo_path?: string | null;
   department_id?: string | null;
   student_id?: string | null;
   teacher_id?: string | null;
@@ -173,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (
             !savedDemoUser ||
             !savedRole ||
-            savedDemoUser.institution_id !== "demo"
+            savedDemoUser.institution_id !== "demo" ||
+            savedDemoUser.institution_name !== "PakkaPresent Demo Institution"
           ) {
             throw new Error("Saved demo session is incomplete.");
           }
@@ -267,14 +271,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         const { data: institution, error: institutionError } = await supabase
           .from("institutions")
-          .select("id,status")
+          .select("id,display_name,status")
           .eq("id", roleRecord.institution_id)
           .maybeSingle();
         if (!isCurrent()) return;
-        if (institutionError || !institution || institution.status !== "active")
+        if (institutionError)
           throw new Error(
-            "The assigned institution is unavailable or inactive.",
+            `Unable to verify the assigned institution: ${institutionError.message}`,
           );
+        if (!institution)
+          throw new Error("The assigned institution could not be found.");
+        if (institution.status !== "active")
+          throw new Error("The assigned institution is inactive.");
+        const institutionName = institution.display_name?.trim();
+        if (!institutionName)
+          throw new Error("The assigned institution has no display name.");
+        const institutionLogoPath = await fetchInstitutionLogoPath(
+          roleRecord.institution_id,
+        );
+        if (!isCurrent()) return;
         await localDb.waitUntilReady();
         if (!isCurrent()) return;
         const restoredRole = roleRecord.role as UserRoleType;
@@ -316,6 +331,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const restoredUser = {
           id: authUser.id,
           institution_id: roleRecord.institution_id,
+          institution_name: institutionName,
+          institution_logo_path: institutionLogoPath,
           email: studentRecord?.email || authUser.email || "",
           full_name:
             studentRecord?.full_name ||
@@ -395,6 +412,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [clearAuthenticatedState]);
 
   const loginAsDemo = async (targetRole: UserRoleType) => {
+    const demoInstitutionName = "PakkaPresent Demo Institution";
     authEpoch.current += 1;
     demoSessionActive.current = true;
 
@@ -413,6 +431,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       admin: {
         id: "admin-1",
         institution_id: "demo",
+        institution_name: demoInstitutionName,
+        institution_logo_path: null,
         email: defaultAdminEmail,
         full_name: defaultAdminName,
         employee_id: "ADM-SYS-2025",
@@ -420,6 +440,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       hod: {
         id: "hod-user-id",
         institution_id: "demo",
+        institution_name: demoInstitutionName,
+        institution_logo_path: null,
         email: "hod.cse@pakkapresent.edu",
         full_name: "Dr. Robert Vance (HOD)",
         department_id: "dept-1",
@@ -429,6 +451,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       teacher: {
         id: "teacher-user-id",
         institution_id: "demo",
+        institution_name: demoInstitutionName,
+        institution_logo_path: null,
         email: "s.jenkins@pakkapresent.edu",
         full_name: "Prof. Sarah Jenkins",
         department_id: "dept-1",
@@ -438,6 +462,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       class_coordinator: {
         id: "cc-user-id",
         institution_id: "demo",
+        institution_name: demoInstitutionName,
+        institution_logo_path: null,
         email: "e.watson@pakkapresent.edu",
         full_name: "Prof. Emily Watson (Class Coordinator)",
         department_id: "dept-1",
@@ -447,6 +473,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       student: {
         id: "student-user-id",
         institution_id: "demo",
+        institution_name: demoInstitutionName,
+        institution_logo_path: null,
         email: "alex.h@student.pakkapresent.edu",
         full_name: "Alexander Hayes",
         department_id: "dept-1",
@@ -700,14 +728,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         );
       const { data: institution, error: institutionError } = await supabase
         .from("institutions")
-        .select("id,status")
+        .select("id,display_name,status")
         .eq("id", roleRecord.institution_id)
         .maybeSingle();
       if (!isCurrent()) return cancelled();
-      if (institutionError || !institution || institution.status !== "active")
+      if (institutionError)
         return await rejectLogin(
-          "The assigned institution is unavailable or inactive.",
+          `Unable to verify the assigned institution: ${institutionError.message}`,
         );
+      if (!institution)
+        return await rejectLogin(
+          "The assigned institution could not be found.",
+        );
+      if (institution.status !== "active")
+        return await rejectLogin("The assigned institution is inactive.");
+      const institutionName = institution.display_name?.trim();
+      if (!institutionName)
+        return await rejectLogin(
+          "The assigned institution has no display name.",
+        );
+      const institutionLogoPath = await fetchInstitutionLogoPath(
+        roleRecord.institution_id,
+      );
+      if (!isCurrent()) return cancelled();
       const studentRecord = await resolveStudentAccountLink(
         authData.user.id,
         targetRole,
@@ -746,6 +789,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const authenticatedUser = {
         id: authData.user.id,
         institution_id: roleRecord.institution_id,
+        institution_name: institutionName,
+        institution_logo_path: institutionLogoPath,
         email: studentRecord?.email || authData.user.email || email,
         full_name:
           studentRecord?.full_name ||

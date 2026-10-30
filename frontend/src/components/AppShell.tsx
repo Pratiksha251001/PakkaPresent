@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { college } from "../lib/college";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { PakkaPresentLogo } from "./PakkaPresentLogo";
@@ -36,6 +35,8 @@ import {
 } from "../lib/notificationService";
 import { AppNotification } from "../lib/types";
 import { DemoStudyBanner } from "./DemoStudyBanner";
+import { HeaderIdentity } from "./HeaderIdentity";
+import { resolveHeaderIdentity } from "../lib/headerIdentity";
 
 export const AppShell: React.FC = () => {
   const { user, role, isDemo, openLogoutConfirm } = useAuth();
@@ -50,13 +51,28 @@ export const AppShell: React.FC = () => {
   const [smsGatewayStatus, setSmsGatewayStatus] =
     useState<SmsGatewayStatus | null>(null);
 
-  const departmentDisplay = React.useMemo(() => {
-    if (!user?.department_id) return null;
-    const department = localDb.departments.find(
-      (item) => item.id === user.department_id,
-    );
-    return department?.code || department?.name || user.department_id;
-  }, [user?.department_id]);
+  const headerIdentity = React.useMemo(() => {
+    const department = user?.department_id
+      ? localDb.departments.find((item) => item.id === user.department_id)
+      : null;
+    const demoDepartmentCode =
+      isDemo && user?.department_id === "dept-1" ? "CSE" : null;
+    return resolveHeaderIdentity({
+      institutionName: user?.institution_name,
+      institutionLogoPath: user?.institution_logo_path,
+      role,
+      departmentCode: department?.code || demoDepartmentCode,
+      departmentName: department?.name,
+      rollNumber: user?.roll_number,
+    });
+  }, [
+    isDemo,
+    role,
+    user?.department_id,
+    user?.institution_logo_path,
+    user?.institution_name,
+    user?.roll_number,
+  ]);
   const RoleIcon =
     role === "admin"
       ? Shield
@@ -152,6 +168,15 @@ export const AppShell: React.FC = () => {
   ];
 
   const bottomNavItems = [
+    ...(role === "admin"
+      ? [
+          {
+            label: "Institution Settings",
+            path: "/institution/settings",
+            icon: Building2,
+          },
+        ]
+      : []),
     {
       label: "Notifications",
       path: "/notifications",
@@ -323,7 +348,7 @@ export const AppShell: React.FC = () => {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <PakkaPresentLogo size="sm" variant="horizontal" />
+            <HeaderIdentity identity={headerIdentity} compact />
           </div>
           <div className="flex items-center gap-2">
             {role && role !== "student" && (
@@ -345,12 +370,6 @@ export const AppShell: React.FC = () => {
               </button>
             )}
             <NotificationBell />
-            <Badge
-              variant="outline"
-              className="capitalize text-xs font-semibold"
-            >
-              {role?.replace("_", " ")}
-            </Badge>
             <Link
               to="/profile"
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 bg-card dashboard-accent-text hover:bg-muted/80 transition-colors"
@@ -363,26 +382,8 @@ export const AppShell: React.FC = () => {
 
         {/* Desktop Header Topbar */}
         <header className="hidden lg:flex h-16 items-center justify-between border-b-2 border-foreground/25 bg-card/95 px-8 backdrop-blur-md sticky top-0 z-50">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground tracking-wide">
-                {college.shortName}
-              </span>
-              <span>•</span>
-              <span className="dashboard-accent-text capitalize font-semibold">
-                {role?.replace("_", " ")} Portal
-              </span>
-              {(role === "student"
-                ? user?.roll_number
-                : user?.department_id) && (
-                <>
-                  <span>•</span>
-                  <span className="truncate max-w-56">
-                    {role === "student" ? user.roll_number : departmentDisplay}
-                  </span>
-                </>
-              )}
-            </div>
+          <div className="flex min-w-0 items-center gap-3">
+            <HeaderIdentity identity={headerIdentity} />
           </div>
 
           <div className="flex items-center gap-3">
