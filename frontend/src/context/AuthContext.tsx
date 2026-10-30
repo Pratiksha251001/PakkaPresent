@@ -422,7 +422,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const defaultAdminEmail =
       import.meta.env.VITE_DEFAULT_ADMIN_EMAIL?.trim().toLowerCase() ||
-      "pakkapresent@gmail.com";
+      "admin@demo.pakkapresent.local";
     const defaultAdminName =
       import.meta.env.VITE_DEFAULT_ADMIN_NAME?.trim() ||
       "Institutional Administrator";

@@ -377,6 +377,36 @@ export const AccessHub: React.FC = () => {
             );
           })}
         </section>
+        <section
+          className="mx-auto mb-10 max-w-5xl rounded-[2rem] border-2 border-foreground/50 bg-[#191a23] p-6 text-white sm:p-8"
+          aria-labelledby="platform-access-title"
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+                Platform access
+              </p>
+              <h2
+                id="platform-access-title"
+                className="mt-3 font-display text-2xl font-black"
+              >
+                Platform Administration
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm text-white/70">
+                A separate workspace for authorized PakkaPresent Super
+                Administrators. Institution users cannot access platform routes.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => navigate("/platform/login")}
+              className="shrink-0"
+            >
+              <ShieldCheck className="mr-2 h-4 w-4" />
+              Super Admin sign in
+            </Button>
+          </div>
+        </section>
         {/* Positivus institutional capabilities */}
         <section
           className="access-pos-capabilities"
