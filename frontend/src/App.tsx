@@ -33,6 +33,7 @@ import { HODStudents } from "./pages/HODStudents";
 import { ClassTeacherLogin } from "./pages/ClassTeacherLogin";
 import { RoleLogin } from "./pages/RoleLogin";
 import { InstitutionOnboarding } from "./pages/InstitutionOnboarding";
+import { InstitutionSettings } from "./pages/InstitutionSettings";
 import { InstitutionOnboardingComplete } from "./pages/InstitutionOnboardingComplete";
 import { InstitutionAccessRequest } from "./pages/InstitutionAccessRequest";
 import { ClassTeacherDashboard } from "./pages/ClassTeacherDashboard";
@@ -311,6 +312,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute adminOnly>
                     <Notices />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institution/settings"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <InstitutionSettings />
                   </ProtectedRoute>
                 }
               />

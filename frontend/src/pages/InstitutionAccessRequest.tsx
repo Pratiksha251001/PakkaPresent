@@ -96,7 +96,7 @@ export const InstitutionAccessRequest: React.FC = () => {
           <div className="grid lg:grid-cols-[0.75fr_1.25fr]">
             <aside className="bg-[#191a23] p-7 text-white sm:p-9">
               <PakkaPresentLogo variant="icon" size="lg" />
-              <p className="mt-7 text-xs font-black uppercase tracking-[0.16em] text-primary">
+              <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-primary">
                 Institution access
               </p>
               <h1 className="mt-3 font-display text-3xl font-black">
@@ -106,11 +106,58 @@ export const InstitutionAccessRequest: React.FC = () => {
                 The platform team reviews each institution before issuing a
                 private onboarding link and separate code.
               </p>
-              <div className="mt-8 rounded-2xl border border-white/20 bg-white/5 p-4 text-xs leading-6 text-white/70">
+              <div className="mt-6 rounded-2xl border border-white/20 bg-white/5 p-4 text-xs leading-6 text-white/70">
                 <ShieldCheck className="mb-2 h-5 w-5 text-primary" />
                 No password is requested here. The approved institution
                 representative creates the first administrator password
                 privately during onboarding.
+              </div>
+
+              <div className="mt-6">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-primary">
+                  How verification works
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {[
+                    {
+                      step: "01",
+                      title: "Platform review",
+                      description:
+                        "Institution and representative details are reviewed before approval.",
+                    },
+                    {
+                      step: "02",
+                      title: "Private invitation",
+                      description:
+                        "An approved institution receives a private onboarding link and separate code.",
+                    },
+                    {
+                      step: "03",
+                      title: "Secure administrator setup",
+                      description:
+                        "The authorized representative creates the first administrator account privately.",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.step}
+                      className="flex gap-3 rounded-2xl border border-white/15 bg-white/[0.03] p-4"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-xs font-black text-primary">
+                        {item.step}
+                      </span>
+
+                      <div>
+                        <p className="text-sm font-black text-white">
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-white/65">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </aside>
             <form onSubmit={submit} className="space-y-6 bg-card p-6 sm:p-9">

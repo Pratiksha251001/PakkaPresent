@@ -84,10 +84,16 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
-
   ::selection {
-    background: #b9ff66;
-    color: #191a23;
+    background: #a8ff3e;
+    color: #101218;
+    text-shadow: none;
+  }
+
+  .dark ::selection {
+    background: #4f8f21;
+    color: #ffffff;
+    text-shadow: none;
   }
 }
 
