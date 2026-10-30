@@ -65,9 +65,7 @@ export const RoleLogin: React.FC = () => {
   const role = roleParam as UserRoleType;
   const details = roleDetails[role];
 
-  const [email, setEmail] = useState(() =>
-    role === "admin" ? "pakkapresent@gmail.com" : "",
-  );
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -200,7 +198,7 @@ export const RoleLogin: React.FC = () => {
                   className="pl-10 rounded-xl h-10"
                   placeholder={
                     role === "admin"
-                      ? "pakkapresent@gmail.com"
+                      ? "Enter your official email"
                       : role === "student"
                         ? "Roll number or email"
                         : "Enter your ID or email"

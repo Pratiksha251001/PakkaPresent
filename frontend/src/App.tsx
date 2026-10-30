@@ -41,6 +41,35 @@ import { Notifications } from "./pages/Notifications";
 import { ForcePasswordChangeModal } from "./components/ForcePasswordChangeModal";
 import { LogoutConfirmDialog } from "./components/LogoutConfirmDialog";
 import { getScopedPath, setScopedPath } from "./lib/sessionScope";
+import { PlatformLogin } from "./pages/platform/PlatformLogin";
+import { PlatformDashboard } from "./pages/platform/PlatformDashboard";
+import { PlatformShell } from "./components/platform/PlatformShell";
+import { getPlatformIdentity } from "./lib/platform/platformAuth";
+
+const PlatformProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [state, setState] = React.useState<"loading" | "allowed" | "denied">(
+    "loading",
+  );
+  React.useEffect(() => {
+    let active = true;
+    getPlatformIdentity()
+      .then((identity) => active && setState(identity ? "allowed" : "denied"))
+      .catch(() => active && setState("denied"));
+    return () => {
+      active = false;
+    };
+  }, []);
+  if (state === "loading")
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="app-startup-spinner h-8 w-8 animate-spin rounded-full border-4" />
+      </div>
+    );
+  if (state === "denied") return <Navigate to="/platform/login" replace />;
+  return <>{children}</>;
+};
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -112,6 +141,7 @@ const RoleDashboard: React.FC = () => {
 
 const PUBLIC_PATH_PREFIXES = [
   "/login",
+  "/platform",
   "/teacher/login",
   "/institution/onboard",
   "/institution/onboarding-complete",
@@ -192,6 +222,19 @@ export const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<RootRouteHandler />} />
             <Route path="/teacher/login" element={<ClassTeacherLogin />} />
+            <Route path="/platform/login" element={<PlatformLogin />} />
+            <Route
+              element={
+                <PlatformProtectedRoute>
+                  <PlatformShell />
+                </PlatformProtectedRoute>
+              }
+            >
+              <Route
+                path="/platform/dashboard"
+                element={<PlatformDashboard />}
+              />
+            </Route>
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/login/:role" element={<RoleLogin />} />
             <Route
