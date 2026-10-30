@@ -28,7 +28,7 @@ import { Badge } from "../components/ui/badge";
 import { useAuth } from "../context/AuthContext";
 
 export const Dashboard: React.FC = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const departments = localDb.departments;
   const teachers = localDb.teachers;
   const coordinators = localDb.class_coordinator_assignments;
@@ -191,7 +191,7 @@ export const Dashboard: React.FC = () => {
                 Institution
               </p>
               <div className="text-base font-display font-extrabold mt-2">
-                {college.shortName}
+                {user?.institution_name || college.shortName}
               </div>
             </CardContent>
           </Card>
