@@ -111,11 +111,6 @@ export const RoleLogin: React.FC = () => {
 
     const destination =
       role === "teacher" ? "/teacher/dashboard" : "/dashboard";
-    try {
-      localStorage.setItem("edutrack_last_active_path", destination);
-    } catch {
-      // Local storage may be unavailable in private browsing.
-    }
     navigate(destination, { replace: true });
   };
 

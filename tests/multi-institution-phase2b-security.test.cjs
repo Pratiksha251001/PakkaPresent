@@ -19,32 +19,32 @@ test("auth session loads and stores institution identity", () => {
     (auth.match(/role,department_id,institution_id/g) || []).length,
     2,
   );
-  assert.match(auth, /setInstitutionScope\(roleRecord\.institution_id\)/);
-  assert.match(
-    auth,
-    /setNotificationInstitutionScope\(roleRecord\.institution_id\)/,
-  );
+  assert.match(auth, /setSessionScope\(\{/);
+  assert.match(auth, /setNotificationSessionScope\(roleRecord\.institution_id/);
 });
 test("missing institution fails closed", () => {
   assert.match(auth, /This account has no institution assignment/);
   assert.match(auth, /if \(!roleRecord\.institution_id\)/);
 });
 test("local data cache is tenant scoped", () => {
-  assert.match(db, /edutrack_local_db_\$\{this\.activeInstitutionId/);
-  assert.match(db, /setInstitutionScope\(institutionId: string \| null\)/);
-  assert.match(db, /await this\.syncFromSupabase\(\)/);
+  assert.match(db, /edutrack_local_db_\$\{this\.activeScope\.institutionId/);
+  assert.match(db, /setSessionScope\(scope: LocalDatabaseScope \| null\)/);
+  assert.match(
+    db,
+    /this\.syncReady = this\.syncFromSupabase\(scope, generation\)/,
+  );
 });
 test("notifications are tenant scoped", () => {
   assert.match(notifications, /getNotificationsStorageKey/);
-  assert.match(notifications, /setNotificationInstitutionScope/);
+  assert.match(notifications, /setNotificationSessionScope/);
   assert.doesNotMatch(
     notifications,
     /localStorage\.getItem\(NOTIFICATIONS_STORAGE_KEY\)/,
   );
 });
 test("sign out clears tenant state", () => {
-  assert.match(auth, /setInstitutionScope\(null\)/);
-  assert.match(auth, /setNotificationInstitutionScope\(null\)/);
+  assert.match(auth, /setSessionScope\(null\)/);
+  assert.match(auth, /setNotificationSessionScope\(null\)/);
 });
 
 test("institution cache switching uses an explicit table list", () => {

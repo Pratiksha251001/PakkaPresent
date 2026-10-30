@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import { ArrowLeft, Building2, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -6,6 +7,7 @@ import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { PasswordInput } from "../components/PasswordInput";
 import { PakkaPresentLogo } from "../components/PakkaPresentLogo";
+import { clearLegacySessionKeys } from "../lib/sessionScope";
 import {
   onboardInstitution,
   validateInstitutionInvitation,
@@ -26,6 +28,8 @@ const initial = {
   onboardingCode: "",
 };
 export const InstitutionOnboarding: React.FC = () => {
+  const { signOut: clearExistingSessionBeforeOnboarding } = useAuth();
+
   const navigate = useNavigate(),
     { invitationToken = "" } = useParams(),
     [form, setForm] = useState(initial),
@@ -106,9 +110,8 @@ export const InstitutionOnboarding: React.FC = () => {
         return;
       }
       clear();
-      localStorage.removeItem("edutrack_user");
-      localStorage.removeItem("edutrack_role");
-      localStorage.removeItem("edutrack_is_demo");
+      await clearExistingSessionBeforeOnboarding();
+      clearLegacySessionKeys();
       navigate("/institution/onboarding-complete", {
         replace: true,
         state: {

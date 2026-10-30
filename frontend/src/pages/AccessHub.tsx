@@ -26,6 +26,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { UserRoleType } from "../lib/types";
 import { PakkaPresentLogo } from "../components/PakkaPresentLogo";
+import { getScopedPath } from "../lib/sessionScope";
 
 interface PortalCard {
   title: string;
@@ -131,9 +132,6 @@ export const AccessHub: React.FC = () => {
     const chosenRole = await loginAsRandomDemo();
     setLoading(false);
     const dest = chosenRole === "teacher" ? "/teacher/dashboard" : "/dashboard";
-    try {
-      localStorage.setItem("edutrack_last_active_path", dest);
-    } catch {}
     navigate(dest, { replace: true });
   };
 
@@ -142,9 +140,6 @@ export const AccessHub: React.FC = () => {
     await loginAsDemo(targetRole);
     setLoading(false);
     const dest = targetRole === "teacher" ? "/teacher/dashboard" : "/dashboard";
-    try {
-      localStorage.setItem("edutrack_last_active_path", dest);
-    } catch {}
     navigate(dest, { replace: true });
   };
 
@@ -237,7 +232,10 @@ export const AccessHub: React.FC = () => {
             </div>
             <Button
               onClick={() => {
-                const saved = localStorage.getItem("edutrack_last_active_path");
+                const saved = getScopedPath({
+                  institutionId: user.institution_id,
+                  userId: user.id,
+                });
                 const dest =
                   saved && saved !== "/" && saved !== "/teacher/login"
                     ? saved

@@ -29,9 +29,6 @@ export const ClassTeacherLogin: React.FC = () => {
     );
     setLoading(false);
     if (result.ok) {
-      try {
-        localStorage.setItem("edutrack_last_active_path", "/teacher/dashboard");
-      } catch {}
       navigate("/teacher/dashboard", { replace: true });
     } else {
       setError(result.message ?? "Login failed");

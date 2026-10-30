@@ -15,8 +15,8 @@ test("public routes are never persisted or restored", () => {
   assert.match(app, /PUBLIC_PATH_PREFIXES/);
   assert.match(app, /isRestorableAppPath\(fullPath\)/);
   assert.match(app, /isRestorableAppPath\(savedPath\)/);
-  assert.match(app, /localStorage\.removeItem\(LAST_PATH_KEY\)/);
-  assert.match(app, /localStorage\.removeItem\(LEGACY_LAST_PATH_KEY\)/);
+  assert.match(app, /getScopedPath/);
+  assert.match(app, /setScopedPath/);
   assert.match(app, /"\/login"/);
   assert.match(app, /"\/teacher\/login"/);
   assert.match(app, /"\/institution\/onboard"/);

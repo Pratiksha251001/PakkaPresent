@@ -33,7 +33,7 @@ test("live synchronization includes attendance and assignment tables", () => {
   }
   assert.match(
     supabase,
-    /if \(!error && Array\.isArray\(data\)\) \{[\s\S]*\(this as any\)\[table\] = data;/,
+    /if \(\s*!error\s*&&\s*Array\.isArray\(data\)\s*&&\s*this\.scopeIsCurrent\(expectedScope, generation\)\s*\)\s*\{[\s\S]*?\(this as any\)\[table\]\s*=\s*data;/,
   );
 });
 
@@ -42,9 +42,9 @@ test("demo restoration is excluded from configured live initialization", () => {
     supabase,
     /if \(!isSupabaseConfigured\) \{[\s\S]*this\.restoreDemoData\(\)/,
   );
-  assert.match(
+  assert.doesNotMatch(
     supabase,
-    /else \{\s*this\.syncReady = this\.syncFromSupabase\(\);\s*\}/,
+    /else \{\s*this\.syncReady = this\.syncFromSupabase\(\)/,
   );
   assert.match(supabase, /public ensureDemoDataLoaded\(\)/);
 });

@@ -14,6 +14,7 @@ test("tokenless completion route is registered", () => {
 });
 test("successful onboarding clears secrets before tokenless navigation", () => {
   assert.match(onboarding, /clear\(\);/);
+  assert.match(onboarding, /clearLegacySessionKeys\(\)/);
   assert.match(onboarding, /navigate\("\/institution\/onboarding-complete"/);
   assert.match(onboarding, /registrationComplete:\s*true/);
   assert.doesNotMatch(
@@ -48,4 +49,9 @@ test("completion and invitation routes remain public and protected", () => {
   assert.match(app, /institution\/onboard\/:invitationToken/);
   assert.match(app, /institution\/onboarding-complete/);
   assert.match(restoration, /public routes are never persisted or restored/);
+});
+
+test("successful onboarding clears any existing authenticated session", () => {
+  assert.match(onboarding, /clearExistingSessionBeforeOnboarding/);
+  assert.match(onboarding, /await clearExistingSessionBeforeOnboarding\(\)/);
 });

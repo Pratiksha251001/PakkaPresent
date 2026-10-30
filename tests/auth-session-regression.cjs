@@ -141,10 +141,19 @@ function harness(options = {}) {
             : {
                 full_name: "Test Account",
                 must_change_password: !!options.mustChange,
+                institution_id:
+                  options.profileInstitutionId || "institution-test",
               },
           error: options.profileError || null,
         };
       }
+      if (table === "institutions")
+        return {
+          data: options.inactiveInstitution
+            ? { id: "institution-test", status: "inactive" }
+            : { id: "institution-test", status: "active" },
+          error: null,
+        };
       if (table === "students")
         return {
           data: options.missingStudent ? null : db.students[0],
@@ -196,7 +205,7 @@ function harness(options = {}) {
           supabase: { auth, from },
           localDb: {
             ...db,
-            setInstitutionScope: async () => {},
+            setSessionScope: async () => {},
           },
           isSupabaseConfigured: options.configured !== false,
         };
@@ -207,8 +216,10 @@ function harness(options = {}) {
         };
       if (name === "../lib/notificationService")
         return {
-          setNotificationInstitutionScope: () => {},
+          setNotificationSessionScope: () => {},
         };
+      if (name === "../lib/sessionScope")
+        return { setScopedPath: () => {} };
       throw new Error("Unexpected mocked import " + name);
     },
   };
