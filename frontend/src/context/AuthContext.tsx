@@ -7,6 +7,7 @@ import React, {
   useCallback,
 } from "react";
 import { UserRoleType } from "../lib/types";
+import { setScopedPath } from "../lib/sessionScope";
 import { localDb, supabase, isSupabaseConfigured } from "../lib/supabase";
 import {
   normalizeId,
@@ -18,7 +19,7 @@ import {
 } from "../lib/authUtils";
 import {
   recordFailedLoginNotification,
-  setNotificationInstitutionScope,
+  setNotificationSessionScope,
 } from "../lib/notificationService";
 
 interface User {
@@ -75,6 +76,8 @@ const removeStorageItem = (key: string) => {
 };
 interface StudentAccountLink {
   id: string;
+  institution_id: string;
+  status: "active" | "inactive";
   roll_number: string;
   department_id: string | null;
   email: string | null;
@@ -87,7 +90,9 @@ const resolveStudentAccountLink = async (
   if (accountRole !== "student") return null;
   const { data, error } = await supabase
     .from("students")
-    .select("id,roll_number,department_id,email,full_name")
+    .select(
+      "id,institution_id,status,roll_number,department_id,email,full_name",
+    )
     .eq("user_id", authUserId)
     .maybeSingle();
   if (error) {
@@ -133,8 +138,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const providerMounted = useRef(true);
   const clearAuthenticatedState = useCallback(() => {
     authEpoch.current += 1;
-    void localDb.setInstitutionScope(null);
-    setNotificationInstitutionScope(null);
+    void localDb.setSessionScope(null);
+    setNotificationSessionScope(null);
     setUser(null);
     setRole(null);
     setIsDemo(false);
@@ -159,8 +164,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const savedIsDemo = getStorageItem("is_demo") === "true";
     demoSessionActive.current = savedIsDemo;
     if (savedIsDemo) {
-      setIsDemo(true);
-      localDb.ensureDemoDataLoaded();
+      void (async () => {
+        try {
+          const rawUser = getStorageItem("user");
+          const savedRole = getStorageItem("role") as UserRoleType | null;
+          const savedDemoUser = rawUser ? (JSON.parse(rawUser) as User) : null;
+
+          if (
+            !savedDemoUser ||
+            !savedRole ||
+            savedDemoUser.institution_id !== "demo"
+          ) {
+            throw new Error("Saved demo session is incomplete.");
+          }
+
+          await localDb.setSessionScope({
+            institutionId: "demo",
+            userId: savedDemoUser.id,
+          });
+
+          if (!mounted || !demoSessionActive.current) return;
+
+          setNotificationSessionScope("demo", savedDemoUser.id);
+          localDb.ensureDemoDataLoaded();
+          setIsDemo(true);
+        } catch (error) {
+          console.warn("Could not restore demo session:", error);
+          clearAuthenticatedState();
+        }
+      })();
     }
     // Keep local/demo password requirements separate from remote authentication.
     const savedUser = getStorageItem("user");
@@ -223,12 +255,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw new Error("No unambiguous portal role is available.");
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
-          .select("full_name,must_change_password")
+          .select("full_name,must_change_password,institution_id")
           .eq("id", authUser.id)
           .maybeSingle();
         if (!isCurrent()) return;
         if (profileError) throw profileError;
         if (!profile) throw new Error("The account profile is missing.");
+        if (profile.institution_id !== roleRecord.institution_id)
+          throw new Error(
+            "Profile and role institution assignments do not match.",
+          );
+        const { data: institution, error: institutionError } = await supabase
+          .from("institutions")
+          .select("id,status")
+          .eq("id", roleRecord.institution_id)
+          .maybeSingle();
+        if (!isCurrent()) return;
+        if (institutionError || !institution || institution.status !== "active")
+          throw new Error(
+            "The assigned institution is unavailable or inactive.",
+          );
         await localDb.waitUntilReady();
         if (!isCurrent()) return;
         const restoredRole = roleRecord.role as UserRoleType;
@@ -239,6 +285,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!isCurrent()) return;
         if (restoredRole === "student" && !studentRecord) {
           throw new Error("The student account has no linked student record.");
+        }
+        if (
+          studentRecord &&
+          (studentRecord.institution_id !== institution.id ||
+            studentRecord.status !== "active" ||
+            studentRecord.department_id !== roleRecord.department_id)
+        ) {
+          throw new Error(
+            "The linked student membership does not match the active institution and department.",
+          );
         }
         const { data: latest, error: latestError } =
           await supabase.auth.getSession();
@@ -252,8 +308,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           clearAuthenticatedState();
           return;
         }
-        await localDb.setInstitutionScope(roleRecord.institution_id);
-        setNotificationInstitutionScope(roleRecord.institution_id);
+        await localDb.setSessionScope({
+          institutionId: roleRecord.institution_id,
+          userId: authUser.id,
+        });
+        setNotificationSessionScope(roleRecord.institution_id, authUser.id);
         const restoredUser = {
           id: authUser.id,
           institution_id: roleRecord.institution_id,
@@ -342,7 +401,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
 
     // Ensure database mock records are loaded so dashboard and profiles are populated
-    localDb.ensureDemoDataLoaded();
 
     const defaultAdminEmail =
       import.meta.env.VITE_DEFAULT_ADMIN_EMAIL?.trim().toLowerCase() ||
@@ -354,12 +412,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const demoUsers: Record<UserRoleType, User> = {
       admin: {
         id: "admin-1",
+        institution_id: "demo",
         email: defaultAdminEmail,
         full_name: defaultAdminName,
         employee_id: "ADM-SYS-2025",
       },
       hod: {
         id: "hod-user-id",
+        institution_id: "demo",
         email: "hod.cse@pakkapresent.edu",
         full_name: "Dr. Robert Vance (HOD)",
         department_id: "dept-1",
@@ -368,6 +428,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       teacher: {
         id: "teacher-user-id",
+        institution_id: "demo",
         email: "s.jenkins@pakkapresent.edu",
         full_name: "Prof. Sarah Jenkins",
         department_id: "dept-1",
@@ -376,6 +437,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       class_coordinator: {
         id: "cc-user-id",
+        institution_id: "demo",
         email: "e.watson@pakkapresent.edu",
         full_name: "Prof. Emily Watson (Class Coordinator)",
         department_id: "dept-1",
@@ -384,6 +446,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       },
       student: {
         id: "student-user-id",
+        institution_id: "demo",
         email: "alex.h@student.pakkapresent.edu",
         full_name: "Alexander Hayes",
         department_id: "dept-1",
@@ -393,6 +456,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     const demoUser = demoUsers[targetRole];
+    await localDb.setSessionScope({
+      institutionId: "demo",
+      userId: demoUser.id,
+    });
+    setNotificationSessionScope("demo", demoUser.id);
+    localDb.ensureDemoDataLoaded();
     setUser(demoUser);
     setRole(targetRole);
     setIsDemo(true);
@@ -412,7 +481,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     const defaultPath =
       targetRole === "teacher" ? "/teacher/dashboard" : "/dashboard";
-    localStorage.setItem("edutrack_last_active_path", defaultPath);
+    setScopedPath({ institutionId: "demo", userId: demoUser.id }, defaultPath);
     setLoading(false);
   };
 
@@ -619,12 +688,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("full_name,must_change_password")
+        .select("full_name,must_change_password,institution_id")
         .eq("id", authData.user.id)
         .maybeSingle();
       if (!isCurrent()) return cancelled();
       if (profileError || !profile)
         return await rejectLogin("The account profile could not be loaded.");
+      if (profile.institution_id !== roleRecord.institution_id)
+        return await rejectLogin(
+          "Profile and role institution assignments do not match.",
+        );
+      const { data: institution, error: institutionError } = await supabase
+        .from("institutions")
+        .select("id,status")
+        .eq("id", roleRecord.institution_id)
+        .maybeSingle();
+      if (!isCurrent()) return cancelled();
+      if (institutionError || !institution || institution.status !== "active")
+        return await rejectLogin(
+          "The assigned institution is unavailable or inactive.",
+        );
       const studentRecord = await resolveStudentAccountLink(
         authData.user.id,
         targetRole,
@@ -634,6 +717,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return await rejectLogin(
           "This student account is not linked to a student profile. Ask an administrator to repair the account link.",
         );
+      if (
+        studentRecord &&
+        (studentRecord.institution_id !== institution.id ||
+          studentRecord.status !== "active" ||
+          studentRecord.department_id !== roleRecord.department_id)
+      ) {
+        return await rejectLogin(
+          "The linked student membership does not match the active institution and department.",
+        );
+      }
       const { data: latest, error: latestError } =
         await supabase.auth.getSession();
       if (!isCurrent()) return cancelled();
@@ -645,8 +738,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!roleRecord.institution_id) {
         return await rejectLogin("This account has no institution assignment.");
       }
-      await localDb.setInstitutionScope(roleRecord.institution_id);
-      setNotificationInstitutionScope(roleRecord.institution_id);
+      await localDb.setSessionScope({
+        institutionId: roleRecord.institution_id,
+        userId: authData.user.id,
+      });
+      setNotificationSessionScope(roleRecord.institution_id, authData.user.id);
       const authenticatedUser = {
         id: authData.user.id,
         institution_id: roleRecord.institution_id,

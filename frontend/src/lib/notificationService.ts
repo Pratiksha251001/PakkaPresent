@@ -2,13 +2,16 @@ import { AppNotification, UserRoleType } from "./types";
 import { generateUuid, localDb } from "./supabase";
 
 const NOTIFICATIONS_STORAGE_KEY = "edutrack_local_notifications_v1";
-let activeInstitutionId: string | null = null;
-
+let activeScope: { institutionId: string; userId: string } | null = null;
 const getNotificationsStorageKey = () =>
-  `${NOTIFICATIONS_STORAGE_KEY}_${activeInstitutionId || "unscoped"}`;
-
-export function setNotificationInstitutionScope(institutionId: string | null) {
-  activeInstitutionId = institutionId;
+  `${NOTIFICATIONS_STORAGE_KEY}_${activeScope ? `${activeScope.institutionId}_${activeScope.userId}` : "unscoped"}`;
+export function setNotificationSessionScope(
+  institutionId: string | null,
+  userId: string | null = null,
+) {
+  activeScope = institutionId && userId ? { institutionId, userId } : null;
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent("edutrack_notifications_updated"));
 }
 
 const initialSampleNotifications: AppNotification[] = [
@@ -64,7 +67,7 @@ export function getStoredNotifications(): AppNotification[] {
     if (!raw) {
       // If demo data was not cleared, return sample alerts
       const demoCleared = localStorage.getItem(
-        "edutrack_local_db_demo_cleared",
+        `${localDb.getStorageKey()}_demo_cleared`,
       );
       if (demoCleared === "true") {
         return [];

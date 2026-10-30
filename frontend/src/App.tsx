@@ -39,6 +39,7 @@ import { ClassTeacherDashboard } from "./pages/ClassTeacherDashboard";
 import { Notifications } from "./pages/Notifications";
 import { ForcePasswordChangeModal } from "./components/ForcePasswordChangeModal";
 import { LogoutConfirmDialog } from "./components/LogoutConfirmDialog";
+import { getScopedPath, setScopedPath } from "./lib/sessionScope";
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -108,8 +109,6 @@ const RoleDashboard: React.FC = () => {
   return <Dashboard />;
 };
 
-const LAST_PATH_KEY = "edutrack_last_active_path";
-const LEGACY_LAST_PATH_KEY = "smit_last_active_path";
 const PUBLIC_PATH_PREFIXES = [
   "/login",
   "/teacher/login",
@@ -135,8 +134,10 @@ const RoutePathTracker: React.FC = () => {
     const fullPath = location.pathname + location.search + location.hash;
     if (user && role && isRestorableAppPath(fullPath)) {
       try {
-        localStorage.setItem(LAST_PATH_KEY, fullPath);
-        localStorage.setItem(LEGACY_LAST_PATH_KEY, fullPath);
+        setScopedPath(
+          { institutionId: user.institution_id, userId: user.id },
+          fullPath,
+        );
       } catch (e) {
         console.warn("Failed to persist last active path", e);
       }
@@ -163,18 +164,15 @@ const RootRouteHandler: React.FC = () => {
     new URLSearchParams(location.search).get("switch") === "true";
 
   if (user && role && !isSwitching) {
-    const savedPath =
-      localStorage.getItem(LAST_PATH_KEY) ||
-      localStorage.getItem(LEGACY_LAST_PATH_KEY);
+    const savedPath = getScopedPath({
+      institutionId: user.institution_id,
+      userId: user.id,
+    });
     const defaultDashboard =
       role === "teacher" ? "/teacher/dashboard" : "/dashboard";
     const targetPath = isRestorableAppPath(savedPath)
       ? savedPath
       : defaultDashboard;
-    if (savedPath && targetPath === defaultDashboard) {
-      localStorage.removeItem(LAST_PATH_KEY);
-      localStorage.removeItem(LEGACY_LAST_PATH_KEY);
-    }
 
     return <Navigate to={targetPath} replace />;
   }

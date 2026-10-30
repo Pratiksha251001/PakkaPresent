@@ -271,24 +271,85 @@ const LOCAL_DATABASE_TABLES = [
   "notices",
   "academic_classes",
 ] as const;
+export interface LocalDatabaseScope {
+  institutionId: string;
+  userId: string;
+}
+
 class LocalDatabase {
-  private activeInstitutionId: string | null = null;
+  private activeScope: LocalDatabaseScope | null = null;
+  private scopeGeneration = 0;
 
   private get storageKey() {
-    return `edutrack_local_db_${this.activeInstitutionId || "unscoped"}`;
+    return this.activeScope
+      ? `edutrack_local_db_${this.activeScope.institutionId}_${this.activeScope.userId}`
+      : "edutrack_local_db_unscoped";
   }
 
-  public async setInstitutionScope(institutionId: string | null) {
-    if (this.activeInstitutionId === institutionId) return;
-    this.activeInstitutionId = institutionId;
-    for (const table of LOCAL_DATABASE_TABLES) {
+  public getStorageKey() {
+    return this.storageKey;
+  }
+
+  private scopeIsCurrent(scope: LocalDatabaseScope, generation: number) {
+    return (
+      generation === this.scopeGeneration &&
+      scope.institutionId === this.activeScope?.institutionId &&
+      scope.userId === this.activeScope?.userId
+    );
+  }
+
+  private captureScope() {
+    const scope = this.activeScope;
+    const generation = this.scopeGeneration;
+
+    if (!scope) {
+      throw new Error("No verified institution session is active.");
+    }
+
+    return {
+      scope: { ...scope },
+      generation,
+    };
+  }
+
+  private assertScopeCurrent(scope: LocalDatabaseScope, generation: number) {
+    if (!this.scopeIsCurrent(scope, generation)) {
+      throw new Error(
+        "The active account changed before the operation completed.",
+      );
+    }
+  }
+
+  private clearMemory() {
+    for (const table of LOCAL_DATABASE_TABLES) (this as any)[table] = [];
+  }
+
+  private async stopRealtime() {
+    const channel = this.realtimeChannel;
+    this.realtimeChannel = null;
+    if (channel) await supabase.removeChannel(channel);
+  }
+
+  public async setSessionScope(scope: LocalDatabaseScope | null) {
+    if (
+      scope?.institutionId === this.activeScope?.institutionId &&
+      scope?.userId === this.activeScope?.userId
+    )
+      return;
+    this.scopeGeneration += 1;
+    await this.stopRealtime();
+    this.clearMemory();
+    this.activeScope = scope;
+    for (const table of LOCAL_DATABASE_TABLES)
       (this as any)[table] = this.load(table, []);
-    }
-    if (institutionId && isSupabaseConfigured) {
-      await this.syncFromSupabase();
+    if (scope && isSupabaseConfigured) {
+      const generation = this.scopeGeneration;
+      this.syncReady = this.syncFromSupabase(scope, generation);
+      await this.syncReady;
+    } else {
+      this.syncReady = Promise.resolve();
     }
   }
-
   private liveFallback<T>(fallback: T[]): T[] {
     return isSupabaseConfigured ? [] : fallback;
   }
@@ -364,8 +425,6 @@ class LocalDatabase {
       this.ensureStandardEngineeringDivisions();
       this.migrateLegacyYearCodes();
       this.syncAllUserAccounts();
-    } else {
-      this.syncReady = this.syncFromSupabase();
     }
   }
 
@@ -619,7 +678,12 @@ class LocalDatabase {
     }
   }
 
-  public async syncFromSupabase() {
+  public async syncFromSupabase(
+    expectedScope = this.activeScope,
+    generation = this.scopeGeneration,
+  ) {
+    if (!expectedScope || !this.scopeIsCurrent(expectedScope, generation))
+      return;
     const syncTables = [
       "departments",
       "teachers",
@@ -635,7 +699,11 @@ class LocalDatabase {
     for (const table of syncTables) {
       try {
         const { data, error } = await supabase.from(table).select("*");
-        if (!error && Array.isArray(data)) {
+        if (
+          !error &&
+          Array.isArray(data) &&
+          this.scopeIsCurrent(expectedScope, generation)
+        ) {
           (this as any)[table] = data;
           this.persist(table);
           if (typeof window !== "undefined") {
@@ -656,9 +724,17 @@ class LocalDatabase {
         { data: roles, error: rolesError },
         { data: profiles, error: profilesError },
       ] = await Promise.all([
-        supabase.from("user_roles").select("user_id, role, department_id"),
-        supabase.from("profiles").select("id, full_name, email"),
+        supabase
+          .from("user_roles")
+          .select("user_id, role, department_id, institution_id"),
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, institution_id"),
       ]);
+
+      if (!this.scopeIsCurrent(expectedScope, generation)) {
+        return;
+      }
 
       if (
         !rolesError &&
@@ -695,6 +771,7 @@ class LocalDatabase {
               existing.email ||
               "",
             role: roleRecord.role,
+            institution_id: roleRecord.institution_id,
             department_id:
               roleRecord.department_id ||
               teacher?.department_id ||
@@ -718,23 +795,31 @@ class LocalDatabase {
       console.warn("Supabase sync failed for users:", err);
     }
 
-    this.subscribeToRealtime();
+    if (this.scopeIsCurrent(expectedScope, generation))
+      this.subscribeToRealtime(expectedScope, generation);
   }
 
-  private subscribeToRealtime() {
-    if (!isSupabaseConfigured || this.realtimeChannel) return;
+  private subscribeToRealtime(scope: LocalDatabaseScope, generation: number) {
+    if (
+      !isSupabaseConfigured ||
+      this.realtimeChannel ||
+      !this.scopeIsCurrent(scope, generation)
+    )
+      return;
 
     this.realtimeChannel = supabase
-      .channel("edutrack-data")
+      .channel(`edutrack-data-${scope.institutionId}-${scope.userId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "teachers" },
-        (change) => this.applyRealtimeChange("teachers", change),
+        (change) =>
+          this.applyRealtimeChange(scope, generation, "teachers", change),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "departments" },
-        (change) => this.applyRealtimeChange("departments", change),
+        (change) =>
+          this.applyRealtimeChange(scope, generation, "departments", change),
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -745,7 +830,13 @@ class LocalDatabase {
       });
   }
 
-  private applyRealtimeChange(table: string, change: any) {
+  private applyRealtimeChange(
+    scope: LocalDatabaseScope,
+    generation: number,
+    table: string,
+    change: any,
+  ) {
+    if (!this.scopeIsCurrent(scope, generation)) return;
     const current = ((this as any)[table] || []) as any[];
     const record = change.new;
     const oldId = change.old?.id;
@@ -1006,9 +1097,13 @@ class LocalDatabase {
   }
 
   async insert(table: string, data: any) {
+    const { scope, generation } = this.captureScope();
+
     if (isSupabaseConfigured) {
       await this.syncReady;
     }
+
+    this.assertScopeCurrent(scope, generation);
 
     const list = (this as any)[table] || [];
     const items = Array.isArray(data) ? data : [data];
@@ -1058,6 +1153,8 @@ class LocalDatabase {
           .from(table)
           .insert(payload)
           .select("*");
+        this.assertScopeCurrent(scope, generation);
+
         if (error) {
           console.error(`Supabase insert error on ${table}:`, error);
           if (table === "students" || table === "teachers") {
@@ -1098,9 +1195,13 @@ class LocalDatabase {
   }
 
   async update(table: string, id: string, data: any) {
+    const { scope, generation } = this.captureScope();
+
     if (isSupabaseConfigured) {
       await this.syncReady;
     }
+
+    this.assertScopeCurrent(scope, generation);
 
     const list = (this as any)[table] || [];
     const idx = list.findIndex((x: any) => x.id === id);
@@ -1119,6 +1220,8 @@ class LocalDatabase {
             .from(table)
             .update(payload)
             .eq("id", id);
+          this.assertScopeCurrent(scope, generation);
+
           if (error) {
             console.error(`Supabase update error for ${table}:`, error);
             if (table === "teachers" || table === "students") {
@@ -1128,6 +1231,10 @@ class LocalDatabase {
             }
           }
         } catch (err) {
+          if (!this.scopeIsCurrent(scope, generation)) {
+            throw err;
+          }
+
           console.error(`Supabase update exception on ${table}:`, err);
           if (table === "teachers" || table === "students") {
             list[idx] = previous;
@@ -1140,6 +1247,8 @@ class LocalDatabase {
           }
         }
       }
+
+      this.assertScopeCurrent(scope, generation);
 
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -1155,6 +1264,9 @@ class LocalDatabase {
   }
 
   async delete(table: string, id: string) {
+    const { scope, generation } = this.captureScope();
+    this.assertScopeCurrent(scope, generation);
+
     const list = (this as any)[table] || [];
     const idx = list.findIndex((x: any) => x.id === id);
     if (idx !== -1) {
@@ -1164,13 +1276,22 @@ class LocalDatabase {
       if (isSupabaseConfigured) {
         try {
           const { error } = await supabase.from(table).delete().eq("id", id);
+
+          this.assertScopeCurrent(scope, generation);
+
           if (error) {
             console.error(`Supabase delete error for ${table}:`, error);
           }
         } catch (err) {
+          if (!this.scopeIsCurrent(scope, generation)) {
+            throw err;
+          }
+
           console.error(`Supabase delete exception on ${table}:`, err);
         }
       }
+
+      this.assertScopeCurrent(scope, generation);
 
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -1186,6 +1307,9 @@ class LocalDatabase {
   }
 
   async upsertAttendance(records: any[]) {
+    const { scope, generation } = this.captureScope();
+    this.assertScopeCurrent(scope, generation);
+
     for (const rec of records) {
       const idx = this.attendance.findIndex(
         (a) =>
@@ -1208,6 +1332,9 @@ class LocalDatabase {
           sanitizePayloadForSupabase("attendance", r),
         );
         const { error } = await supabase.from("attendance").upsert(payload);
+
+        this.assertScopeCurrent(scope, generation);
+
         if (error) {
           throw new Error(`Attendance persistence failed: ${error.message}`);
         }
@@ -1216,6 +1343,8 @@ class LocalDatabase {
         throw err;
       }
     }
+
+    this.assertScopeCurrent(scope, generation);
     this.persist("attendance");
   }
 }
