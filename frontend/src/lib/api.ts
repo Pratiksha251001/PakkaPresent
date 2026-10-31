@@ -16,14 +16,67 @@ export function apiUrl(path: string): string {
   return `${apiBaseUrl}${cleanPath}`;
 }
 
+export class ApiTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`The request timed out after ${timeoutMs} ms.`);
+    this.name = "ApiTimeoutError";
+  }
+}
+
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
+  timeoutMs = 20_000,
 ): Promise<Response> {
-  const { data } = await supabase.auth.getSession();
-  const headers = new Headers(init.headers);
-  if (data.session?.access_token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${data.session.access_token}`);
+  const controller = new AbortController();
+  const externalSignal = init.signal;
+  const abortFromCaller = () => controller.abort(externalSignal?.reason);
+  if (externalSignal?.aborted) abortFromCaller();
+  else
+    externalSignal?.addEventListener("abort", abortFromCaller, { once: true });
+
+  let timedOut = false;
+  const timeoutId = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const sessionResult = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) => {
+        controller.signal.addEventListener(
+          "abort",
+          () =>
+            reject(
+              timedOut
+                ? new ApiTimeoutError(timeoutMs)
+                : controller.signal.reason,
+            ),
+          { once: true },
+        );
+      }),
+    ]);
+    const headers = new Headers(init.headers);
+    if (
+      sessionResult.data.session?.access_token &&
+      !headers.has("Authorization")
+    ) {
+      headers.set(
+        "Authorization",
+        `Bearer ${sessionResult.data.session.access_token}`,
+      );
+    }
+    return await fetch(apiUrl(path), {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (timedOut) throw new ApiTimeoutError(timeoutMs);
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromCaller);
   }
-  return fetch(apiUrl(path), { ...init, headers });
 }

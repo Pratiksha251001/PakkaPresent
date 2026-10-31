@@ -188,6 +188,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     "date",
     "status",
     "marked_by",
+    "institution_id",
     "created_at",
   ],
   sms_logs: [
@@ -196,11 +197,20 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     "subject_id",
     "student_name",
     "parent_mobile",
+    "recipient_email",
+    "channel",
+    "is_defaulter_alert",
+    "attendance_rate",
+    "email_subject",
     "message",
     "status",
     "attendance_date",
     "language",
+    "gateway",
+    "gateway_response",
+    "institution_id",
     "sent_at",
+    "created_at",
   ],
   notices: ["id", "title", "message", "audience", "status", "created_at"],
 };
@@ -1123,6 +1133,50 @@ class LocalDatabase {
       return entry;
     });
 
+    if (table === "sms_logs" && isSupabaseConfigured) {
+      try {
+        const payload = inserted.map((item) =>
+          sanitizePayloadForSupabase("sms_logs", {
+            ...item,
+            institution_id: scope.institutionId,
+          }),
+        );
+        const { data: savedRows, error } = await supabase
+          .from("sms_logs")
+          .insert(payload)
+          .select("*");
+        this.assertScopeCurrent(scope, generation);
+        if (error) {
+          throw new Error(
+            `Notification log persistence failed: ${error.message}`,
+          );
+        }
+        const committed =
+          Array.isArray(savedRows) && savedRows.length > 0
+            ? savedRows
+            : inserted;
+        list.unshift(...committed);
+        (this as any)[table] = list;
+        this.persist(table);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("edutrack_sms_logs_updated", { detail: committed }),
+          );
+          window.dispatchEvent(
+            new CustomEvent("edutrack_data_updated", {
+              detail: { table, data: list },
+            }),
+          );
+        }
+        return committed;
+      } catch (error) {
+        console.error("Supabase notification log insert failed:", error);
+        throw error instanceof Error
+          ? error
+          : new Error("Notification log persistence failed.");
+      }
+    }
+
     if (table === "sms_logs") {
       list.unshift(...inserted);
     } else {
@@ -1310,6 +1364,30 @@ class LocalDatabase {
     const { scope, generation } = this.captureScope();
     this.assertScopeCurrent(scope, generation);
 
+    if (isSupabaseConfigured) {
+      try {
+        const payload = records.map((record) =>
+          sanitizePayloadForSupabase("attendance", {
+            ...record,
+            institution_id: scope.institutionId,
+          }),
+        );
+        const { error } = await supabase.from("attendance").upsert(payload, {
+          onConflict: "student_id,subject_id,date",
+        });
+
+        this.assertScopeCurrent(scope, generation);
+
+        if (error) {
+          throw new Error(`Attendance persistence failed: ${error.message}`);
+        }
+      } catch (err) {
+        console.error("Supabase upsert attendance exception:", err);
+        throw err;
+      }
+    }
+
+    this.assertScopeCurrent(scope, generation);
     for (const rec of records) {
       const idx = this.attendance.findIndex(
         (a) =>
@@ -1326,25 +1404,6 @@ class LocalDatabase {
         });
       }
     }
-    if (isSupabaseConfigured) {
-      try {
-        const payload = records.map((r) =>
-          sanitizePayloadForSupabase("attendance", r),
-        );
-        const { error } = await supabase.from("attendance").upsert(payload);
-
-        this.assertScopeCurrent(scope, generation);
-
-        if (error) {
-          throw new Error(`Attendance persistence failed: ${error.message}`);
-        }
-      } catch (err) {
-        console.error("Supabase upsert attendance exception:", err);
-        throw err;
-      }
-    }
-
-    this.assertScopeCurrent(scope, generation);
     this.persist("attendance");
   }
 }

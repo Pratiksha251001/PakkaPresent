@@ -1,252 +1,234 @@
 import React from "react";
-import {
-  CheckCircle2,
-  Send,
-  MessageSquare,
-  FileText,
-  ExternalLink,
-  Phone,
-  User,
-  Clock,
-  ArrowRight,
-} from "lucide-react";
+import { CheckCircle2, FileText, Mail, MessageSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { SMS_LANGUAGES } from "../lib/college";
-import { SmsLanguage, Student, Subject } from "../lib/types";
-import { Link } from "react-router-dom";
+import { AlertChannel, SmsLanguage, Student, Subject } from "../lib/types";
 
-interface DispatchedRecipient {
+interface NotificationResult {
   student: Student;
-  status: "sent" | "failed";
+  channel: AlertChannel;
+  status: "accepted" | "failed";
   message: string;
-  attendanceStatus?: "absent" | "present";
+  attendanceStatus: "absent" | "present";
 }
 
-interface AttendanceDispatchReceiptModalProps {
+interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject: Subject | undefined;
   date: string;
+  totalStudents: number;
   totalPresent: number;
-  absentRecipients: DispatchedRecipient[];
+  totalAbsent: number;
+  channels: AlertChannel[];
+  notificationResults: NotificationResult[];
   language: SmsLanguage;
   onMarkAnother?: () => void;
 }
 
-export const AttendanceDispatchReceiptModal: React.FC<
-  AttendanceDispatchReceiptModalProps
-> = ({
+export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
   open,
   onOpenChange,
   subject,
   date,
+  totalStudents,
   totalPresent,
-  absentRecipients,
-  language,
+  totalAbsent,
+  channels,
+  notificationResults,
   onMarkAnother,
 }) => {
-  const selectedLangOption = SMS_LANGUAGES.find((l) => l.id === language);
-  const sentCount = absentRecipients.filter((r) => r.status === "sent").length;
-  const failedCount = absentRecipients.filter((r) => r.status === "failed").length;
+  const allPresent = totalStudents > 0 && totalAbsent === 0;
+  const studentWord = totalStudents === 1 ? "student" : "students";
+  const absentWord = totalAbsent === 1 ? "student" : "students";
+
+  const channelSummary = (channel: AlertChannel) => {
+    const results = notificationResults.filter(
+      (result) => result.channel === channel,
+    );
+    return {
+      accepted: results.filter((result) => result.status === "accepted").length,
+      failed: results.filter((result) => result.status === "failed").length,
+      results,
+    };
+  };
+
+  const selectedChannelResults = channels.map((channel) => ({
+    channel,
+    ...channelSummary(channel),
+  }));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
-        {/* Header */}
-        <DialogHeader className="p-5 pb-4 border-b border-border bg-emerald-500/10 shrink-0">
-          <div className="flex items-start gap-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-xs">
-              <CheckCircle2 className="h-6 w-6" />
+      <DialogContent className="max-w-xl max-h-[88vh] overflow-hidden p-0 gap-0 border-border/70 shadow-2xl">
+        <DialogHeader className="border-b border-border/70 bg-emerald-500/[0.06] px-5 py-4 pr-12">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <DialogTitle className="text-lg font-bold text-foreground">
-                  Attendance Recorded; SMS Results
-                </DialogTitle>
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Session verified:{" "}
-                <span className="font-semibold text-foreground">
-                  {subject?.code} · {subject?.name}
-                </span>{" "}
-                (Sem {subject?.semester}) on{" "}
-                <span className="font-semibold text-foreground">{date}</span>
+            <div className="min-w-0">
+              <DialogTitle className="text-base font-bold leading-tight sm:text-lg">
+                Attendance Recorded
+              </DialogTitle>
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                {subject?.code} · {subject?.name} · Sem {subject?.semester} ·{" "}
+                {date}
               </p>
-            </div>
-          </div>
-
-          {/* Quick Metrics */}
-          <div className="grid grid-cols-3 gap-2.5 mt-4 text-center">
-            <div className="rounded-xl border border-emerald-500/20 bg-card p-2.5">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                Marked Present
-              </span>
-              <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {totalPresent}
-              </span>
-            </div>
-            <div className="rounded-xl border border-rose-500/20 bg-card p-2.5">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                Marked Absent
-              </span>
-              <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                {absentRecipients.length}
-              </span>
-            </div>
-            <div className="rounded-xl border border-primary/20 bg-card p-2.5">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                SMS Marked Sent
-              </span>
-              <span className="text-lg font-bold text-primary">
-                {sentCount} {failedCount > 0 && <span className="text-xs text-amber-500">({failedCount} not sent)</span>}
-              </span>
             </div>
           </div>
         </DialogHeader>
 
-        {/* Body List of Absent Parent Alerts Dispatched */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-4">
-          {absentRecipients.length === 0 ? (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center space-y-1.5">
-              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                🌟 100% Attendance Recorded!
-              </p>
-              <p className="text-xs text-muted-foreground">
-                All {totalPresent} enrolled students were marked present. No absence alert SMS was triggered.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <span className="text-xs font-bold text-foreground">
-                    Parent SMS Dispatch Summary ({sentCount} Sent)
-                  </span>
-                </div>
-                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
-                  English + मराठी + हिंदी
-                </Badge>
+        <div className="max-h-[calc(88vh-9rem)] space-y-4 overflow-y-auto p-5">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Enrolled", value: totalStudents, className: "" },
+              {
+                label: "Present",
+                value: totalPresent,
+                className:
+                  "border-emerald-500/25 bg-emerald-500/[0.06] text-emerald-700 dark:text-emerald-300",
+              },
+              {
+                label: "Absent",
+                value: totalAbsent,
+                className:
+                  "border-rose-500/25 bg-rose-500/[0.06] text-rose-700 dark:text-rose-300",
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className={`rounded-xl border border-border/70 bg-muted/20 px-3 py-2.5 text-center ${stat.className}`}
+              >
+                <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  {stat.label}
+                </span>
+                <span className="mt-0.5 block text-xl font-bold leading-none">
+                  {stat.value}
+                </span>
               </div>
+            ))}
+          </div>
 
-              <div className="rounded-xl border border-border divide-y divide-border/60 max-h-64 overflow-y-auto bg-card">
-                {absentRecipients.map(({ student, status, message, attendanceStatus }) => {
+          <div
+            className={`rounded-xl border px-4 py-3 ${
+              allPresent
+                ? "border-emerald-500/25 bg-emerald-500/[0.06]"
+                : "border-rose-500/25 bg-rose-500/[0.06]"
+            }`}
+          >
+            <p className="text-sm font-bold text-foreground">
+              {allPresent
+                ? totalStudents === 1
+                  ? "1 student was marked present"
+                  : `All ${totalStudents} ${studentWord} were marked present`
+                : `${totalAbsent} ${absentWord} ${totalAbsent === 1 ? "was" : "were"} marked absent`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {allPresent
+                ? "No absence notification was required."
+                : `Notification channels: ${channels.map((channel) => channel.toUpperCase()).join(" + ") || "None"}`}
+            </p>
+          </div>
+
+          {selectedChannelResults.length > 0 && (
+            <div
+              className={`grid gap-2 ${selectedChannelResults.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}
+            >
+              {selectedChannelResults.map(
+                ({ channel, accepted, failed, results }) => {
+                  const Icon = channel === "email" ? Mail : MessageSquare;
+                  const noResultText = allPresent
+                    ? "Not required for an all-present result"
+                    : "No result was recorded";
                   return (
                     <div
-                      key={student.id}
-                      className="p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-muted/30 transition-colors"
+                      key={channel}
+                      className="rounded-xl border border-border/70 bg-muted/15 p-3"
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-muted text-foreground shrink-0 border border-border/60">
-                            {student.roll_number}
-                          </span>
-                          <span className="font-semibold text-foreground truncate">
-                            {student.full_name}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                              attendanceStatus === "present"
-                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
-                                : "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30"
-                            }`}
-                          >
-                            {attendanceStatus === "present" ? "Present" : "Absent"}
-                          </span>
-                          <Badge
-                            variant={status === "sent" ? "success" : "destructive"}
-                            className="text-[9px] uppercase px-1.5 py-0 shrink-0"
-                          >
-                            {status === "sent" ? "Marked Sent (Not Delivery Confirmed)" : "Not Sent"}
-                          </Badge>
-                        </div>
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                          <span>Parent: {student.parent_name || "Guardian"}</span>
-                          <span>•</span>
-                          {student.parent_mobile ? (
-                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-medium">
-                              📱 {student.parent_mobile}
-                            </span>
-                          ) : (
-                            <span className="text-amber-600 dark:text-amber-400 font-medium">
-                              No mobile provided
-                            </span>
-                          )}
-                          {student.email && (
-                            <>
-                              <span>•</span>
-                              <span className="font-mono text-muted-foreground">
-                                ✉️ {student.email}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Multi-Channel indicators */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
-                          title="Alert via SMS / Email"
-                        >
-                          <span>📱 SMS</span>
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                          {channel}
                         </span>
-                        {student.email && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20"
-                            title="Alert via Email (<75% Defaulter Warning)"
-                          >
-                            <span>✉️ Email</span>
-                          </span>
-                        )}
                       </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        {results.length > 0
+                          ? `${accepted} accepted · ${failed} failed`
+                          : noResultText}
+                      </p>
                     </div>
                   );
-                })}
-              </div>
+                },
+              )}
+            </div>
+          )}
+
+          {notificationResults.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-border/70 divide-y divide-border/70">
+              {notificationResults.map((result, index) => (
+                <div
+                  key={`${result.student.id}-${result.channel}-${index}`}
+                  className="p-3 text-xs"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-foreground">
+                      {result.student.full_name}
+                    </span>
+                    <Badge
+                      variant={
+                        result.status === "accepted" ? "success" : "destructive"
+                      }
+                      className="text-[10px]"
+                    >
+                      {result.channel.toUpperCase()} {result.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">{result.message}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <DialogFooter className="p-4 border-t border-border bg-card/70 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <DialogFooter className="flex-col-reverse gap-2 border-t border-border/70 bg-muted/10 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
             to="/sms-logs"
             onClick={() => onOpenChange(false)}
             className="w-full sm:w-auto"
           >
-            <Button variant="outline" size="sm" className="w-full text-xs">
-              <FileText className="h-3.5 w-3.5 mr-1.5 text-primary" />
-              View Parent SMS Logs
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+              <FileText className="mr-1.5 h-3.5 w-3.5" />
+              View Logs
             </Button>
           </Link>
-
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex w-full gap-2 sm:w-auto">
             {onMarkAnother && (
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
+                className="flex-1 sm:flex-none"
                 onClick={() => {
                   onOpenChange(false);
                   onMarkAnother();
                 }}
-                className="w-full sm:w-auto text-xs"
               >
-                Mark Another Subject
+                Mark Another
               </Button>
             )}
             <Button
+              type="button"
               size="sm"
+              className="flex-1 sm:flex-none"
               onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto text-xs font-semibold"
             >
               Done
             </Button>

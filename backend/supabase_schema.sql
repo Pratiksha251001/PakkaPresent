@@ -142,6 +142,8 @@ create table if not exists public.attendance (
   id uuid default uuid_generate_v4() primary key,
   student_id uuid references public.students(id) on delete cascade not null,
   subject_id uuid references public.subjects(id) on delete cascade not null,
+  class_name text,
+  class_id uuid references public.academic_classes(id) on delete set null,
   date date not null,
   status text not null check (status in ('present', 'absent')),
   marked_by text,
@@ -156,10 +158,17 @@ create table if not exists public.sms_logs (
   subject_id uuid references public.subjects(id) on delete set null,
   student_name text not null,
   parent_mobile text,
+  recipient_email text,
+  channel text not null default 'sms' check (channel in ('sms', 'email')),
+  is_defaulter_alert boolean not null default false,
+  attendance_rate integer check (attendance_rate is null or attendance_rate between 0 and 100),
+  email_subject text,
   message text not null,
   status text not null check (status in ('sent', 'failed')),
   attendance_date date not null,
   language text default 'trilingual',
+  gateway text,
+  gateway_response text,
   sent_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -197,31 +206,6 @@ revoke all privileges on table public.academic_classes, public.attendance,
   public.profiles, public.subjects, public.teacher_subjects, public.teachers,
   public.user_roles from anon;
 
-create or replace function public.can_manage_attendance(
-  requested_student uuid, requested_subject uuid
-) returns boolean language sql stable security definer
-set search_path = pg_catalog as $$
-  select exists (
-    select 1 from public.students s
-    join public.subjects subject on subject.id = requested_subject
-      and subject.department_id = s.department_id
-    join public.teacher_subjects assignment on assignment.subject_id = subject.id
-    join public.teachers teacher on teacher.id = assignment.teacher_id
-      and teacher.department_id = s.department_id
-    join public.academic_classes class on class.id = assignment.class_id
-      and class.department_id = s.department_id
-    where s.id = requested_student and teacher.user_id = auth.uid()
-      and teacher.status = 'active' and s.status = 'active'
-      and class.status = 'active' and class.year = s.year
-      and class.semester = s.semester and subject.semester = s.semester
-      and class.name = nullif(to_jsonb(s)->>'class_name', '')
-      and exists (select 1 from public.user_roles r
-        where r.user_id = auth.uid() and r.department_id = s.department_id
-          and r.role in ('teacher','hod','class_coordinator'))
-  );
-$$;
-revoke all on function public.can_manage_attendance(uuid,uuid) from public,anon;
-grant execute on function public.can_manage_attendance(uuid,uuid) to authenticated;
 
 -- Remove legacy and replacement policies idempotently.
 do $$ declare p record; begin
@@ -320,13 +304,6 @@ create policy attendance_admin_manage on public.attendance for all to authentica
  using(public.current_user_has_role(array['admin'])) with check(public.current_user_has_role(array['admin']));
 create policy attendance_student_read on public.attendance for select to authenticated using(
   exists(select 1 from public.students s where s.id=attendance.student_id and s.user_id=auth.uid()));
-create policy attendance_assigned_teacher_read on public.attendance for select to authenticated
-  using(public.can_manage_attendance(student_id,subject_id));
-create policy attendance_assigned_teacher_insert on public.attendance for insert to authenticated
-  with check(public.can_manage_attendance(student_id,subject_id));
-create policy attendance_assigned_teacher_update on public.attendance for update to authenticated
-  using(public.can_manage_attendance(student_id,subject_id))
-  with check(public.can_manage_attendance(student_id,subject_id));
 
 create policy notices_published_read on public.notices for select to authenticated using(status='published');
 create policy notices_admin_manage on public.notices for all to authenticated
@@ -578,6 +555,74 @@ returns uuid language sql stable security definer set search_path = public
 as $$ select institution_id from public.user_roles where user_id = auth.uid() order by created_at asc limit 1 $$;
 revoke all on function public.current_user_institution_id() from public, anon;
 grant execute on function public.current_user_institution_id() to authenticated;
+
+-- Attendance authorization depends on tenant columns and the institution helper above.
+create or replace function public.can_manage_attendance(
+  requested_student uuid, requested_subject uuid
+) returns boolean language sql stable security definer
+set search_path = pg_catalog as $$
+  select exists (
+    select 1
+    from public.students s
+    join public.subjects subject
+      on subject.id = requested_subject
+     and subject.department_id = s.department_id
+     and subject.semester = s.semester
+     and subject.institution_id = s.institution_id
+    join public.teacher_subjects assignment
+      on assignment.subject_id = subject.id
+    join public.teachers teacher
+      on teacher.id = assignment.teacher_id
+     and teacher.user_id = auth.uid()
+     and teacher.department_id = s.department_id
+     and teacher.institution_id = s.institution_id
+     and teacher.status = 'active'
+    where s.id = requested_student
+      and s.status = 'active'
+      and s.institution_id = public.current_user_institution_id()
+      and exists (
+        select 1
+        from public.user_roles role_record
+        where role_record.user_id = auth.uid()
+          and role_record.department_id = s.department_id
+          and role_record.institution_id = s.institution_id
+          and role_record.role in ('teacher', 'hod', 'class_coordinator')
+      )
+      and (
+        (
+          assignment.class_id is null
+          and nullif(assignment.class_name, '') is null
+        )
+        or exists (
+          select 1
+          from public.academic_classes class_record
+          where class_record.department_id = s.department_id
+            and class_record.institution_id = s.institution_id
+            and class_record.status = 'active'
+            and class_record.semester = s.semester
+            and (s.year is null or class_record.year = s.year)
+            and class_record.name = nullif(to_jsonb(s) ->> 'class_name', '')
+            and (
+              class_record.id = assignment.class_id
+              or (
+                assignment.class_id is null
+                and nullif(assignment.class_name, '') = class_record.name
+              )
+            )
+        )
+      )
+  );
+$$;
+revoke all on function public.can_manage_attendance(uuid,uuid) from public,anon;
+grant execute on function public.can_manage_attendance(uuid,uuid) to authenticated;
+
+create policy attendance_assigned_teacher_read on public.attendance for select to authenticated
+  using(public.can_manage_attendance(student_id,subject_id));
+create policy attendance_assigned_teacher_insert on public.attendance for insert to authenticated
+  with check(public.can_manage_attendance(student_id,subject_id));
+create policy attendance_assigned_teacher_update on public.attendance for update to authenticated
+  using(public.can_manage_attendance(student_id,subject_id))
+  with check(public.can_manage_attendance(student_id,subject_id));
 
 create or replace function public.enforce_immutable_institution_id()
 returns trigger language plpgsql security definer set search_path = public
