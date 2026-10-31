@@ -169,23 +169,32 @@ export const Attendance: React.FC = () => {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [submissionError, setSubmissionError] = useState("");
   const [lastDispatched, setLastDispatched] = useState<{
     subject?: (typeof subjects)[0];
     className?: string;
     date: string;
+    totalStudents: number;
     totalPresent: number;
-    recipients: Array<{
+    totalAbsent: number;
+    channels: AlertChannel[];
+    notificationResults: Array<{
       student: Student;
-      status: "sent" | "failed";
+      channel: AlertChannel;
+      status: "accepted" | "failed";
       message: string;
+      attendanceStatus: "absent" | "present";
     }>;
     language: SmsLanguage;
   }>({
     subject: undefined,
     className: undefined,
     date: todayStr,
+    totalStudents: 0,
     totalPresent: 0,
-    recipients: [],
+    totalAbsent: 0,
+    channels: [],
+    notificationResults: [],
     language: "en",
   });
 
@@ -362,217 +371,262 @@ export const Attendance: React.FC = () => {
     targetMode: "absent_only" | "present_only" | "both" = "absent_only",
     channels: AlertChannel[] = ["sms", "email"],
   ) => {
-    if (!selectedSubject) return;
+    if (!selectedSubject || saving) return;
     setSaving(true);
+    setSuccessMsg("");
+    setSubmissionError("");
+    let attendanceSaved = false;
 
-    const classLabel = selectedClassName !== "all" ? selectedClassName : null;
+    try {
+      const classLabel = selectedClassName !== "all" ? selectedClassName : null;
 
-    const records = cohortStudents.map((st) => ({
-      student_id: st.id,
-      subject_id: selectedSubject.id,
-      class_name: classLabel || st.class_name || null,
-      class_id: st.class_id || null,
-      date: selectedDate,
-      status: attendanceState[st.id] || "present",
-      marked_by: user?.id || null,
-    }));
+      const records = cohortStudents.map((st) => ({
+        student_id: st.id,
+        subject_id: selectedSubject.id,
+        class_name: classLabel || st.class_name || null,
+        class_id: st.class_id || null,
+        date: selectedDate,
+        status: attendanceState[st.id] || "present",
+        marked_by: user?.id || null,
+      }));
 
-    await localDb.upsertAttendance(records);
+      await localDb.upsertAttendance(records);
+      attendanceSaved = true;
 
-    const currentAbsentees = cohortStudents.filter(
-      (st) => (attendanceState[st.id] || "present") === "absent",
-    );
-    const currentPresents = cohortStudents.filter(
-      (st) => (attendanceState[st.id] || "present") === "present",
-    );
-
-    // Determine target students based on targetMode
-    const targetList: Array<{
-      student: Student;
-      status: "absent" | "present";
-    }> = [];
-    if (targetMode === "absent_only" || targetMode === "both") {
-      currentAbsentees.forEach((st) =>
-        targetList.push({ student: st, status: "absent" }),
+      const currentAbsentees = cohortStudents.filter(
+        (st) => (attendanceState[st.id] || "present") === "absent",
       );
-    }
-    if (targetMode === "present_only" || targetMode === "both") {
-      currentPresents.forEach((st) =>
-        targetList.push({ student: st, status: "present" }),
+      const currentPresents = cohortStudents.filter(
+        (st) => (attendanceState[st.id] || "present") === "present",
       );
-    }
 
-    const dispatchedList: Array<{
-      student: Student;
-      status: "sent" | "failed";
-      message: string;
-      attendanceStatus: "absent" | "present";
-    }> = [];
-
-    const newLogEntries: any[] = [];
-    let defaulterEmailCount = 0;
-
-    // Calculate attendance percentage for each targeted student
-    const allAttendance = localDb.attendance;
-
-    for (const { student: st, status } of targetList) {
-      const past = allAttendance.filter((a) => a.student_id === st.id);
-      const totalLectures = past.length;
-      const presentLectures = past.filter((a) => a.status === "present").length;
-      const rate =
-        totalLectures > 0
-          ? Math.round((presentLectures / totalLectures) * 100)
-          : 100;
-      const isDefaulter = rate < 75 && status === "absent";
-
-      const cleanPhone = (st.parent_mobile || "").replace(/[^0-9]/g, "");
-      const hasMobile = cleanPhone.length >= 10;
-      const studentEmail =
-        st.email || `${st.roll_number.toLowerCase()}@student.pakkapresent.edu`;
-
-      // 1. Channel: SMS
-      if (channels.includes("sms")) {
-        const smsMsg = generateSmsMessage(
-          st.full_name,
-          selectedDate,
-          selectedSubject.name,
-          chosenLang,
-          status,
+      // Determine target students based on targetMode
+      const targetList: Array<{
+        student: Student;
+        status: "absent" | "present";
+      }> = [];
+      if (targetMode === "absent_only" || targetMode === "both") {
+        currentAbsentees.forEach((st) =>
+          targetList.push({ student: st, status: "absent" }),
         );
-        newLogEntries.push({
-          student_id: st.id,
-          subject_id: selectedSubject.id,
-          student_name: st.full_name,
-          parent_mobile: st.parent_mobile,
-          recipient_email: studentEmail,
-          channel: "sms" as const,
-          message: smsMsg,
-          status: hasMobile ? ("sent" as const) : ("failed" as const),
-          attendance_date: selectedDate,
-          sent_at: new Date().toISOString(),
-          language: chosenLang,
-          gateway: "SMS Gateway",
-          gateway_response: hasMobile
-            ? "SMS not dispatched by attendance save"
-            : "Invalid parent mobile",
-        });
-
-        dispatchedList.push({
-          student: st,
-          status: hasMobile ? ("sent" as const) : ("failed" as const),
-          message: smsMsg,
-          attendanceStatus: status,
-        });
+      }
+      if (targetMode === "present_only" || targetMode === "both") {
+        currentPresents.forEach((st) =>
+          targetList.push({ student: st, status: "present" }),
+        );
       }
 
-      // 2. Parent email: use the authenticated, server-verified dispatch endpoint.
-      // The backend decides recipient eligibility and the actual attendance rate.
-      if (channels.includes("email") || isDefaulter) {
-        const kind = isDefaulter ? "low_attendance" : "daily_attendance";
-        let responseStatus = "not_sent";
-        let responseMessage = "Parent notification was not accepted.";
-        try {
-          const response = await apiFetch("/api/parents/attendance/notify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              studentId: st.id,
-              kind,
-              date: selectedDate,
-            }),
+      const notificationResults: Array<{
+        student: Student;
+        channel: AlertChannel;
+        status: "accepted" | "failed";
+        message: string;
+        attendanceStatus: "absent" | "present";
+      }> = [];
+
+      const newLogEntries: any[] = [];
+      let defaulterEmailCount = 0;
+
+      // Calculate attendance percentage for each targeted student
+      const allAttendance = localDb.attendance;
+
+      for (const { student: st, status } of targetList) {
+        const past = allAttendance.filter((a) => a.student_id === st.id);
+        const totalLectures = past.length;
+        const presentLectures = past.filter(
+          (a) => a.status === "present",
+        ).length;
+        const rate =
+          totalLectures > 0
+            ? Math.round((presentLectures / totalLectures) * 100)
+            : 100;
+        const isDefaulter = rate < 75 && status === "absent";
+
+        const cleanPhone = (st.parent_mobile || "").replace(/[^0-9]/g, "");
+        const hasMobile = cleanPhone.length >= 10;
+        const studentEmail =
+          st.email ||
+          `${st.roll_number.toLowerCase()}@student.pakkapresent.edu`;
+
+        // 1. Channel: SMS
+        if (channels.includes("sms")) {
+          const smsMsg = generateSmsMessage(
+            st.full_name,
+            selectedDate,
+            selectedSubject.name,
+            chosenLang,
+            status,
+          );
+          newLogEntries.push({
+            student_id: st.id,
+            subject_id: selectedSubject.id,
+            student_name: st.full_name,
+            parent_mobile: st.parent_mobile,
+            recipient_email: studentEmail,
+            channel: "sms" as const,
+            message: smsMsg,
+            status: hasMobile ? ("sent" as const) : ("failed" as const),
+            attendance_date: selectedDate,
+            sent_at: new Date().toISOString(),
+            language: chosenLang,
+            gateway: "SMS Gateway",
+            gateway_response: hasMobile
+              ? "SMS not dispatched by attendance save"
+              : "Invalid parent mobile",
           });
-          const result = await response.json().catch(() => ({}));
-          if (
-            response.ok &&
-            result.success === true &&
-            result.status === "provider_accepted"
-          ) {
-            responseStatus = "provider_accepted";
-            responseMessage =
-              "Email provider accepted the request; delivery is not confirmed.";
-            if (isDefaulter) defaulterEmailCount++;
-          } else {
-            responseMessage =
-              result.message ||
-              result.reason ||
-              `Notification not accepted (HTTP ${response.status}).`;
-          }
-        } catch {
-          responseMessage =
-            "Notification backend unavailable; delivery not confirmed.";
+
+          notificationResults.push({
+            student: st,
+            channel: "sms",
+            status: hasMobile ? "accepted" : "failed",
+            message: hasMobile
+              ? "SMS request recorded; delivery is not confirmed."
+              : "Invalid parent mobile.",
+            attendanceStatus: status,
+          });
         }
-        newLogEntries.push({
-          student_id: st.id,
-          subject_id: selectedSubject.id,
-          student_name: st.full_name,
-          parent_mobile: st.parent_mobile,
-          recipient_email: st.parent_email || "",
-          channel: "email" as const,
-          is_defaulter_alert: isDefaulter,
-          attendance_rate: rate,
-          email_subject: isDefaulter
-            ? "Low attendance warning"
-            : "Attendance update",
-          message: responseMessage,
-          status: (responseStatus === "provider_accepted"
-            ? "sent"
-            : "failed") as const,
-          attendance_date: selectedDate,
-          sent_at: new Date().toISOString(),
-          language: chosenLang,
-          gateway: "Parent notification backend",
-          gateway_response: responseMessage,
-        });
+
+        // 2. Parent email: use the authenticated, server-verified dispatch endpoint.
+        // The backend decides recipient eligibility and the actual attendance rate.
+        if (channels.includes("email") || isDefaulter) {
+          const kind = isDefaulter ? "low_attendance" : "daily_attendance";
+          let responseStatus = "not_sent";
+          let responseMessage = "Parent notification was not accepted.";
+          try {
+            const response = await apiFetch(
+              "/api/parents/attendance/notify",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  studentId: st.id,
+                  kind,
+                  date: selectedDate,
+                }),
+              },
+              20_000,
+            );
+            const result = await response.json().catch(() => ({}));
+            if (
+              response.ok &&
+              result.success === true &&
+              result.status === "provider_accepted"
+            ) {
+              responseStatus = "provider_accepted";
+              responseMessage =
+                "Email provider accepted the request; delivery is not confirmed.";
+              if (isDefaulter) defaulterEmailCount++;
+            } else {
+              responseMessage =
+                result.message ||
+                result.reason ||
+                `Notification not accepted (HTTP ${response.status}).`;
+            }
+          } catch {
+            responseMessage =
+              "Notification backend unavailable; delivery not confirmed.";
+          }
+          newLogEntries.push({
+            student_id: st.id,
+            subject_id: selectedSubject.id,
+            student_name: st.full_name,
+            parent_mobile: st.parent_mobile,
+            recipient_email: st.parent_email || "",
+            channel: "email" as const,
+            is_defaulter_alert: isDefaulter,
+            attendance_rate: rate,
+            email_subject: isDefaulter
+              ? "Low attendance warning"
+              : "Attendance update",
+            message: responseMessage,
+            status: (responseStatus === "provider_accepted"
+              ? "sent"
+              : "failed") as const,
+            attendance_date: selectedDate,
+            sent_at: new Date().toISOString(),
+            language: chosenLang,
+            gateway: "Parent notification backend",
+            gateway_response: responseMessage,
+          });
+          notificationResults.push({
+            student: st,
+            channel: "email",
+            status:
+              responseStatus === "provider_accepted" ? "accepted" : "failed",
+            message: responseMessage,
+            attendanceStatus: status,
+          });
+        }
       }
+
+      if (newLogEntries.length > 0) {
+        await localDb.insert("sms_logs", newLogEntries);
+      }
+
+      const currentLang = SMS_LANGUAGES.find((l) => l.id === chosenLang);
+
+      // Record notification for HOD, CC, and Admin
+      recordAttendanceSubmittedNotification({
+        teacherName: user?.full_name || "Faculty Member",
+        teacherId: user?.teacher_id || user?.id || null,
+        subjectId: selectedSubject.id,
+        subjectName: selectedSubject.name,
+        subjectCode: selectedSubject.code,
+        departmentId: selectedSubject.department_id,
+        semester: selectedSubject.semester,
+        className: classLabel || undefined,
+        date: selectedDate,
+        totalStudents: cohortStudents.length,
+        presentCount: currentPresents.length,
+        absentCount: currentAbsentees.length,
+        smsCount: newLogEntries.filter((d) => d.status === "sent").length,
+      });
+
+      setConfirmOpen(false);
+
+      setLastDispatched({
+        subject: selectedSubject,
+        className: classLabel || undefined,
+        date: selectedDate,
+        totalStudents: cohortStudents.length,
+        totalPresent: currentPresents.length,
+        totalAbsent: currentAbsentees.length,
+        channels,
+        notificationResults,
+        language: chosenLang,
+      });
+      setReceiptOpen(true);
+
+      const targetClassText = classLabel ? `for ${classLabel}` : "";
+      const channelNames = channels.map((c) => c.toUpperCase()).join(", ");
+      const defaulterNoticeText =
+        defaulterEmailCount > 0
+          ? ` • ⚠️ ${defaulterEmailCount} Defaulter (<75%) Email Requests Accepted`
+          : "";
+
+      setSuccessMsg(
+        `Attendance saved ${targetClassText}! Notification requests processed via [${channelNames}]${defaulterNoticeText}. View in SMS & Alert History anytime.`,
+      );
+      setTimeout(() => setSuccessMsg(""), 12000);
+    } catch (error) {
+      console.error("Attendance confirmation failed", error);
+      const reason =
+        error instanceof Error && error.message
+          ? error.message
+          : "The request could not be completed.";
+      if (attendanceSaved) {
+        setConfirmOpen(false);
+        setSubmissionError(
+          `Attendance was saved, but notification processing did not finish. ${reason}`,
+        );
+      } else {
+        setSubmissionError(
+          `Attendance could not be saved. ${reason} Please retry.`,
+        );
+      }
+    } finally {
+      setSaving(false);
     }
-
-    if (newLogEntries.length > 0) {
-      await localDb.insert("sms_logs", newLogEntries);
-    }
-
-    const currentLang = SMS_LANGUAGES.find((l) => l.id === chosenLang);
-
-    // Record notification for HOD, CC, and Admin
-    recordAttendanceSubmittedNotification({
-      teacherName: user?.full_name || "Faculty Member",
-      teacherId: user?.teacher_id || user?.id || null,
-      subjectId: selectedSubject.id,
-      subjectName: selectedSubject.name,
-      subjectCode: selectedSubject.code,
-      departmentId: selectedSubject.department_id,
-      semester: selectedSubject.semester,
-      className: classLabel || undefined,
-      date: selectedDate,
-      totalStudents: cohortStudents.length,
-      presentCount: currentPresents.length,
-      absentCount: currentAbsentees.length,
-      smsCount: newLogEntries.filter((d) => d.status === "sent").length,
-    });
-
-    setSaving(false);
-    setConfirmOpen(false);
-
-    setLastDispatched({
-      subject: selectedSubject,
-      className: classLabel || undefined,
-      date: selectedDate,
-      totalPresent: currentPresents.length,
-      recipients: dispatchedList,
-      language: chosenLang,
-    });
-    setReceiptOpen(true);
-
-    const targetClassText = classLabel ? `for ${classLabel}` : "";
-    const channelNames = channels.map((c) => c.toUpperCase()).join(", ");
-    const defaulterNoticeText =
-      defaulterEmailCount > 0
-        ? ` • ⚠️ ${defaulterEmailCount} Defaulter (<75%) Email Requests Accepted`
-        : "";
-
-    setSuccessMsg(
-      `Attendance saved ${targetClassText}! Notification requests processed via [${channelNames}]${defaulterNoticeText}. View in SMS & Alert History anytime.`,
-    );
-    setTimeout(() => setSuccessMsg(""), 12000);
   };
 
   return (
@@ -623,6 +677,24 @@ export const Attendance: React.FC = () => {
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {submissionError && !confirmOpen && (
+        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 text-rose-950 dark:text-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <AlertCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-rose-900 dark:text-rose-200">
+                Attendance Could Not Be Fully Processed
+              </p>
+              <p className="text-xs text-rose-800/80 dark:text-rose-100/80 mt-0.5">
+                {submissionError}
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -1052,6 +1124,7 @@ export const Attendance: React.FC = () => {
         onToggleStudent={toggleStudent}
         onConfirm={handleConfirmSubmission}
         saving={saving}
+        submissionError={submissionError}
         smsLanguage={smsLanguage}
         onLanguageChange={setSmsLanguage}
       />
@@ -1062,8 +1135,11 @@ export const Attendance: React.FC = () => {
         onOpenChange={setReceiptOpen}
         subject={lastDispatched.subject}
         date={lastDispatched.date}
+        totalStudents={lastDispatched.totalStudents}
         totalPresent={lastDispatched.totalPresent}
-        absentRecipients={lastDispatched.recipients}
+        totalAbsent={lastDispatched.totalAbsent}
+        channels={lastDispatched.channels}
+        notificationResults={lastDispatched.notificationResults}
         language={lastDispatched.language}
         onMarkAnother={() => {
           setSearchQuery("");
