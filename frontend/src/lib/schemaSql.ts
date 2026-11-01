@@ -420,6 +420,67 @@ begin
   end if;
 end $$;
 
+-- Parent notification ledger compatibility and institution-scoped RPCs
+create table if not exists public.parent_notification_attempts (
+  student_id uuid not null references public.students(id) on delete cascade,
+  kind text not null check(kind in ('daily_attendance','low_attendance')),
+  notice_date date not null,
+  recipient_email text not null,
+  status text not null check(status in ('claimed','provider_accepted','provider_rejected','unknown')),
+  created_at timestamptz not null default now(), completed_at timestamptz,
+  institution_id uuid not null references public.institutions(id) on delete restrict,
+  primary key(student_id,kind,notice_date)
+);
+alter table public.parent_notification_attempts add column if not exists institution_id uuid references public.institutions(id) on delete restrict;
+update public.parent_notification_attempts a set institution_id=s.institution_id
+from public.students s where s.id=a.student_id and a.institution_id is null;
+do $$ begin
+  if exists(select 1 from public.parent_notification_attempts where institution_id is null) then
+    raise exception 'Parent notification attempts contain rows without institution ownership.';
+  end if;
+end $$;
+alter table public.parent_notification_attempts alter column institution_id set not null;
+create index if not exists parent_notification_attempts_institution_id_idx on public.parent_notification_attempts(institution_id);
+alter table public.parent_notification_attempts enable row level security;
+revoke all on public.parent_notification_attempts from public,anon,authenticated;
+
+-- Institution-scoped parent notification ledger RPCs
+create or replace function public.claim_parent_notification(
+  p_student_id uuid, p_kind text, p_date date, p_recipient text
+) returns boolean language plpgsql security definer set search_path = '' as $$
+declare stored_email text; approved_at timestamptz; student_institution uuid;
+begin
+  if p_kind not in ('daily_attendance','low_attendance') or p_date is null then return false; end if;
+  select parent_email,parent_email_approved_at,institution_id
+    into stored_email,approved_at,student_institution
+    from public.students where id=p_student_id for update;
+  if student_institution is null or approved_at is null or stored_email is null
+     or lower(btrim(stored_email)) <> lower(btrim(p_recipient)) then return false; end if;
+  insert into public.parent_notification_attempts(
+    student_id,kind,notice_date,recipient_email,status,institution_id
+  ) values (
+    p_student_id,p_kind,p_date,lower(btrim(p_recipient)),'claimed',student_institution
+  ) on conflict do nothing;
+  return found;
+end;$$;
+create or replace function public.complete_parent_notification(
+  p_student_id uuid,p_kind text,p_date date,p_status text
+) returns boolean language plpgsql security definer set search_path = '' as $$
+declare student_institution uuid;
+begin
+  if p_status not in ('provider_accepted','provider_rejected','unknown') then return false; end if;
+  select institution_id into student_institution from public.students where id=p_student_id;
+  if student_institution is null then return false; end if;
+  update public.parent_notification_attempts set status=p_status,completed_at=now()
+   where student_id=p_student_id and institution_id=student_institution
+     and kind=p_kind and notice_date=p_date and status='claimed';
+  return found;
+end;$$;
+revoke all on function public.claim_parent_notification(uuid,text,date,text) from public,anon,authenticated;
+revoke all on function public.complete_parent_notification(uuid,text,date,text) from public,anon,authenticated;
+grant execute on function public.claim_parent_notification(uuid,text,date,text) to service_role;
+grant execute on function public.complete_parent_notification(uuid,text,date,text) to service_role;
+
 -- Multi-institution Phase 4A onboarding schema foundation
 -- Tenant ownership remains mandatory, but no table silently defaults to MITCORER.
 do $$ declare t text; begin
