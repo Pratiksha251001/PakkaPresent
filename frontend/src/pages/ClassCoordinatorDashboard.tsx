@@ -533,6 +533,16 @@ export const ClassCoordinatorDashboard: React.FC<
   };
 
   const handleSaveSubject = async () => {
+    const institutionId = user?.institution_id?.trim();
+    if (!institutionId) {
+      alert("Your institution session is incomplete. Please sign in again.");
+      return;
+    }
+    if (!myDepartmentId || myDepartmentId === "dept-1") {
+      alert("A verified department is required before saving a subject.");
+      return;
+    }
+
     if (!subjectForm.code.trim()) {
       alert("Please enter a subject code (e.g. CS501).");
       return;
@@ -563,6 +573,7 @@ export const ClassCoordinatorDashboard: React.FC<
     if (editingSubject) {
       await localDb.update("subjects", editingSubject.id, {
         code: codeNorm,
+        institution_id: institutionId,
         name: subjectForm.name.trim(),
         department_id: subjectForm.department_id || myDepartmentId,
         semester: Number(subjectForm.semester),
@@ -580,6 +591,7 @@ export const ClassCoordinatorDashboard: React.FC<
         await localDb.insert("teacher_subjects", [
           {
             id: `ts-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            institution_id: institutionId,
             teacher_id: subjectForm.teacher_id,
             subject_id: editingSubject.id,
             class_name: null,
@@ -601,6 +613,7 @@ export const ClassCoordinatorDashboard: React.FC<
         {
           id: newSubjectId,
           code: codeNorm,
+          institution_id: institutionId,
           name: subjectForm.name.trim(),
           department_id: subjectForm.department_id || myDepartmentId,
           semester: Number(subjectForm.semester),
@@ -614,6 +627,7 @@ export const ClassCoordinatorDashboard: React.FC<
         await localDb.insert("teacher_subjects", [
           {
             id: `ts-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            institution_id: institutionId,
             teacher_id: subjectForm.teacher_id,
             subject_id: inserted[0].id,
             class_name: null,

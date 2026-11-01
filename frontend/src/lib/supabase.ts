@@ -128,6 +128,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     "section",
     "parent_name",
     "parent_mobile",
+    "parent_email",
     "student_mobile",
     "email",
     "user_id",
@@ -161,6 +162,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   ],
   subjects: [
     "id",
+    "institution_id",
     "code",
     "name",
     "department_id",
@@ -171,6 +173,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   ],
   teacher_subjects: [
     "id",
+    "institution_id",
     "teacher_id",
     "subject_id",
     "class_name",
@@ -267,6 +270,8 @@ export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
 
   return item;
 }
+
+const TENANT_SCOPED_WRITE_TABLES = new Set(["subjects", "teacher_subjects"]);
 
 const LOCAL_DATABASE_TABLES = [
   "departments",
@@ -1201,7 +1206,12 @@ class LocalDatabase {
     if (isSupabaseConfigured) {
       try {
         const payload = inserted.map((item) =>
-          sanitizePayloadForSupabase(table, item),
+          sanitizePayloadForSupabase(table, {
+            ...item,
+            ...(TENANT_SCOPED_WRITE_TABLES.has(table)
+              ? { institution_id: scope.institutionId }
+              : {}),
+          }),
         );
         const { data: savedRows, error } = await supabase
           .from(table)
@@ -1211,15 +1221,25 @@ class LocalDatabase {
 
         if (error) {
           console.error(`Supabase insert error on ${table}:`, error);
-          if (table === "students" || table === "teachers") {
+          if (
+            table === "students" ||
+            table === "teachers" ||
+            TENANT_SCOPED_WRITE_TABLES.has(table)
+          ) {
             const insertedIds = new Set(inserted.map((item) => item.id));
             (this as any)[table] = ((this as any)[table] || []).filter(
               (item: any) => !insertedIds.has(item.id),
             );
             this.persist(table);
-            throw new Error(
-              `${table === "teachers" ? "Teacher" : "Student"} write failed; local rollback required: ${error.message}`,
-            );
+            const label =
+              table === "teachers"
+                ? "Teacher"
+                : table === "students"
+                  ? "Student"
+                  : table === "subjects"
+                    ? "Subject"
+                    : "Teacher assignment";
+            throw new Error(`${label} write failed: ${error.message}`);
           }
         } else {
           if (Array.isArray(savedRows) && savedRows.length > 0) {
@@ -1237,7 +1257,11 @@ class LocalDatabase {
         }
       } catch (err) {
         console.error(`Supabase insert exception on ${table}:`, err);
-        if (table === "students" || table === "teachers") {
+        if (
+          table === "students" ||
+          table === "teachers" ||
+          TENANT_SCOPED_WRITE_TABLES.has(table)
+        ) {
           throw err instanceof Error
             ? err
             : new Error(`${table} write failed; local rollback required.`);
@@ -1269,7 +1293,12 @@ class LocalDatabase {
 
       if (isSupabaseConfigured) {
         try {
-          const payload = sanitizePayloadForSupabase(table, { ...list[idx] });
+          const payload = sanitizePayloadForSupabase(table, {
+            ...list[idx],
+            ...(TENANT_SCOPED_WRITE_TABLES.has(table)
+              ? { institution_id: scope.institutionId }
+              : {}),
+          });
           const { error } = await supabase
             .from(table)
             .update(payload)

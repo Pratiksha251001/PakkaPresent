@@ -58,6 +58,33 @@ function registerParentNotificationDispatch(
             req.actor.departmentId !== student.department_id)
         )
           return res.status(403).json({ success: false });
+        const { data: institution, error: institutionError } = await admin
+          .from("institutions")
+          .select("display_name,official_name,logo_path")
+          .eq("id", student.institution_id)
+          .single();
+        if (institutionError || !institution)
+          return res.status(503).json({
+            success: false,
+            message: "Institution branding unavailable.",
+          });
+        const institutionName =
+          institution.display_name?.trim() ||
+          institution.official_name?.trim() ||
+          "Institution";
+        let institutionLogoUrl = "";
+        if (institution.logo_path?.trim()) {
+          const { data: signedLogo, error: logoError } = await admin.storage
+            .from("institution-assets")
+            .createSignedUrl(institution.logo_path.trim(), 60 * 60 * 24 * 7);
+          if (logoError)
+            console.error("Institution email logo signing failed", {
+              institutionId: student.institution_id,
+              code: logoError.code,
+              message: logoError.message,
+            });
+          else institutionLogoUrl = signedLogo?.signedUrl || "";
+        }
         // Attendance data comes from trusted storage, not client-supplied rates.
         const { data: records, error: attendanceError } = await admin
           .from("attendance")
@@ -96,15 +123,26 @@ function registerParentNotificationDispatch(
             p_recipient: notice.recipient,
           },
         );
-        if (claimError)
+        if (claimError) {
+          console.error("Parent notification claim RPC failed", {
+            studentId,
+            kind,
+            date,
+            code: claimError.code,
+            message: claimError.message,
+          });
           return res.status(503).json({
             success: false,
             message: "Notification ledger unavailable.",
           });
+        }
         if (claimed !== true)
-          return res
-            .status(409)
-            .json({ success: false, message: "Already claimed or attempted." });
+          return res.status(409).json({
+            success: false,
+            status: "already_processed",
+            message:
+              "Alert already sent or processed for this student and date.",
+          });
         let state = "unknown";
         try {
           const message =
@@ -132,7 +170,10 @@ function registerParentNotificationDispatch(
                   message,
                   student_name: student.full_name,
                   attendance_rate: String(rate ?? ""),
-                  college_name: "PakkaPresent",
+                  institution_name: institutionName,
+                  institution_logo_url: institutionLogoUrl,
+                  platform_name: "PakkaPresent",
+                  meeting_note: "",
                 },
               }),
             },
@@ -150,11 +191,22 @@ function registerParentNotificationDispatch(
             p_status: state,
           },
         );
-        if (logError || logged !== true)
+        if (logError || logged !== true) {
+          if (logError) {
+            console.error("Parent notification completion RPC failed", {
+              studentId,
+              kind,
+              date,
+              state,
+              code: logError.code,
+              message: logError.message,
+            });
+          }
           return res.status(503).json({
             success: false,
             message: "Provider outcome could not be recorded.",
           });
+        }
         return res
           .status(state === "provider_accepted" ? 200 : 502)
           .json({ success: state === "provider_accepted", status: state });

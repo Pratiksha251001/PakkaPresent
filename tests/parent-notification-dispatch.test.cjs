@@ -103,6 +103,11 @@ test("missing actor institution is rejected before database access", async () =>
   assert.equal(h.called, 0);
 });
 
+const institution = {
+  display_name: "PakkaPresent Test Institution",
+  official_name: "PakkaPresent Test Institution Official",
+  logo_path: "22222222-2222-4222-8222-222222222222/logo.png",
+};
 const configured = {
   PARENT_ATTENDANCE_EMAIL_ENABLED: "true",
   EMAILJS_SERVICE_ID: "service",
@@ -113,34 +118,69 @@ const configured = {
 function enabled({
   records = [],
   studentRow = student,
+  institutionRow = institution,
+  institutionError = null,
+  logoSignedUrl = "https://example.test/signed-institution-logo.png",
+  logoError = null,
   claim = true,
   complete = true,
+  claimError = null,
+  completeError = null,
   providerOk = true,
 } = {}) {
   const routes = {};
   const calls = [];
+  const queries = [];
+  const storageCalls = [];
+  let providerPayload = null;
   const admin = {
+    storage: {
+      from(bucket) {
+        storageCalls.push({ bucket });
+        return {
+          async createSignedUrl(path, expiresIn) {
+            storageCalls[storageCalls.length - 1] = { bucket, path, expiresIn };
+            return {
+              data: logoError ? null : { signedUrl: logoSignedUrl },
+              error: logoError,
+            };
+          },
+        };
+      },
+    },
     from(table) {
+      const query = { table, equalities: [] };
+      queries.push(query);
       return {
-        select() {
+        select(columns) {
+          query.columns = columns;
           return this;
         },
-        eq() {
+        eq(column, value) {
+          query.equalities.push({ column, value });
           return this;
         },
-        lte() {
+        lte(column, value) {
+          query.lte = { column, value };
           return Promise.resolve({ data: records, error: null });
         },
         single() {
+          if (table === "institutions") {
+            return Promise.resolve({
+              data: institutionError ? null : institutionRow,
+              error: institutionError,
+            });
+          }
           return Promise.resolve({ data: studentRow, error: null });
         },
       };
     },
     async rpc(name, params) {
       calls.push({ name, params });
+      const isClaim = name === "claim_parent_notification";
       return {
-        data: name === "claim_parent_notification" ? claim : complete,
-        error: null,
+        data: isClaim ? claim : complete,
+        error: isClaim ? claimError : completeError,
       };
     },
   };
@@ -151,8 +191,9 @@ function enabled({
       admin,
       requireManager: () => {},
       env: configured,
-      fetchImpl: async () => {
+      fetchImpl: async (_url, options) => {
         sends++;
+        providerPayload = JSON.parse(options.body);
         return { ok: providerOk };
       },
     },
@@ -160,6 +201,11 @@ function enabled({
   return {
     handler: routes["/api/parents/attendance/notify"][1],
     calls,
+    queries,
+    storageCalls,
+    get providerPayload() {
+      return providerPayload;
+    },
     get sends() {
       return sends;
     },
@@ -197,6 +243,11 @@ test("duplicate claim never sends", async () => {
   const h = enabled({ records: [{ status: "absent" }], claim: false });
   const r = await invoke(h);
   assert.equal(r.code, 409);
+  assert.equal(r.body.status, "already_processed");
+  assert.equal(
+    r.body.message,
+    "Alert already sent or processed for this student and date.",
+  );
   assert.equal(h.sends, 0);
 });
 test("failed completion RPC never reports provider acceptance", async () => {
@@ -227,4 +278,133 @@ test("unapproved parent email is never claimed or sent", async () => {
   const r = await invoke(h);
   assert.equal(r.code, 422);
   assert.equal(h.sends, 0);
+});
+
+test("claim RPC errors fail closed before provider dispatch", async () => {
+  const h = enabled({
+    records: [{ status: "absent" }],
+    claimError: { code: "23502", message: "institution_id is required" },
+  });
+  const previous = console.error;
+  const diagnostics = [];
+  console.error = (...args) => diagnostics.push(args);
+  try {
+    const r = await invoke(h);
+    assert.equal(r.code, 503);
+    assert.equal(r.body.message, "Notification ledger unavailable.");
+    assert.equal(h.sends, 0);
+    assert.equal(diagnostics[0][0], "Parent notification claim RPC failed");
+  } finally {
+    console.error = previous;
+  }
+});
+
+test("completion RPC errors never report provider acceptance", async () => {
+  const h = enabled({
+    records: [{ status: "absent" }],
+    completeError: { code: "P0001", message: "completion failed" },
+  });
+  const previous = console.error;
+  const diagnostics = [];
+  console.error = (...args) => diagnostics.push(args);
+  try {
+    const r = await invoke(h);
+    assert.equal(r.code, 503);
+    assert.equal(r.body.message, "Provider outcome could not be recorded.");
+    assert.equal(h.sends, 1);
+    assert.equal(
+      diagnostics[0][0],
+      "Parent notification completion RPC failed",
+    );
+  } finally {
+    console.error = previous;
+  }
+});
+
+test("institution display name and signed logo are sent to EmailJS", async () => {
+  const h = enabled({ records: [{ status: "absent" }] });
+  const r = await invoke(h);
+  assert.equal(r.code, 200);
+  assert.equal(
+    h.providerPayload.template_params.institution_name,
+    institution.display_name,
+  );
+  assert.equal(
+    h.providerPayload.template_params.institution_logo_url,
+    "https://example.test/signed-institution-logo.png",
+  );
+  assert.equal(h.providerPayload.template_params.platform_name, "PakkaPresent");
+  assert.deepEqual(h.storageCalls, [
+    {
+      bucket: "institution-assets",
+      path: institution.logo_path,
+      expiresIn: 60 * 60 * 24 * 7,
+    },
+  ]);
+});
+
+test("institution branding lookup is scoped to the student institution", async () => {
+  const h = enabled({ records: [{ status: "absent" }] });
+  const r = await invoke(h);
+  assert.equal(r.code, 200);
+  const query = h.queries.find((entry) => entry.table === "institutions");
+  assert.deepEqual(query.equalities, [{ column: "id", value: institutionId }]);
+  assert.equal(query.columns, "display_name,official_name,logo_path");
+});
+
+test("official institution name is used when display name is blank", async () => {
+  const h = enabled({
+    records: [{ status: "absent" }],
+    institutionRow: { ...institution, display_name: "  " },
+  });
+  const r = await invoke(h);
+  assert.equal(r.code, 200);
+  assert.equal(
+    h.providerPayload.template_params.institution_name,
+    institution.official_name,
+  );
+});
+
+test("missing institution logo does not block email delivery", async () => {
+  const h = enabled({
+    records: [{ status: "absent" }],
+    institutionRow: { ...institution, logo_path: null },
+  });
+  const r = await invoke(h);
+  assert.equal(r.code, 200);
+  assert.equal(h.providerPayload.template_params.institution_logo_url, "");
+  assert.deepEqual(h.storageCalls, []);
+});
+
+test("logo signing failure falls back safely", async () => {
+  const previous = console.error;
+  const diagnostics = [];
+  console.error = (...args) => diagnostics.push(args);
+  try {
+    const h = enabled({
+      records: [{ status: "absent" }],
+      logoError: { code: "storage_error", message: "signing failed" },
+    });
+    const r = await invoke(h);
+    assert.equal(r.code, 200);
+    assert.equal(h.providerPayload.template_params.institution_logo_url, "");
+    assert.equal(diagnostics[0][0], "Institution email logo signing failed");
+  } finally {
+    console.error = previous;
+  }
+});
+
+test("missing institution branding fails closed before provider access", async () => {
+  const h = enabled({
+    records: [{ status: "absent" }],
+    institutionError: { code: "PGRST116", message: "not found" },
+  });
+  const r = await invoke(h);
+  assert.equal(r.code, 503);
+  assert.equal(r.body.message, "Institution branding unavailable.");
+  assert.equal(h.sends, 0);
+  assert.equal(
+    h.queries.some((entry) => entry.table === "attendance"),
+    false,
+  );
 });

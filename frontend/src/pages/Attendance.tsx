@@ -64,13 +64,14 @@ export const Attendance: React.FC = () => {
   const urlClassName = searchParams.get("class_name") || "";
 
   const teacherId = user?.teacher_id || user?.id;
+  const [attendanceDataVersion, setAttendanceDataVersion] = useState(0);
 
   // All teaching assignments for this faculty across any class / subject
   const myTeachingAssignments = useMemo(() => {
     return localDb.teacher_subjects.filter(
       (ts) => ts.teacher_id === teacherId || ts.teacher_id === user?.id,
     );
-  }, [teacherId, user]);
+  }, [teacherId, user, attendanceDataVersion]);
 
   const subjects = useMemo(() => {
     return localDb.subjects.filter((subject) => {
@@ -124,26 +125,40 @@ export const Attendance: React.FC = () => {
         !user?.department_id || subject.department_id === user.department_id
       );
     });
-  }, [role, user, teacherId]);
+  }, [role, user, teacherId, attendanceDataVersion]);
 
   const [students, setStudents] = useState(() => localDb.students);
   const academicClasses = localDb.academic_classes;
 
   React.useEffect(() => {
-    const refreshStudents = (event: Event) => {
+    const refreshAttendanceData = (event: Event) => {
       const customEvent = event as CustomEvent<{ table?: string }>;
-      if (
-        !customEvent.detail?.table ||
-        customEvent.detail.table === "students"
-      ) {
+      const table = customEvent.detail?.table;
+      if (!table || table === "students") {
         setStudents([...localDb.students]);
       }
+      if (
+        !table ||
+        [
+          "subjects",
+          "teacher_subjects",
+          "students",
+          "academic_classes",
+        ].includes(table)
+      ) {
+        setAttendanceDataVersion((version) => version + 1);
+      }
     };
-    window.addEventListener("edutrack_data_updated", refreshStudents);
-    window.addEventListener("storage", refreshStudents);
+    window.addEventListener("edutrack_data_updated", refreshAttendanceData);
+    window.addEventListener("localDbUpdate", refreshAttendanceData);
+    window.addEventListener("storage", refreshAttendanceData);
     return () => {
-      window.removeEventListener("edutrack_data_updated", refreshStudents);
-      window.removeEventListener("storage", refreshStudents);
+      window.removeEventListener(
+        "edutrack_data_updated",
+        refreshAttendanceData,
+      );
+      window.removeEventListener("localDbUpdate", refreshAttendanceData);
+      window.removeEventListener("storage", refreshAttendanceData);
     };
   }, []);
 
