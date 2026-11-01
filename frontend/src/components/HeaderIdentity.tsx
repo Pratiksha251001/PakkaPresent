@@ -55,16 +55,24 @@ export const HeaderIdentity: React.FC<HeaderIdentityProps> = ({
     .toUpperCase();
   return (
     <div
-      className={`flex min-w-0 items-center gap-1.5 ${compact ? "leading-tight" : "leading-snug"}`}
+      className={`flex w-full max-w-full min-w-0 items-center gap-1.5 overflow-hidden ${compact ? "leading-tight" : "leading-snug"}`}
     >
-      <span className="shrink-0 text-xs font-semibold tracking-wide text-foreground">
+      <span
+        className={`shrink-0 text-xs font-semibold tracking-wide text-foreground ${compact ? "hidden sm:inline" : ""}`}
+      >
         {identity.productName}
       </span>
       {identity.institutionName && (
         <>
-          <span className="shrink-0 text-xs text-muted-foreground">•</span>
-          <div className="flex min-w-0 items-start gap-2">
-            <span className="relative flex h-[34px] w-[34px] shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted text-xs font-bold">
+          <span
+            className={`shrink-0 text-xs text-muted-foreground ${compact ? "hidden sm:inline" : ""}`}
+          >
+            •
+          </span>
+          <div className="flex min-w-0 flex-1 items-start gap-2 overflow-hidden">
+            <span
+              className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted text-xs font-bold ${compact ? "h-[30px] w-[30px]" : "h-[34px] w-[34px]"}`}
+            >
               {initials}
               {logoUrl && (
                 <img
@@ -79,7 +87,7 @@ export const HeaderIdentity: React.FC<HeaderIdentityProps> = ({
                 />
               )}
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 overflow-hidden">
               <div className="truncate text-sm font-semibold text-foreground">
                 {identity.institutionName}
               </div>

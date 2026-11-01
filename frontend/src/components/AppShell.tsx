@@ -340,22 +340,24 @@ export const AppShell: React.FC = () => {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:ml-72">
         {/* Mobile Header */}
-        <header className="flex h-16 items-center justify-between border-b-2 border-foreground/25 bg-card px-4 shadow-[0_3px_0_0_hsl(var(--foreground)/0.08)] lg:hidden">
-          <div className="flex items-center gap-3">
+        <header className="flex min-h-16 w-full min-w-0 items-center justify-between gap-2 border-b-2 border-foreground/25 bg-card px-3 shadow-[0_3px_0_0_hsl(var(--foreground)/0.08)] sm:px-4 lg:hidden">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               onClick={() => setMobileOpen(true)}
-              className="rounded-lg p-2 text-foreground hover:bg-muted"
+              className="shrink-0 rounded-lg p-2 text-foreground hover:bg-muted"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <HeaderIdentity identity={headerIdentity} compact />
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <HeaderIdentity identity={headerIdentity} compact />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {role && role !== "student" && (
               <button
                 type="button"
                 onClick={() => setSmsGatewayModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-colors"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-0 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/20 sm:h-auto sm:w-auto sm:gap-1.5 sm:px-2 sm:py-1.5 dark:text-emerald-300"
                 title="SMS Gateway Setup & Status"
               >
                 <Zap className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -441,7 +443,7 @@ export const AppShell: React.FC = () => {
         {/* Demo / Study Mode Banner */}
         <DemoStudyBanner />
 
-        <main className="app-dashboard-canvas flex-1 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full">
+        <main className="app-dashboard-canvas mx-auto w-full min-w-0 max-w-7xl flex-1 p-4 sm:p-6 md:p-8">
           <Outlet />
         </main>
       </div>
