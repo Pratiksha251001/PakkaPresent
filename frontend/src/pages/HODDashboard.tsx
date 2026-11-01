@@ -245,12 +245,12 @@ export const HODDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       {/* Header Banner */}
-      <div className="dashboard-hero relative overflow-hidden rounded-2xl p-6 shadow-xs">
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
+      <div className="dashboard-hero relative overflow-hidden rounded-2xl p-4 shadow-xs sm:p-6">
+        <div className="relative flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
               <Badge className="dashboard-accent-badge text-xs font-bold">
                 HOD PORTAL · {myDepartment?.code || "Unassigned"}
               </Badge>
@@ -266,9 +266,12 @@ export const HODDashboard: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Link to="/attendance">
-              <Button size="sm" className="gap-1.5 shadow-xs text-xs h-9">
+          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto">
+            <Link to="/attendance" className="w-full sm:w-auto">
+              <Button
+                size="sm"
+                className="h-9 w-full gap-1.5 text-xs shadow-xs sm:w-auto"
+              >
                 <ClipboardCheck className="h-4 w-4" />
                 Take Attendance
               </Button>
@@ -278,17 +281,17 @@ export const HODDashboard: React.FC = () => {
       </div>
 
       {/* Primary Department Metric Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map((s, i) => {
           const Icon = s.icon;
           return (
             <Link
               key={i}
               to={s.href}
-              className="group block rounded-xl border border-border bg-card p-4 shadow-xs hover:border-primary/50 hover:shadow-md transition-all relative overflow-hidden"
+              className="group relative block min-w-0 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-xs transition-all hover:border-primary/50 hover:shadow-md"
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">
+              <div className="mb-3 flex min-w-0 items-start justify-between gap-2">
+                <span className="min-w-0 text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-colors group-hover:text-primary">
                   {s.label}
                 </span>
                 <div
