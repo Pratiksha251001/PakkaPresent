@@ -145,7 +145,7 @@ export const LandingAuth: React.FC = () => {
                 </label>
                 <PasswordInput
                   required
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />

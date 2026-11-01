@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { UserRoleType } from "../lib/types";
-import { localDb } from "../lib/supabase";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -67,7 +66,6 @@ export const RoleLogin: React.FC = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,12 +89,7 @@ export const RoleLogin: React.FC = () => {
     setLoading(true);
     setError(null);
 
-    const result = await loginWithCredentials(
-      role,
-      email.trim(),
-      password,
-      departmentId || undefined,
-    );
+    const result = await loginWithCredentials(role, email.trim(), password);
 
     setLoading(false);
     if (!result.ok) {
@@ -162,31 +155,6 @@ export const RoleLogin: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-            {role === "hod" && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground/80">
-                  Assigned Department{" "}
-                  <span className="text-muted-foreground font-normal">
-                    (optional)
-                  </span>
-                </label>
-                <select
-                  value={departmentId}
-                  onChange={(event) => setDepartmentId(event.target.value)}
-                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-1 text-sm text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Auto-detect department</option>
-                  {localDb.departments
-                    .filter((department) => department.status === "active")
-                    .map((department) => (
-                      <option key={department.id} value={department.id}>
-                        {department.name} ({department.code})
-                      </option>
-                    ))}
-                </select>
-              </div>
-            )}
-
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-foreground/80">
                 {identifierLabel}
@@ -216,7 +184,7 @@ export const RoleLogin: React.FC = () => {
               <PasswordInput
                 required
                 className="rounded-xl h-10"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
               />
