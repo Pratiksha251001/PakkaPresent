@@ -99,7 +99,7 @@ export const ClassTeacherLogin: React.FC = () => {
               <PasswordInput
                 required
                 className="rounded-xl h-10"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
