@@ -88,3 +88,47 @@ export async function getPlatformInstitution(
   if (error) throw error;
   return first<PlatformInstitutionDetail>(data);
 }
+
+export async function transitionPlatformInstitutionStatus(
+  institutionId: string,
+  status: "active" | "inactive" | "suspended",
+  reason: string,
+) {
+  const { data, error } = await platformSupabase.rpc(
+    "platform_transition_institution_status",
+    {
+      target_institution_id: institutionId,
+      target_status: status,
+      change_reason: reason.trim(),
+    },
+  );
+  if (error) throw error;
+  return first<{
+    institution_id: string;
+    previous_status: InstitutionStatus;
+    new_status: InstitutionStatus;
+    changed_at: string;
+  }>(data);
+}
+
+export async function transferPlatformInstitutionAdmin(
+  institutionId: string,
+  successorUserId: string,
+  reason: string,
+) {
+  const { data, error } = await platformSupabase.rpc(
+    "platform_transfer_institution_admin",
+    {
+      target_institution_id: institutionId,
+      successor_user_id: successorUserId,
+      transfer_reason: reason.trim(),
+    },
+  );
+  if (error) throw error;
+  return first<{
+    institution_id: string;
+    previous_admin_user_id: string;
+    new_admin_user_id: string;
+    transferred_at: string;
+  }>(data);
+}

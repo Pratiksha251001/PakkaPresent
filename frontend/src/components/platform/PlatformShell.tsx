@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   LayoutDashboard,
   LogOut,
+  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import { PakkaPresentLogo } from "../PakkaPresentLogo";
@@ -18,6 +19,7 @@ const links = [
     label: "Access requests",
     Icon: ClipboardCheck,
   },
+  { to: "/platform/recovery", label: "Recovery", Icon: ShieldAlert },
 ];
 export const PlatformShell: React.FC = () => {
   const location = useLocation(),

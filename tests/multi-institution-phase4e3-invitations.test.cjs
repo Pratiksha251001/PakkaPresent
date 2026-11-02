@@ -37,10 +37,7 @@ test("rollback refuses destructive removal", () => {
   assert.match(rollback, /invitations exist/);
   assert.match(rollback, /approved or onboarding requests exist/);
 });
-test("server and deployment register platform approval", () => {
-  assert.match(
-    server,
-    /registerInstitutionInvitationApproval\(app, \{ admin: supabaseAdmin \}\)/,
-  );
-  assert.match(render, /PLATFORM_ADMIN_TOKEN/);
+test("server registers bearer-authenticated platform approval", () => {
+  assert.match(server, /registerPlatformAccessRequestOperations/);
+  assert.doesNotMatch(server, /registerInstitutionInvitationApproval/);
 });

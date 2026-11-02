@@ -7,7 +7,8 @@ const migration = read(
     "backend/supabase/migrations/20261102170000_phase_7c_access_request_operations.sql",
   ),
   backend = read("backend/platform-access-request-operations.cjs"),
-  server = read("backend/server.ts");
+  limitedServer = read("backend/server.ts"),
+  productionServer = read("server.ts");
 test("contracts are super-admin guarded and digest-only", () => {
   for (const name of [
     "platform_list_access_requests",
@@ -30,5 +31,10 @@ test("backend uses bearer auth and removes shared token", () => {
   assert.match(backend, /is_current_user_super_admin/);
   assert.doesNotMatch(backend, /\.from\("user_roles"\)/);
   assert.doesNotMatch(backend, /PLATFORM_ADMIN_TOKEN|x-platform-admin-token/);
-  assert.match(server, /registerPlatformAccessRequestOperations/);
+  assert.match(limitedServer, /registerPlatformAccessRequestOperations/);
+  assert.match(productionServer, /registerPlatformAccessRequestOperations/);
+  assert.doesNotMatch(
+    productionServer,
+    /registerInstitutionInvitationApproval/,
+  );
 });

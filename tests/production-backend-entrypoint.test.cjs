@@ -33,3 +33,9 @@ test("selected root server contains the production email routes", () => {
   assert.match(rootServer, /"\/api\/health"/);
   assert.doesNotMatch(limitedServer, /"\/api\/email\/send"/);
 });
+
+test("production server registers bearer-authenticated Phase 7C operations", () => {
+  assert.match(rootServer, /registerPlatformAccessRequestOperations/);
+  assert.match(rootServer, /platform-access-request-operations\.cjs/);
+  assert.doesNotMatch(rootServer, /registerInstitutionInvitationApproval/);
+});

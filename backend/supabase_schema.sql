@@ -1033,3 +1033,327 @@ end $$;
 revoke all on function public.platform_list_access_requests(text,text,integer,integer),public.platform_get_access_request(uuid),public.platform_mark_access_request_contacted(uuid,text),public.platform_reject_access_request(uuid,text),public.platform_issue_access_request_invitation(uuid,text,text,timestamptz,boolean),public.platform_revoke_access_request_invitation(uuid) from public,anon,service_role;
 grant execute on function public.platform_list_access_requests(text,text,integer,integer),public.platform_get_access_request(uuid),public.platform_mark_access_request_contacted(uuid,text),public.platform_reject_access_request(uuid,text),public.platform_issue_access_request_invitation(uuid,text,text,timestamptz,boolean),public.platform_revoke_access_request_invitation(uuid) to authenticated;
 notify pgrst,'reload schema'; commit;
+
+-- Phase 7D Stage 2A: institution lifecycle controls and active-tenant enforcement
+begin;
+
+do $$
+begin
+  if to_regprocedure('public.is_current_user_super_admin()') is null then
+    raise exception 'Phase 7D Stage 2A refused: super-admin authorization is missing';
+  end if;
+end $$;
+
+create table if not exists public.institution_lifecycle_events (
+  id uuid primary key default uuid_generate_v4(),
+  institution_id uuid not null references public.institutions(id) on delete restrict,
+  actor_user_id uuid not null references auth.users(id) on delete restrict,
+  previous_status text not null,
+  new_status text not null,
+  reason text not null,
+  created_at timestamptz not null default now(),
+  constraint institution_lifecycle_events_status_check check (
+    previous_status in ('pending','active','inactive','suspended') and
+    new_status in ('pending','active','inactive','suspended')
+  ),
+  constraint institution_lifecycle_events_reason_check
+    check (char_length(btrim(reason)) between 5 and 1000)
+);
+create index if not exists institution_lifecycle_events_institution_created_idx
+  on public.institution_lifecycle_events(institution_id, created_at desc);
+alter table public.institution_lifecycle_events enable row level security;
+revoke all on public.institution_lifecycle_events from public, anon, authenticated;
+grant select, insert on public.institution_lifecycle_events to service_role;
+
+create or replace function public.current_user_institution_id()
+returns uuid language sql stable security definer set search_path = public as $$
+  select ur.institution_id
+  from public.user_roles ur
+  join public.institutions i on i.id = ur.institution_id
+  where ur.user_id = auth.uid()
+    and ur.institution_id is not null
+    and i.status = 'active'
+  order by ur.created_at asc
+  limit 1
+$$;
+revoke all on function public.current_user_institution_id() from public, anon;
+grant execute on function public.current_user_institution_id() to authenticated;
+
+create or replace function public.platform_transition_institution_status(
+  target_institution_id uuid,
+  target_status text,
+  change_reason text
+)
+returns table(institution_id uuid, previous_status text, new_status text, changed_at timestamptz)
+language plpgsql security definer set search_path = public as $$
+declare
+  existing_status text;
+  event_time timestamptz := now();
+begin
+  if not public.is_current_user_super_admin() then
+    raise exception using errcode='42501', message='Platform access requires an explicit super_admin role.';
+  end if;
+  if target_status not in ('active','inactive','suspended') then
+    raise exception using errcode='22023', message='Invalid institution lifecycle target.';
+  end if;
+  if nullif(btrim(change_reason),'') is null or char_length(btrim(change_reason)) not between 5 and 1000 then
+    raise exception using errcode='22023', message='A lifecycle reason between 5 and 1000 characters is required.';
+  end if;
+  select i.status into existing_status from public.institutions i
+  where i.id=target_institution_id for update;
+  if existing_status is null then
+    raise exception using errcode='P0002', message='Institution not found.';
+  end if;
+  if existing_status=target_status then
+    raise exception using errcode='P0001', message='Institution already has the requested status.';
+  end if;
+  if not (
+    (existing_status='pending' and target_status='active') or
+    (existing_status='active' and target_status in ('inactive','suspended')) or
+    (existing_status in ('inactive','suspended') and target_status='active')
+  ) then
+    raise exception using errcode='P0001', message='The requested institution lifecycle transition is not allowed.';
+  end if;
+  update public.institutions set status=target_status, updated_at=event_time
+  where id=target_institution_id;
+  insert into public.institution_lifecycle_events(
+    institution_id,actor_user_id,previous_status,new_status,reason,created_at
+  ) values (
+    target_institution_id,auth.uid(),existing_status,target_status,btrim(change_reason),event_time
+  );
+  return query select target_institution_id,existing_status,target_status,event_time;
+end $$;
+revoke all on function public.platform_transition_institution_status(uuid,text,text)
+  from public, anon, service_role;
+grant execute on function public.platform_transition_institution_status(uuid,text,text)
+  to authenticated;
+notify pgrst, 'reload schema';
+commit;
+
+-- Phase 7D Stage 2B: immutable onboarding recovery linkage and read-only diagnosis
+begin;
+
+do $$
+begin
+  if to_regprocedure('public.is_current_user_super_admin()') is null then
+    raise exception 'Phase 7D Stage 2B refused: super-admin authorization is missing';
+  end if;
+  if to_regclass('public.institution_onboarding_attempts') is null
+     or to_regclass('public.institution_onboarding_invitations') is null
+     or to_regclass('public.institution_access_requests') is null then
+    raise exception 'Phase 7D Stage 2B refused: onboarding recovery prerequisites are missing';
+  end if;
+end $$;
+
+alter table public.institution_onboarding_attempts
+  add column if not exists access_request_id uuid references public.institution_access_requests(id) on delete restrict,
+  add column if not exists invitation_id uuid references public.institution_onboarding_invitations(id) on delete restrict,
+  add column if not exists recovery_status text,
+  add column if not exists recovery_notes text,
+  add column if not exists recovery_resolved_at timestamptz,
+  add column if not exists recovery_resolved_by uuid references auth.users(id) on delete restrict;
+
+alter table public.institution_onboarding_attempts
+  drop constraint if exists institution_onboarding_attempts_recovery_status_check,
+  add constraint institution_onboarding_attempts_recovery_status_check
+    check (recovery_status is null or recovery_status in ('required','inspected','resolved')),
+  drop constraint if exists institution_onboarding_attempts_recovery_notes_check,
+  add constraint institution_onboarding_attempts_recovery_notes_check
+    check (recovery_notes is null or char_length(recovery_notes) between 5 and 2000);
+
+create unique index if not exists institution_onboarding_attempts_invitation_id_key
+  on public.institution_onboarding_attempts(invitation_id)
+  where invitation_id is not null;
+create index if not exists institution_onboarding_attempts_access_request_id_idx
+  on public.institution_onboarding_attempts(access_request_id, created_at desc);
+create index if not exists institution_onboarding_attempts_recovery_status_idx
+  on public.institution_onboarding_attempts(recovery_status, created_at asc);
+
+create or replace function public.platform_list_onboarding_recovery(
+  page_limit integer default 25,
+  page_offset integer default 0
+)
+returns table(
+  attempt_id uuid,
+  access_request_id uuid,
+  invitation_id uuid,
+  institution_id uuid,
+  administrator_user_id uuid,
+  failure_phase text,
+  recovery_status text,
+  created_at timestamptz,
+  completed_at timestamptz,
+  total_count bigint
+)
+language plpgsql stable security definer set search_path = pg_catalog as $$
+begin
+  if not public.is_current_user_super_admin() then
+    raise exception using errcode='42501', message='Platform access requires an explicit super_admin role.';
+  end if;
+  if page_limit < 1 or page_limit > 100 or page_offset < 0 then
+    raise exception using errcode='22023', message='Invalid recovery pagination.';
+  end if;
+  return query
+  select a.request_id, a.access_request_id, a.invitation_id, a.institution_id,
+    a.administrator_user_id, a.failure_phase, coalesce(a.recovery_status,'required'),
+    a.created_at, a.completed_at, count(*) over()::bigint
+  from public.institution_onboarding_attempts a
+  where a.status='recovery_required'
+  order by a.created_at asc, a.request_id
+  limit page_limit offset page_offset;
+end $$;
+
+create or replace function public.platform_get_onboarding_recovery(requested_attempt_id uuid)
+returns table(
+  attempt_id uuid,
+  access_request_id uuid,
+  invitation_id uuid,
+  institution_id uuid,
+  administrator_user_id uuid,
+  failure_phase text,
+  recovery_status text,
+  invitation_status text,
+  access_request_status text,
+  institution_exists boolean,
+  administrator_profile_exists boolean,
+  administrator_role_exists boolean,
+  linkage_valid boolean,
+  created_at timestamptz,
+  completed_at timestamptz
+)
+language plpgsql stable security definer set search_path = pg_catalog as $$
+begin
+  if not public.is_current_user_super_admin() then
+    raise exception using errcode='42501', message='Platform access requires an explicit super_admin role.';
+  end if;
+  return query
+  select a.request_id, a.access_request_id, a.invitation_id, a.institution_id,
+    a.administrator_user_id, a.failure_phase, coalesce(a.recovery_status,'required'),
+    v.status, r.status,
+    exists(select 1 from public.institutions i where i.id=a.institution_id),
+    exists(select 1 from public.profiles p where p.id=a.administrator_user_id and p.institution_id=a.institution_id),
+    exists(select 1 from public.user_roles ur where ur.user_id=a.administrator_user_id and ur.institution_id=a.institution_id and ur.role='admin'),
+    (a.access_request_id is not null and a.invitation_id is not null
+      and v.request_id=a.access_request_id
+      and a.status='recovery_required'
+      and v.status='recovery_required'
+      and r.status='onboarding'),
+    a.created_at, a.completed_at
+  from public.institution_onboarding_attempts a
+  left join public.institution_onboarding_invitations v on v.id=a.invitation_id
+  left join public.institution_access_requests r on r.id=a.access_request_id
+  where a.request_id=requested_attempt_id;
+end $$;
+
+revoke all on function public.platform_list_onboarding_recovery(integer,integer) from public,anon,service_role;
+revoke all on function public.platform_get_onboarding_recovery(uuid) from public,anon,service_role;
+grant execute on function public.platform_list_onboarding_recovery(integer,integer) to authenticated;
+grant execute on function public.platform_get_onboarding_recovery(uuid) to authenticated;
+comment on function public.platform_get_onboarding_recovery(uuid) is 'Read-only recovery diagnosis. Returns artifact existence booleans and no credential digests or secrets.';
+notify pgrst,'reload schema';
+commit;
+
+-- Phase 7D Stage 2C: guarded idempotent onboarding recovery resolution
+begin;
+create or replace function public.platform_resolve_clean_onboarding_recovery(target_attempt_id uuid,resolution_notes text)
+returns table(attempt_id uuid,recovery_status text,invitation_status text,access_request_status text)
+language plpgsql security definer set search_path=public as $$
+declare a public.institution_onboarding_attempts%rowtype; v public.institution_onboarding_invitations%rowtype; request_status text;
+begin
+ if not public.is_current_user_super_admin() then raise exception using errcode='42501',message='Platform access requires an explicit super_admin role.'; end if;
+ if nullif(btrim(resolution_notes),'') is null or char_length(btrim(resolution_notes)) not between 5 and 2000 then raise exception using errcode='22023',message='Recovery notes between 5 and 2000 characters are required.'; end if;
+ select * into a from public.institution_onboarding_attempts where request_id=target_attempt_id for update;
+ if not found then raise exception using errcode='P0002',message='Recovery attempt not found.'; end if;
+ if a.recovery_status='resolved' then return query select a.request_id,'resolved'::text,'active'::text,'approved'::text; return; end if;
+ if a.status<>'recovery_required' or a.access_request_id is null or a.invitation_id is null then raise exception using errcode='P0001',message='Recovery attempt is not eligible for resolution.'; end if;
+ select * into v from public.institution_onboarding_invitations where id=a.invitation_id for update;
+ if not found or v.request_id<>a.access_request_id or v.status<>'recovery_required' then raise exception using errcode='P0001',message='Recovery invitation linkage is invalid.'; end if;
+ select status into request_status from public.institution_access_requests where id=a.access_request_id for update;
+ if request_status<>'onboarding' then raise exception using errcode='P0001',message='Recovery access request linkage is invalid.'; end if;
+ if a.institution_id is not null and exists(select 1 from public.institutions where id=a.institution_id) then raise exception using errcode='P0001',message='Recovery still contains an institution artifact and requires manual investigation.'; end if;
+ if a.administrator_user_id is not null and (exists(select 1 from public.profiles where id=a.administrator_user_id) or exists(select 1 from public.user_roles where user_id=a.administrator_user_id)) then raise exception using errcode='P0001',message='Recovery still contains administrator artifacts and requires manual investigation.'; end if;
+ update public.institution_onboarding_invitations set status='active',institution_id=null,consumed_at=null,revoked_at=null where id=a.invitation_id and status='recovery_required';
+ update public.institution_access_requests set status='approved' where id=a.access_request_id and status='onboarding';
+ update public.institution_onboarding_attempts set status='failed',recovery_status='resolved',recovery_notes=btrim(resolution_notes),recovery_resolved_at=now(),recovery_resolved_by=auth.uid(),completed_at=coalesce(completed_at,now()) where request_id=target_attempt_id;
+ return query select target_attempt_id,'resolved'::text,'active'::text,'approved'::text;
+end $$;
+revoke all on function public.platform_resolve_clean_onboarding_recovery(uuid,text) from public,anon,service_role;
+grant execute on function public.platform_resolve_clean_onboarding_recovery(uuid,text) to authenticated;
+notify pgrst,'reload schema';
+commit;
+
+-- Phase 7D Stage 2D: atomic Institution Admin transfer
+begin;
+create table if not exists public.institution_admin_transfer_events (
+  id uuid primary key default uuid_generate_v4(),
+  institution_id uuid not null references public.institutions(id) on delete restrict,
+  previous_admin_user_id uuid not null references auth.users(id) on delete restrict,
+  new_admin_user_id uuid not null references auth.users(id) on delete restrict,
+  actor_user_id uuid not null references auth.users(id) on delete restrict,
+  reason text not null,
+  created_at timestamptz not null default now(),
+  constraint institution_admin_transfer_distinct_users check (previous_admin_user_id <> new_admin_user_id),
+  constraint institution_admin_transfer_reason_check check (char_length(btrim(reason)) between 5 and 1000)
+);
+create index if not exists institution_admin_transfer_events_institution_created_idx
+  on public.institution_admin_transfer_events(institution_id, created_at desc);
+alter table public.institution_admin_transfer_events enable row level security;
+revoke all on public.institution_admin_transfer_events from public,anon,authenticated;
+grant select,insert on public.institution_admin_transfer_events to service_role;
+
+create or replace function public.platform_transfer_institution_admin(
+  target_institution_id uuid,
+  successor_user_id uuid,
+  transfer_reason text
+)
+returns table(institution_id uuid,previous_admin_user_id uuid,new_admin_user_id uuid,transferred_at timestamptz)
+language plpgsql security definer set search_path=public as $$
+declare
+  current_admin_id uuid;
+  admin_count integer;
+  event_time timestamptz:=now();
+begin
+  if not public.is_current_user_super_admin() then
+    raise exception using errcode='42501',message='Platform access requires an explicit super_admin role.';
+  end if;
+  if nullif(btrim(transfer_reason),'') is null or char_length(btrim(transfer_reason)) not between 5 and 1000 then
+    raise exception using errcode='22023',message='A transfer reason between 5 and 1000 characters is required.';
+  end if;
+  perform 1 from public.institutions where id=target_institution_id for update;
+  if not found then raise exception using errcode='P0002',message='Institution not found.'; end if;
+
+  select count(*)::integer,min(user_id) into admin_count,current_admin_id
+  from public.user_roles where institution_id=target_institution_id and role='admin';
+  if admin_count<>1 then
+    raise exception using errcode='P0001',message='Institution must have exactly one current administrator.';
+  end if;
+  perform 1 from public.user_roles where institution_id=target_institution_id and role='admin' for update;
+  if successor_user_id=current_admin_id then
+    raise exception using errcode='P0001',message='The successor is already the Institution Admin.';
+  end if;
+  if not exists(select 1 from public.profiles p where p.id=successor_user_id and p.institution_id=target_institution_id) then
+    raise exception using errcode='P0001',message='The successor must have a profile in the same institution.';
+  end if;
+  if not exists(select 1 from public.user_roles ur where ur.user_id=successor_user_id and ur.institution_id=target_institution_id and ur.role<>'super_admin') then
+    raise exception using errcode='P0001',message='The successor must already hold an institution-scoped role.';
+  end if;
+  if exists(select 1 from public.user_roles ur where ur.user_id=successor_user_id and ur.role='super_admin') then
+    raise exception using errcode='P0001',message='A platform Super Admin cannot become an Institution Admin.';
+  end if;
+
+  delete from public.user_roles
+    where user_id=current_admin_id and institution_id=target_institution_id and role='admin';
+  insert into public.user_roles(user_id,institution_id,role,department_id)
+    values(successor_user_id,target_institution_id,'admin',null);
+  insert into public.institution_admin_transfer_events(
+    institution_id,previous_admin_user_id,new_admin_user_id,actor_user_id,reason,created_at
+  ) values(
+    target_institution_id,current_admin_id,successor_user_id,auth.uid(),btrim(transfer_reason),event_time
+  );
+  return query select target_institution_id,current_admin_id,successor_user_id,event_time;
+end $$;
+revoke all on function public.platform_transfer_institution_admin(uuid,uuid,text) from public,anon,service_role;
+grant execute on function public.platform_transfer_institution_admin(uuid,uuid,text) to authenticated;
+comment on function public.platform_transfer_institution_admin(uuid,uuid,text) is 'Atomically transfers the single Institution Admin role to an existing same-institution account and records immutable audit evidence.';
+notify pgrst,'reload schema';
+commit;
