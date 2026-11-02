@@ -15,6 +15,8 @@ import {
   transferPlatformInstitutionAdmin,
   transitionPlatformInstitutionStatus,
 } from "../../lib/platform/platformData";
+const formatInstitutionStatus = (status: string) =>
+  status.charAt(0).toUpperCase() + status.slice(1);
 export const PlatformInstitutionDetailPage: React.FC = () => {
   const { institutionId = "" } = useParams(),
     [data, setData] = React.useState<PlatformInstitutionDetail | null>(null),
@@ -52,7 +54,9 @@ export const PlatformInstitutionDetailPage: React.FC = () => {
     try {
       await transitionPlatformInstitutionStatus(institutionId, status, reason);
       setReason("");
-      setActionSuccess(`Institution status changed to ${status}.`);
+      setActionSuccess(
+        `Institution status changed to ${formatInstitutionStatus(status)}.`,
+      );
       await load();
     } catch (e) {
       setActionError(
@@ -134,13 +138,13 @@ export const PlatformInstitutionDetailPage: React.FC = () => {
         .filter(Boolean)
         .join(", "),
     ],
-    ["Official email", data.official_email],
+    ["Official email", data.official_email || "Not provided"],
     ["Institution admins", String(data.admin_count)],
     ["Branding", data.logo_path ? "Logo configured" : "No logo configured"],
-    ["Access request", data.access_request_status],
-    ["Invitation", data.invitation_status],
-    ["Onboarding", data.onboarding_status],
-    ["Failure phase", data.onboarding_failure_phase],
+    ["Access request", data.access_request_status || "No linked request"],
+    ["Invitation", data.invitation_status || "No linked invitation"],
+    ["Onboarding", data.onboarding_status || "Legacy institution"],
+    ["Failure phase", data.onboarding_failure_phase || "No failure recorded"],
     ["Created", new Date(data.created_at).toLocaleString()],
   ];
   return (
@@ -154,7 +158,7 @@ export const PlatformInstitutionDetailPage: React.FC = () => {
       </Link>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="section-label">Read-only institution detail</p>
+          <p className="section-label">Institution administration</p>
           <h1 className="mt-3 font-display text-3xl font-black">
             {data.display_name}
           </h1>
@@ -172,7 +176,7 @@ export const PlatformInstitutionDetailPage: React.FC = () => {
                 : "outline"
           }
         >
-          {data.status}
+          {formatInstitutionStatus(data.status)}
         </Badge>
       </div>
       <Card>

@@ -6,6 +6,7 @@ import {
   ShieldAlert,
   TicketCheck,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import {
@@ -38,7 +39,7 @@ export const PlatformDashboard: React.FC = () => {
   React.useEffect(() => {
     void load();
   }, [load]);
-  const cards = data
+  const cards: Array<[string, number, LucideIcon]> = data
     ? [
         ["Total institutions", data.total_institutions, Building2],
         ["Active institutions", data.active_institutions, TicketCheck],
@@ -54,13 +55,13 @@ export const PlatformDashboard: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="section-label">Read-only platform overview</p>
+          <p className="section-label">Platform overview</p>
           <h1 className="mt-3 font-display text-3xl font-black">
             Platform Dashboard
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Monitor institutions and onboarding health without changing tenant
-            data.
+            Monitor institution status, access requests, onboarding, and
+            recovery activity.
           </p>
         </div>
         <Button
@@ -93,13 +94,15 @@ export const PlatformDashboard: React.FC = () => {
           <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {cards.map(([label, value, Icon]) => (
-                <Card key={label as string}>
-                  <CardHeader className="pb-3">
+                <Card key={label} className="h-full">
+                  <CardContent className="flex min-h-40 flex-col p-6">
                     <Icon className="h-5 w-5 dashboard-accent-text" />
-                    <CardTitle className="text-sm">{label as string}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-black">{value as number}</p>
+                    <p className="mt-6 font-display text-4xl font-black leading-none">
+                      {value}
+                    </p>
+                    <p className="mt-3 text-sm font-bold text-muted-foreground">
+                      {label}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -109,38 +112,42 @@ export const PlatformDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle>Institution status</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-3 text-sm">
-                  <p>
-                    Pending <b>{data.pending_institutions}</b>
-                  </p>
-                  <p>
-                    Inactive <b>{data.inactive_institutions}</b>
-                  </p>
-                  <p>
-                    Suspended <b>{data.suspended_institutions}</b>
-                  </p>
-                  <p>
-                    Active <b>{data.active_institutions}</b>
-                  </p>
+                <CardContent className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+                  {[
+                    ["Pending", data.pending_institutions],
+                    ["Inactive", data.inactive_institutions],
+                    ["Suspended", data.suspended_institutions],
+                    ["Active", data.active_institutions],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between gap-6 rounded-xl bg-muted/40 px-4 py-3"
+                    >
+                      <span className="text-muted-foreground">{label}</span>
+                      <b className="tabular-nums">{value}</b>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
                   <CardTitle>Onboarding pipeline</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-3 text-sm">
-                  <p>
-                    Approved <b>{data.approved_access_requests}</b>
-                  </p>
-                  <p>
-                    Onboarding <b>{data.onboarding_access_requests}</b>
-                  </p>
-                  <p>
-                    Active invites <b>{data.active_invitations}</b>
-                  </p>
-                  <p>
-                    Expired invites <b>{data.expired_invitations}</b>
-                  </p>
+                <CardContent className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+                  {[
+                    ["Approved", data.approved_access_requests],
+                    ["Onboarding", data.onboarding_access_requests],
+                    ["Active invites", data.active_invitations],
+                    ["Expired invites", data.expired_invitations],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between gap-6 rounded-xl bg-muted/40 px-4 py-3"
+                    >
+                      <span className="text-muted-foreground">{label}</span>
+                      <b className="tabular-nums">{value}</b>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>
@@ -156,6 +163,12 @@ export const PlatformDashboard: React.FC = () => {
                 className="inline-flex font-bold underline decoration-primary decoration-2 underline-offset-4"
               >
                 Open institution directory
+              </Link>
+              <Link
+                to="/platform/audit-log"
+                className="inline-flex font-bold underline decoration-primary decoration-2 underline-offset-4"
+              >
+                Open audit log
               </Link>
               <Link
                 to="/platform/recovery"

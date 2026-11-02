@@ -47,6 +47,7 @@ import { PlatformInstitutions } from "./pages/platform/PlatformInstitutions";
 import { PlatformInstitutionDetailPage } from "./pages/platform/PlatformInstitutionDetail";
 import { PlatformAccessRequests } from "./pages/platform/PlatformAccessRequests";
 import { PlatformRecovery } from "./pages/platform/PlatformRecovery";
+import { PlatformAuditLog } from "./pages/platform/PlatformAuditLog";
 import { PlatformShell } from "./components/platform/PlatformShell";
 import { getPlatformIdentity } from "./lib/platform/platformAuth";
 
@@ -247,6 +248,10 @@ export const App: React.FC = () => {
                 element={<PlatformAccessRequests />}
               />
               <Route path="/platform/recovery" element={<PlatformRecovery />} />
+              <Route
+                path="/platform/audit-log"
+                element={<PlatformAuditLog />}
+              />
               <Route
                 path="/platform/institutions/:institutionId"
                 element={<PlatformInstitutionDetailPage />}

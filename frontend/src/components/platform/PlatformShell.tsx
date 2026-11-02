@@ -7,6 +7,7 @@ import {
   LogOut,
   ShieldAlert,
   ShieldCheck,
+  ScrollText,
 } from "lucide-react";
 import { PakkaPresentLogo } from "../PakkaPresentLogo";
 import { signOutPlatform } from "../../lib/platform/platformAuth";
@@ -20,6 +21,7 @@ const links = [
     Icon: ClipboardCheck,
   },
   { to: "/platform/recovery", label: "Recovery", Icon: ShieldAlert },
+  { to: "/platform/audit-log", label: "Audit log", Icon: ScrollText },
 ];
 export const PlatformShell: React.FC = () => {
   const location = useLocation(),

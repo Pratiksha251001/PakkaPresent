@@ -7,12 +7,14 @@ import express from "express";
 import parentNotificationDispatch from "./backend/parent-notification-dispatch.cjs";
 import institutionOnboarding from "./backend/institution-onboarding.cjs";
 import institutionAccessRequests from "./backend/institution-access-requests.cjs";
-// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+
 import platformAccessRequestOperations from "./backend/platform-access-request-operations.cjs";
-// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+
 import platformInstitutionLifecycle from "./backend/platform-institution-lifecycle.cjs";
-// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+
 import platformOnboardingRecovery from "./backend/platform-onboarding-recovery.cjs";
+
+import platformAuditLog from "./backend/platform-audit-log.cjs";
 const { registerParentNotificationDispatch } = parentNotificationDispatch;
 const { registerInstitutionOnboarding } = institutionOnboarding;
 const { registerInstitutionAccessRequests } = institutionAccessRequests;
@@ -20,6 +22,7 @@ const { registerPlatformAccessRequestOperations } =
   platformAccessRequestOperations;
 const { registerPlatformInstitutionLifecycle } = platformInstitutionLifecycle;
 const { registerPlatformOnboardingRecovery } = platformOnboardingRecovery;
+const { registerPlatformAuditLog } = platformAuditLog;
 
 import cors from "cors";
 
@@ -827,6 +830,7 @@ async function startServer() {
   registerPlatformAccessRequestOperations(app, { supabaseUrl, supabaseKey });
   registerPlatformInstitutionLifecycle(app, { supabaseUrl, supabaseKey });
   registerPlatformOnboardingRecovery(app, { supabaseUrl, supabaseKey });
+  registerPlatformAuditLog(app, { supabaseUrl, supabaseKey });
   registerParentNotificationDispatch(app, {
     admin: supabaseAdmin,
     requireManager: requireAccountManager,

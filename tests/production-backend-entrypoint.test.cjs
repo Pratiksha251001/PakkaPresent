@@ -38,4 +38,5 @@ test("production server registers bearer-authenticated Phase 7C operations", () 
   assert.match(rootServer, /registerPlatformAccessRequestOperations/);
   assert.match(rootServer, /platform-access-request-operations\.cjs/);
   assert.doesNotMatch(rootServer, /registerInstitutionInvitationApproval/);
+  assert.match(rootServer, /registerPlatformAuditLog/);
 });
