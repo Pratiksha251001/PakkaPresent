@@ -1,3 +1,7 @@
+// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+import platformAccessRequestOperations from "./platform-access-request-operations.cjs";
+const { registerPlatformAccessRequestOperations } =
+  platformAccessRequestOperations;
 import dotenv from "dotenv";
 dotenv.config();
 import fs from "fs";
@@ -164,6 +168,8 @@ async function startServer() {
     }),
   );
   app.use(express.json());
+
+  registerPlatformAccessRequestOperations(app, { supabaseUrl, supabaseKey });
 
   printAsciiTerminalBanner();
   addLog("info", `Starting PakkaPresent backend server on port ${PORT}...`);

@@ -1,12 +1,23 @@
 import React from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Building2, LayoutDashboard, LogOut, ShieldCheck } from "lucide-react";
+import {
+  Building2,
+  ClipboardCheck,
+  LayoutDashboard,
+  LogOut,
+  ShieldCheck,
+} from "lucide-react";
 import { PakkaPresentLogo } from "../PakkaPresentLogo";
 import { signOutPlatform } from "../../lib/platform/platformAuth";
 import { setPlatformPath } from "../../lib/platform/platformSessionScope";
 const links = [
   { to: "/platform/dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { to: "/platform/institutions", label: "Institutions", Icon: Building2 },
+  {
+    to: "/platform/access-requests",
+    label: "Access requests",
+    Icon: ClipboardCheck,
+  },
 ];
 export const PlatformShell: React.FC = () => {
   const location = useLocation(),
@@ -68,7 +79,7 @@ export const PlatformShell: React.FC = () => {
           <div>
             <p className="font-bold">PakkaPresent • Platform Administration</p>
             <p className="text-xs text-muted-foreground">
-              Super Admin Portal • Read only
+              Super Admin Portal • Controlled operations
             </p>
           </div>
           <ShieldCheck className="h-6 w-6 dashboard-accent-text" />
