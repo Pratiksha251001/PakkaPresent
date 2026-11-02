@@ -19,6 +19,8 @@ import {
   listPlatformInstitutions,
   PlatformInstitutionSummary,
 } from "../../lib/platform/platformData";
+const formatInstitutionStatus = (status: InstitutionStatus) =>
+  status.charAt(0).toUpperCase() + status.slice(1);
 const variant = (s: InstitutionStatus) =>
   s === "active"
     ? "success"
@@ -61,7 +63,7 @@ export const PlatformInstitutions: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <p className="section-label">Read-only directory</p>
+        <p className="section-label">Institution directory</p>
         <h1 className="mt-3 font-display text-3xl font-black">Institutions</h1>
         <p className="mt-2 text-muted-foreground">
           Search and inspect institution onboarding and administration coverage.
@@ -152,7 +154,9 @@ export const PlatformInstitutions: React.FC = () => {
                         .join(", ") || "Not provided"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={variant(r.status)}>{r.status}</Badge>
+                      <Badge variant={variant(r.status)}>
+                        {formatInstitutionStatus(r.status)}
+                      </Badge>
                     </TableCell>
                     <TableCell>{r.admin_count}</TableCell>
                     <TableCell>
@@ -179,7 +183,9 @@ export const PlatformInstitutions: React.FC = () => {
                         {r.institution_code}
                       </p>
                     </div>
-                    <Badge variant={variant(r.status)}>{r.status}</Badge>
+                    <Badge variant={variant(r.status)}>
+                      {formatInstitutionStatus(r.status)}
+                    </Badge>
                   </div>
                   <p className="mt-3 text-sm">
                     {[r.city, r.district, r.state].filter(Boolean).join(", ") ||

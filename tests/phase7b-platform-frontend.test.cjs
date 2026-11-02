@@ -39,7 +39,7 @@ test("shell has route-aware responsive navigation", () => {
 });
 
 test("dashboard uses production-facing read-only wording", () => {
-  assert.ok(dashboard.includes("Read-only platform overview"));
+  assert.ok(dashboard.includes("Platform overview"));
   assert.ok(!dashboard.includes("Phase 7B"));
 });
 
@@ -49,7 +49,7 @@ test("pages include loading error retry empty and read-only states", () => {
   assert.ok(directory.includes("No institutions found"));
   assert.ok(directory.includes("status"));
   assert.ok(detail.includes("Institution not found"));
-  assert.ok(detail.includes("Read-only institution detail"));
+  assert.ok(detail.includes("Institution administration"));
 });
 
 test("directory supports search status pagination and responsive views", () => {
