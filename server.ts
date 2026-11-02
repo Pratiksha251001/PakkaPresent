@@ -7,11 +7,19 @@ import express from "express";
 import parentNotificationDispatch from "./backend/parent-notification-dispatch.cjs";
 import institutionOnboarding from "./backend/institution-onboarding.cjs";
 import institutionAccessRequests from "./backend/institution-access-requests.cjs";
-import institutionInvitationApproval from "./backend/institution-invitation-approval.cjs";
+// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+import platformAccessRequestOperations from "./backend/platform-access-request-operations.cjs";
+// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+import platformInstitutionLifecycle from "./backend/platform-institution-lifecycle.cjs";
+// @ts-expect-error TS7016: local CommonJS route module has no declaration file.
+import platformOnboardingRecovery from "./backend/platform-onboarding-recovery.cjs";
 const { registerParentNotificationDispatch } = parentNotificationDispatch;
 const { registerInstitutionOnboarding } = institutionOnboarding;
 const { registerInstitutionAccessRequests } = institutionAccessRequests;
-const { registerInstitutionInvitationApproval } = institutionInvitationApproval;
+const { registerPlatformAccessRequestOperations } =
+  platformAccessRequestOperations;
+const { registerPlatformInstitutionLifecycle } = platformInstitutionLifecycle;
+const { registerPlatformOnboardingRecovery } = platformOnboardingRecovery;
 
 import cors from "cors";
 
@@ -122,6 +130,25 @@ async function requireRole(
     return res
       .status(403)
       .json({ success: false, message: "This account is not authorized." });
+  const { data: institutionState, error: institutionStateError } =
+    await supabaseAdmin
+      .from("institutions")
+      .select("status")
+      .eq("id", authorizedRole.institution_id)
+      .maybeSingle();
+  if (institutionStateError || !institutionState)
+    return res.status(403).json({
+      success: false,
+      message: "Institution access could not be verified.",
+    });
+  if (institutionState.status === "suspended")
+    return res
+      .status(403)
+      .json({ success: false, message: "Institution access is suspended." });
+  if (institutionState.status !== "active")
+    return res
+      .status(403)
+      .json({ success: false, message: "Institution access is inactive." });
   req.actor = {
     id: userData.user.id,
     role: authorizedRole.role,
@@ -797,7 +824,9 @@ async function startServer() {
   app.use(express.json());
   registerInstitutionOnboarding(app, { admin: supabaseAdmin });
   registerInstitutionAccessRequests(app, { admin: supabaseAdmin });
-  registerInstitutionInvitationApproval(app, { admin: supabaseAdmin });
+  registerPlatformAccessRequestOperations(app, { supabaseUrl, supabaseKey });
+  registerPlatformInstitutionLifecycle(app, { supabaseUrl, supabaseKey });
+  registerPlatformOnboardingRecovery(app, { supabaseUrl, supabaseKey });
   registerParentNotificationDispatch(app, {
     admin: supabaseAdmin,
     requireManager: requireAccountManager,

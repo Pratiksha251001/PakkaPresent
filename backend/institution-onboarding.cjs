@@ -170,6 +170,8 @@ function registerInstitutionOnboarding(
     const audit = (v) =>
       admin.from("institution_onboarding_attempts").upsert({
         request_id: requestId,
+        access_request_id: reservation.request_id,
+        invitation_id: reservation.invitation_id,
         administrator_email_digest: emailDigest,
         ...v,
       });
@@ -286,6 +288,7 @@ function registerInstitutionOnboarding(
             institutionCreated && !institutionDeleted ? institutionId : null,
           administrator_user_id: userId || null,
           status: recovered ? "failed" : "recovery_required",
+          recovery_status: recovered ? null : "required",
           failure_phase: phase,
           completed_at: new Date(now()).toISOString(),
         });

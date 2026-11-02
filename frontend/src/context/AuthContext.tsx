@@ -77,6 +77,15 @@ const removeStorageItem = (key: string) => {
   localStorage.removeItem(`edutrack_${key}`);
   localStorage.removeItem(`smit_${key}`);
 };
+const institutionStatusMessage = (status: string) => {
+  if (status === "suspended")
+    return "This institution has been suspended by the platform administrator.";
+  if (status === "inactive")
+    return "This institution is inactive. Contact the platform administrator.";
+  if (status === "pending") return "This institution is pending activation.";
+  return "This institution is unavailable.";
+};
+
 interface StudentAccountLink {
   id: string;
   institution_id: string;
@@ -282,7 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!institution)
           throw new Error("The assigned institution could not be found.");
         if (institution.status !== "active")
-          throw new Error("The assigned institution is inactive.");
+          throw new Error(institutionStatusMessage(institution.status));
         const institutionName = institution.display_name?.trim();
         if (!institutionName)
           throw new Error("The assigned institution has no display name.");
@@ -741,7 +750,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           "The assigned institution could not be found.",
         );
       if (institution.status !== "active")
-        return await rejectLogin("The assigned institution is inactive.");
+        return await rejectLogin(institutionStatusMessage(institution.status));
       const institutionName = institution.display_name?.trim();
       if (!institutionName)
         return await rejectLogin(

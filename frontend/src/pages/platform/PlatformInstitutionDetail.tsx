@@ -12,12 +12,19 @@ import {
 import {
   getPlatformInstitution,
   PlatformInstitutionDetail,
+  transferPlatformInstitutionAdmin,
+  transitionPlatformInstitutionStatus,
 } from "../../lib/platform/platformData";
 export const PlatformInstitutionDetailPage: React.FC = () => {
   const { institutionId = "" } = useParams(),
     [data, setData] = React.useState<PlatformInstitutionDetail | null>(null),
     [loading, setLoading] = React.useState(true),
-    [error, setError] = React.useState("");
+    [error, setError] = React.useState(""),
+    [reason, setReason] = React.useState(""),
+    [successorUserId, setSuccessorUserId] = React.useState(""),
+    [actionBusy, setActionBusy] = React.useState(false),
+    [actionError, setActionError] = React.useState(""),
+    [actionSuccess, setActionSuccess] = React.useState("");
   const load = React.useCallback(async () => {
     setLoading(true);
     setError("");
@@ -32,6 +39,62 @@ export const PlatformInstitutionDetailPage: React.FC = () => {
   React.useEffect(() => {
     void load();
   }, [load]);
+  const runLifecycleAction = async (
+    status: "active" | "inactive" | "suspended",
+  ) => {
+    if (reason.trim().length < 5) {
+      setActionError("Enter a reason containing at least 5 characters.");
+      return;
+    }
+    setActionBusy(true);
+    setActionError("");
+    setActionSuccess("");
+    try {
+      await transitionPlatformInstitutionStatus(institutionId, status, reason);
+      setReason("");
+      setActionSuccess(`Institution status changed to ${status}.`);
+      await load();
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Lifecycle update failed.",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
+  const runAdminTransfer = async () => {
+    if (!/^[0-9a-f-]{36}$/i.test(successorUserId.trim())) {
+      setActionError("Enter the successor account UUID.");
+      return;
+    }
+    if (reason.trim().length < 5) {
+      setActionError(
+        "Enter a transfer reason containing at least 5 characters.",
+      );
+      return;
+    }
+    setActionBusy(true);
+    setActionError("");
+    setActionSuccess("");
+    try {
+      await transferPlatformInstitutionAdmin(
+        institutionId,
+        successorUserId.trim(),
+        reason,
+      );
+      setSuccessorUserId("");
+      setReason("");
+      setActionSuccess("Institution Admin transferred successfully.");
+      await load();
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : "Administrator transfer failed.",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
   if (loading)
     return <div className="h-80 animate-pulse rounded-2xl bg-muted" />;
   if (error)
@@ -127,6 +190,80 @@ export const PlatformInstitutionDetailPage: React.FC = () => {
               </p>
             </div>
           ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Lifecycle controls</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label
+            className="block text-sm font-bold"
+            htmlFor="platform-action-reason"
+          >
+            Required reason
+          </label>
+          <textarea
+            id="platform-action-reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            maxLength={1000}
+            className="min-h-24 w-full rounded-lg border bg-background p-3"
+            placeholder="Explain why this platform operation is required."
+          />
+          {actionError ? (
+            <p className="font-bold text-destructive">{actionError}</p>
+          ) : null}
+          {actionSuccess ? (
+            <p className="font-bold text-emerald-700">{actionSuccess}</p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {data.status === "active" ? (
+              <>
+                <Button
+                  variant="destructive"
+                  disabled={actionBusy}
+                  onClick={() => void runLifecycleAction("suspended")}
+                >
+                  Suspend institution
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={actionBusy}
+                  onClick={() => void runLifecycleAction("inactive")}
+                >
+                  Deactivate institution
+                </Button>
+              </>
+            ) : (
+              <Button
+                disabled={actionBusy}
+                onClick={() => void runLifecycleAction("active")}
+              >
+                Reactivate institution
+              </Button>
+            )}
+          </div>
+          <div className="border-t pt-4">
+            <h2 className="font-bold">Transfer Institution Admin</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The successor must already have a profile and role in this
+              institution. Enter that account's UUID.
+            </p>
+            <input
+              value={successorUserId}
+              onChange={(event) => setSuccessorUserId(event.target.value)}
+              className="mt-3 w-full rounded-lg border bg-background p-3"
+              placeholder="Successor user UUID"
+            />
+            <Button
+              className="mt-3"
+              disabled={actionBusy}
+              onClick={() => void runAdminTransfer()}
+            >
+              Transfer Institution Admin
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

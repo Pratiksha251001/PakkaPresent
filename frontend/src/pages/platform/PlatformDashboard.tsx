@@ -157,6 +157,12 @@ export const PlatformDashboard: React.FC = () => {
               >
                 Open institution directory
               </Link>
+              <Link
+                to="/platform/recovery"
+                className="inline-flex font-bold underline decoration-primary decoration-2 underline-offset-4"
+              >
+                Open recovery queue
+              </Link>
             </div>
           </>
         )
