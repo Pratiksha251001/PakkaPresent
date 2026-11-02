@@ -144,12 +144,20 @@ export const PlatformDashboard: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-            <Link
-              to="/platform/institutions"
-              className="inline-flex font-bold underline decoration-primary decoration-2 underline-offset-4"
-            >
-              Open institution directory
-            </Link>
+            <div className="flex flex-wrap gap-4">
+              <Link
+                to="/platform/access-requests"
+                className="inline-flex font-bold underline decoration-primary decoration-2 underline-offset-4"
+              >
+                Review access requests
+              </Link>
+              <Link
+                to="/platform/institutions"
+                className="inline-flex font-bold underline decoration-primary decoration-2 underline-offset-4"
+              >
+                Open institution directory
+              </Link>
+            </div>
           </>
         )
       )}

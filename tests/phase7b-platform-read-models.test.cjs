@@ -53,7 +53,7 @@ test("directory search and pagination are bounded", () => {
 });
 test("read contracts do not expose secret digests or notes", () => {
   const returns = migration
-    .match(/returns table\([\s\S]*?\)\nlanguage/g)
+    .match(/returns table\([\s\S]*?\)\r?\nlanguage/g)
     .join("\n");
   for (const secret of [
     "token_digest",

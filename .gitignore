@@ -30,3 +30,6 @@ Thumbs.db
 !.vscode/settings.json
 # AI Studio generated workspace
 .aistudio/
+
+# Supabase CLI local state
+backend/supabase/.temp/
