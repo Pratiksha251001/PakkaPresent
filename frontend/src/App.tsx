@@ -43,6 +43,8 @@ import { LogoutConfirmDialog } from "./components/LogoutConfirmDialog";
 import { getScopedPath, setScopedPath } from "./lib/sessionScope";
 import { PlatformLogin } from "./pages/platform/PlatformLogin";
 import { PlatformDashboard } from "./pages/platform/PlatformDashboard";
+import { PlatformInstitutions } from "./pages/platform/PlatformInstitutions";
+import { PlatformInstitutionDetailPage } from "./pages/platform/PlatformInstitutionDetail";
 import { PlatformShell } from "./components/platform/PlatformShell";
 import { getPlatformIdentity } from "./lib/platform/platformAuth";
 
@@ -233,6 +235,14 @@ export const App: React.FC = () => {
               <Route
                 path="/platform/dashboard"
                 element={<PlatformDashboard />}
+              />
+              <Route
+                path="/platform/institutions"
+                element={<PlatformInstitutions />}
+              />
+              <Route
+                path="/platform/institutions/:institutionId"
+                element={<PlatformInstitutionDetailPage />}
               />
             </Route>
             <Route path="/login" element={<Navigate to="/" replace />} />
