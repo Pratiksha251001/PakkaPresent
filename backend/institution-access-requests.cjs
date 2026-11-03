@@ -113,23 +113,37 @@ function registerInstitutionAccessRequests(
       .eq("institution_name", value.institution_name)
       .gte("created_at", new Date(t - 86400000).toISOString())
       .limit(1);
-    if (duplicate.error)
+    if (duplicate.error) {
+      console.error("[institution-access-requests] Duplicate lookup failed:", {
+        code: duplicate.error.code,
+        message: duplicate.error.message,
+        details: duplicate.error.details,
+        hint: duplicate.error.hint,
+      });
       return res.status(503).json({
         success: false,
         message: "The request could not be submitted. Please try again later.",
       });
+    }
     if (!duplicate.data?.length) {
       const { error } = await admin.from("institution_access_requests").insert({
         ...value,
         consented_at: new Date(t).toISOString(),
         status: "pending",
       });
-      if (error)
+      if (error) {
+        console.error("[institution-access-requests] Insert failed:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         return res.status(503).json({
           success: false,
           message:
             "The request could not be submitted. Please try again later.",
         });
+      }
     }
     return res.status(202).json({ success: true, message: OK });
   });

@@ -33,7 +33,8 @@ test("shell has route-aware responsive navigation", () => {
   assert.ok(shell.includes("lg:flex"));
   assert.ok(shell.includes("flex items-center justify-between gap-3 lg:block"));
   assert.ok(shell.includes("lg:hidden"));
-  assert.ok(shell.includes('sr-only">Sign out</span>'));
+  assert.ok(shell.includes('aria-label="Sign out"'));
+  assert.ok(shell.includes('title="Sign out"'));
   assert.ok(shell.includes("hidden min-h-16"));
   assert.ok(shell.includes("Institutions"));
 });

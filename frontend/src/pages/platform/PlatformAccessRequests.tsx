@@ -49,6 +49,8 @@ export const PlatformAccessRequests: React.FC = () => {
     [total, setTotal] = React.useState(0),
     [loading, setLoading] = React.useState(true),
     [error, setError] = React.useState(""),
+    [dialogError, setDialogError] = React.useState(""),
+    [detailLoading, setDetailLoading] = React.useState(false),
     [selected, setSelected] = React.useState<PlatformAccessRequest | null>(
       null,
     ),
@@ -79,33 +81,57 @@ export const PlatformAccessRequests: React.FC = () => {
   React.useEffect(() => {
     void load();
   }, [load]);
-  const open = async (id: string) => {
+  const open = async (request: PlatformAccessRequest) => {
     setError("");
+    setDialogError("");
+    setSelected(request);
+    setNotes(request.review_notes ?? "");
+    setCredential(null);
+    setDetailLoading(true);
     try {
-      setSelected(await getAccessRequest(id));
-      setNotes("");
-      setCredential(null);
+      const detail = await getAccessRequest(request.request_id);
+      setSelected(detail);
+      setNotes(detail.review_notes ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to load request.");
+      setDialogError(
+        e instanceof Error ? e.message : "Unable to load request details.",
+      );
+    } finally {
+      setDetailLoading(false);
     }
   };
   const act = async (
     action: "contact" | "reject" | "revoke" | "approve" | "reissue",
   ) => {
     if (!selected) return;
+    setDialogError("");
     setBusy(action);
     try {
-      if (action === "approve" || action === "reissue")
+      if (action === "approve" || action === "reissue") {
         setCredential(await issueInvitation(selected.request_id, action));
-      else await updateAccessRequest(selected.request_id, action, notes);
-      setSelected(await getAccessRequest(selected.request_id));
+        setSelected(await getAccessRequest(selected.request_id));
+      } else {
+        await updateAccessRequest(selected.request_id, action, notes);
+        setSelected(null);
+        setCredential(null);
+        setNotes("");
+      }
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Action failed.");
+      setDialogError(e instanceof Error ? e.message : "Action failed.");
     } finally {
       setBusy("");
     }
   };
+  const isReviewable =
+    selected?.status === "pending" || selected?.status === "contacted";
+  const isApproved = selected?.status === "approved";
+  const isReadOnly =
+    !!selected &&
+    ["rejected", "expired", "onboarding", "onboarded"].includes(
+      selected.status,
+    );
+  const invitationAction = isApproved ? "reissue" : "approve";
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -205,11 +231,12 @@ export const PlatformAccessRequests: React.FC = () => {
                       {r.state}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => void open(r.request_id)}
-                  >
-                    Review
+                  <Button variant="outline" onClick={() => void open(r)}>
+                    {r.status === "pending" || r.status === "contacted"
+                      ? "Review"
+                      : r.status === "approved"
+                        ? "Manage"
+                        : "View"}
                   </Button>
                 </CardContent>
               </Card>
@@ -242,6 +269,8 @@ export const PlatformAccessRequests: React.FC = () => {
           if (!v) {
             setSelected(null);
             setCredential(null);
+            setDialogError("");
+            setDetailLoading(false);
           }
         }}
       >
@@ -252,6 +281,11 @@ export const PlatformAccessRequests: React.FC = () => {
               Request review and onboarding controls
             </p>
           </DialogHeader>
+          {detailLoading && (
+            <span role="status" aria-live="polite" className="sr-only">
+              Loading complete request details
+            </span>
+          )}
           {selected && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 text-sm">
@@ -272,7 +306,14 @@ export const PlatformAccessRequests: React.FC = () => {
                     <p className="text-xs font-bold uppercase text-muted-foreground">
                       {a}
                     </p>
-                    <p className="mt-1 break-words">{b}</p>
+                    {detailLoading ? (
+                      <div
+                        className="mt-2 h-4 w-3/4 animate-pulse rounded-full bg-muted"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <p className="mt-1 break-words">{b}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -281,18 +322,44 @@ export const PlatformAccessRequests: React.FC = () => {
                   <CardTitle className="text-sm">Request message</CardTitle>
                 </CardHeader>
                 <CardContent className="whitespace-pre-wrap text-sm">
-                  {selected.message || "No message provided."}
+                  {detailLoading ? (
+                    <div className="space-y-2 animate-pulse" aria-hidden="true">
+                      <div className="h-4 w-full rounded-full bg-muted" />
+                      <div className="h-4 w-3/5 rounded-full bg-muted" />
+                    </div>
+                  ) : (
+                    selected.message || "No message provided."
+                  )}
                 </CardContent>
               </Card>
               <label className="block text-xs font-bold">
                 Review notes
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  className="mt-2 w-full rounded-xl border bg-background p-3 text-sm"
-                />
+                {detailLoading ? (
+                  <div
+                    className="mt-2 h-[5.25rem] animate-pulse rounded-xl border bg-muted/70 p-3"
+                    aria-hidden="true"
+                  >
+                    <div className="h-4 w-4/5 rounded-full bg-muted-foreground/15" />
+                    <div className="mt-2 h-4 w-2/5 rounded-full bg-muted-foreground/15" />
+                  </div>
+                ) : (
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    readOnly={isReadOnly}
+                    className="mt-2 w-full rounded-xl border bg-background p-3 text-sm read-only:cursor-default read-only:bg-muted/40"
+                  />
+                )}
               </label>
+              {dialogError && (
+                <div
+                  role="alert"
+                  className="rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-sm font-bold text-destructive"
+                >
+                  {dialogError}
+                </div>
+              )}
               {credential && (
                 <div
                   role="status"
@@ -326,43 +393,65 @@ Code: ${credential.onboardingCode}`)
             </div>
           )}
           <DialogFooter className="flex-wrap">
-            <Button
-              variant="outline"
-              disabled={!!busy}
-              onClick={() => void act("contact")}
-            >
-              Mark contacted
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={!!busy || !notes.trim()}
-              onClick={() => void act("reject")}
-            >
-              Reject
-            </Button>
-            {selected && hasActiveInvitation(selected) && (
+            {isReviewable && (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={!!busy}
+                  onClick={() => void act("contact")}
+                >
+                  Mark contacted
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={!!busy || !notes.trim()}
+                  onClick={() => void act("reject")}
+                >
+                  Reject
+                </Button>
+                <Button disabled={!!busy} onClick={() => void act("approve")}>
+                  Approve and issue
+                </Button>
+              </>
+            )}
+            {isApproved && (
+              <>
+                {selected && hasActiveInvitation(selected) && (
+                  <Button
+                    variant="destructive"
+                    disabled={!!busy}
+                    onClick={() => void act("revoke")}
+                  >
+                    Revoke invite
+                  </Button>
+                )}
+                <Button
+                  disabled={!!busy}
+                  onClick={() => void act(invitationAction)}
+                >
+                  Reissue invitation
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={!!busy || !notes.trim()}
+                  onClick={() => void act("reject")}
+                >
+                  Reject
+                </Button>
+              </>
+            )}
+            {isReadOnly && (
               <Button
-                variant="destructive"
-                disabled={!!busy}
-                onClick={() => void act("revoke")}
+                variant="outline"
+                onClick={() => {
+                  setSelected(null);
+                  setCredential(null);
+                  setDialogError("");
+                }}
               >
-                Revoke invite
+                Close
               </Button>
             )}
-            <Button
-              disabled={!!busy}
-              onClick={() =>
-                void act(
-                  selected && hasActiveInvitation(selected)
-                    ? "reissue"
-                    : "approve",
-                )
-              }
-            >
-              {selected && hasActiveInvitation(selected)
-                ? "Reissue invitation"
-                : "Approve and issue"}
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { PasswordInput } from "../../components/PasswordInput";
 import { PakkaPresentLogo } from "../../components/PakkaPresentLogo";
 import { signInPlatform } from "../../lib/platform/platformAuth";
 
@@ -46,11 +47,11 @@ export const PlatformLogin: React.FC = () => {
             placeholder="Platform email"
             required
           />
-          <Input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
+            autoComplete="current-password"
             required
           />
           {error && (
