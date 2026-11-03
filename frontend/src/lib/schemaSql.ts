@@ -1386,10 +1386,33 @@ comment on table public.platform_audit_events is 'Append-only platform audit evi
 
 create or replace function public.platform_audit_json_is_safe(payload jsonb)
 returns boolean language sql immutable security invoker set search_path = pg_catalog as $$
+  with recursive json_nodes(value) as (
+    select coalesce(payload, 'null'::jsonb)
+    union all
+    select child.value
+    from json_nodes node
+    cross join lateral (
+      select object_child.value
+      from jsonb_each(
+        case when jsonb_typeof(node.value) = 'object' then node.value else '{}'::jsonb end
+      ) object_child
+      union all
+      select array_child.value
+      from jsonb_array_elements(
+        case when jsonb_typeof(node.value) = 'array' then node.value else '[]'::jsonb end
+      ) array_child
+    ) child
+  ), object_keys(key) as (
+    select object_key.key
+    from json_nodes node
+    cross join lateral jsonb_object_keys(
+      case when jsonb_typeof(node.value) = 'object' then node.value else '{}'::jsonb end
+    ) as object_key(key)
+  )
   select not exists (
     select 1
-    from jsonb_path_query(payload, 'strict $.**.keyvalue()') item
-    where lower(item->>'key') in (
+    from object_keys
+    where lower(key) in (
       'password','token','token_digest','invitation_token','onboarding_code',
       'code_digest','administrator_email_digest','service_role_key','access_token','refresh_token'
     )

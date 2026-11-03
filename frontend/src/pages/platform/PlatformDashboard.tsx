@@ -121,7 +121,7 @@ export const PlatformDashboard: React.FC = () => {
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between gap-6 rounded-xl bg-muted/40 px-4 py-3"
+                      className="flex items-center justify-between gap-6 rounded-xl border border-border/40 bg-muted/40 px-4 py-3 dark:border-border/70 dark:bg-muted/70"
                     >
                       <span className="text-muted-foreground">{label}</span>
                       <b className="tabular-nums">{value}</b>
@@ -142,7 +142,7 @@ export const PlatformDashboard: React.FC = () => {
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between gap-6 rounded-xl bg-muted/40 px-4 py-3"
+                      className="flex items-center justify-between gap-6 rounded-xl border border-border/40 bg-muted/40 px-4 py-3 dark:border-border/70 dark:bg-muted/70"
                     >
                       <span className="text-muted-foreground">{label}</span>
                       <b className="tabular-nums">{value}</b>

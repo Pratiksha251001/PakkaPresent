@@ -53,12 +53,12 @@ export const DialogContent: React.FC<DialogPartProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-[#191a23]/75 backdrop-blur-sm transition-opacity"
+        className="dialog-overlay-enter fixed inset-0 bg-[#191a23]/75 backdrop-blur-sm"
         onClick={() => onOpenChange?.(false)}
       />
       <div
         {...props}
-        className={`relative z-[101] w-full max-w-lg rounded-2xl border-2 border-foreground bg-card p-6 shadow-[0_8px_0_0_hsl(var(--foreground)/0.28)] transition-all ${className}`}
+        className={`dialog-content-enter relative z-[101] w-full max-w-lg rounded-2xl border-2 border-foreground bg-card p-6 shadow-[0_8px_0_0_hsl(var(--foreground)/0.28)] ${className}`}
       >
         {children}
         <button
