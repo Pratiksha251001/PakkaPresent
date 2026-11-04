@@ -31,3 +31,9 @@ test("the request list refreshes after every successful review action", () => {
   const actionHandler = page.slice(handlerStart, handlerEnd);
   assert.match(actionHandler, /await load\(\);/);
 });
+
+test("invitation delivery result remains visible with one-time fallback credentials", () => {
+  assert.match(page, /Invitation email accepted by EmailJS/);
+  assert.match(page, /Provider acceptance does not confirm inbox delivery/);
+  assert.match(page, /Issue replacement and retry email/);
+});

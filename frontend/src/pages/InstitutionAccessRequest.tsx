@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,7 +13,13 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { PakkaPresentLogo } from "../components/PakkaPresentLogo";
-import { submitInstitutionAccessRequest } from "../lib/institutionAccessRequestService";
+import {
+  getIndiaCities,
+  getIndiaStates,
+  submitInstitutionAccessRequest,
+  type InstitutionFieldErrors,
+  type LocationOption,
+} from "../lib/institutionAccessRequestService";
 const initial = {
   institutionName: "",
   institutionType: "",
@@ -34,24 +40,71 @@ export const InstitutionAccessRequest: React.FC = () => {
     [form, setForm] = useState(initial),
     [loading, setLoading] = useState(false),
     [success, setSuccess] = useState<string | null>(null),
-    [error, setError] = useState<string | null>(null);
+    [error, setError] = useState<string | null>(null),
+    [fieldErrors, setFieldErrors] = useState<InstitutionFieldErrors>({}),
+    [states, setStates] = useState<LocationOption[]>([]),
+    [cities, setCities] = useState<string[]>([]),
+    [locationsLoading, setLocationsLoading] = useState(false);
+  const refs = useRef<Record<string, HTMLElement | null>>({});
+  useEffect(() => {
+    void getIndiaStates()
+      .then(setStates)
+      .catch(() => setError("India location options could not be loaded."));
+  }, []);
+  const setValue = (key: keyof typeof initial, value: string | boolean) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: undefined }));
+  };
   const update =
     (key: keyof typeof initial) =>
-    (
-      event: React.ChangeEvent<
-        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-      >,
-    ) =>
-      setForm((current) => ({ ...current, [key]: event.target.value }));
+    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+      setValue(key, event.target.value);
+  const selectState = async (stateCode: string) => {
+    const selected = states.find((state) => state.code === stateCode);
+    setValue("state", selected?.name || "");
+    setValue("city", "");
+    setCities([]);
+    if (!stateCode) return;
+    setLocationsLoading(true);
+    try {
+      setCities(await getIndiaCities(stateCode));
+    } catch {
+      setError("Cities could not be loaded for the selected state.");
+    } finally {
+      setLocationsLoading(false);
+    }
+  };
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+    const nextErrors: InstitutionFieldErrors = {};
+    if (form.institutionName.trim().length < 2) nextErrors.institutionName = "Enter a valid institution name.";
+    if (!form.institutionType) nextErrors.institutionType = "Select an institution type.";
+    if (form.institutionCode && !/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(form.institutionCode)) nextErrors.institutionCode = "Use 2-32 uppercase letters, numbers, hyphens, or underscores.";
+    if (form.dteCode && !/^\d{1,32}$/.test(form.dteCode)) nextErrors.dteCode = "DTE code can contain digits only.";
+    if (!form.state) nextErrors.state = "Select a state.";
+    if (!form.city) nextErrors.city = "Select a city.";
+    if (form.studentCount && (!/^\d+$/.test(form.studentCount) || Number(form.studentCount) < 1 || Number(form.studentCount) > 10000000)) nextErrors.studentCount = "Enter a whole-number count from 1 to 10,000,000.";
+    if (!form.contactName.trim()) nextErrors.contactName = "Enter the authorized contact name.";
+    if (!form.designation.trim()) nextErrors.designation = "Enter the official designation.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.officialEmail.trim())) nextErrors.officialEmail = "Enter a valid official email address.";
+    if (!/^\d{10}$/.test(form.phone)) nextErrors.phone = "Enter a valid 10-digit phone number.";
+    if (form.message.trim().length < 10) nextErrors.message = "Enter at least 10 characters about the requirements.";
+    if (!form.consent) nextErrors.consent = "Consent is required before submission.";
+    setFieldErrors(nextErrors);
+    const first = Object.keys(nextErrors)[0];
+    if (first) {
+      refs.current[first]?.focus();
+      refs.current[first]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setLoading(true);
     try {
       const result = await submitInstitutionAccessRequest(form);
       if (!result.success) {
         setError(result.message);
+        setFieldErrors(result.fieldErrors || {});
         return;
       }
       setSuccess(result.message);
@@ -73,13 +126,21 @@ export const InstitutionAccessRequest: React.FC = () => {
     <label className="space-y-1.5 text-xs font-semibold text-foreground/80">
       {label}
       <Input
+        ref={(element) => { refs.current[key] = element; }}
         required={required}
         type={type}
         value={String(form[key])}
         onChange={update(key)}
         disabled={loading}
+        aria-invalid={!!fieldErrors[key]}
+        aria-describedby={`${key}-error`}
         className="mt-1.5 h-10 rounded-xl"
       />
+      {fieldErrors[key] && (
+        <span id={`${key}-error`} className="block text-xs font-semibold text-red-600">
+          {fieldErrors[key]}
+        </span>
+      )}
     </label>
   );
   return (
@@ -212,20 +273,48 @@ export const InstitutionAccessRequest: React.FC = () => {
                       <option>Other</option>
                     </select>
                   </label>
-                  {field(
-                    "Institution code (optional)",
-                    "institutionCode",
-                    false,
-                  )}
-                  {field("DTE code (optional)", "dteCode", false)}
-                  {field("City", "city")}
-                  {field("State", "state")}
-                  {field(
-                    "Approximate students (optional)",
-                    "studentCount",
-                    false,
-                    "number",
-                  )}
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    Institution code (optional)
+                    <Input
+                      ref={(element) => { refs.current.institutionCode = element; }}
+                      maxLength={32}
+                      placeholder="Example: MITCORER"
+                      value={form.institutionCode}
+                      onChange={(event) => setValue("institutionCode", event.target.value.toUpperCase().replace(/\s+/g, "_").replace(/[^A-Z0-9_-]/g, ""))}
+                      aria-invalid={!!fieldErrors.institutionCode}
+                      className="mt-1.5 h-10 rounded-xl"
+                    />
+                    {fieldErrors.institutionCode && <span className="block text-xs font-semibold text-red-600">{fieldErrors.institutionCode}</span>}
+                  </label>
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    DTE code (optional)
+                    <Input ref={(element) => { refs.current.dteCode = element; }} inputMode="numeric" maxLength={32} value={form.dteCode} onChange={(event) => setValue("dteCode", event.target.value.replace(/\D/g, ""))} className="mt-1.5 h-10 rounded-xl" />
+                  </label>
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    Approximate students (optional)
+                    <Input ref={(element) => { refs.current.studentCount = element; }} inputMode="numeric" maxLength={8} value={form.studentCount} onChange={(event) => setValue("studentCount", event.target.value.replace(/\D/g, ""))} className="mt-1.5 h-10 rounded-xl" />
+                    {fieldErrors.studentCount && <span className="block text-xs font-semibold text-red-600">{fieldErrors.studentCount}</span>}
+                  </label>
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    Country
+                    <Input value="India" readOnly className="mt-1.5 h-10 rounded-xl bg-muted" />
+                  </label>
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    State
+                    <select ref={(element) => { refs.current.state = element; }} required value={states.find((state) => state.name === form.state)?.code || ""} onChange={(event) => void selectState(event.target.value)} aria-invalid={!!fieldErrors.state} className="mt-1.5 h-10 w-full rounded-xl border bg-background px-3">
+                      <option value="">Select state</option>
+                      {states.map((state) => <option key={state.code} value={state.code}>{state.name}</option>)}
+                    </select>
+                    {fieldErrors.state && <span className="block text-xs font-semibold text-red-600">{fieldErrors.state}</span>}
+                  </label>
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    City
+                    <select ref={(element) => { refs.current.city = element; }} required disabled={!form.state || locationsLoading} value={form.city} onChange={update("city")} aria-invalid={!!fieldErrors.city} className="mt-1.5 h-10 w-full rounded-xl border bg-background px-3 disabled:opacity-60">
+                      <option value="">{locationsLoading ? "Loading cities..." : "Select city"}</option>
+                      {cities.map((city) => <option key={city} value={city}>{city}</option>)}
+                    </select>
+                    {fieldErrors.city && <span className="block text-xs font-semibold text-red-600">{fieldErrors.city}</span>}
+                  </label>
                 </div>
               </section>
               <section>
@@ -236,7 +325,11 @@ export const InstitutionAccessRequest: React.FC = () => {
                   {field("Full name", "contactName")}
                   {field("Official designation", "designation")}
                   {field("Official email", "officialEmail", true, "email")}
-                  {field("Phone number", "phone", true, "tel")}
+                  <label className="space-y-1.5 text-xs font-semibold">
+                    Phone number
+                    <Input ref={(element) => { refs.current.phone = element; }} required type="tel" inputMode="numeric" maxLength={10} value={form.phone} onChange={(event) => setValue("phone", event.target.value.replace(/\D/g, "").slice(0, 10))} aria-invalid={!!fieldErrors.phone} className="mt-1.5 h-10 rounded-xl" />
+                    {fieldErrors.phone && <span className="block text-xs font-semibold text-red-600">{fieldErrors.phone}</span>}
+                  </label>
                 </div>
               </section>
               <label className="block text-xs font-semibold">
@@ -246,11 +339,14 @@ export const InstitutionAccessRequest: React.FC = () => {
                   minLength={10}
                   maxLength={2000}
                   value={form.message}
+                  ref={(element) => { refs.current.message = element; }}
                   onChange={update("message")}
+                  aria-invalid={!!fieldErrors.message}
                   disabled={loading}
                   rows={5}
                   className="mt-1.5 w-full rounded-xl border bg-background px-3 py-2"
                 />
+                {fieldErrors.message && <span className="block text-xs font-semibold text-red-600">{fieldErrors.message}</span>}
               </label>
               <label className="flex items-start gap-3 rounded-xl border p-4 text-xs">
                 <input
@@ -258,15 +354,15 @@ export const InstitutionAccessRequest: React.FC = () => {
                   type="checkbox"
                   checked={form.consent}
                   disabled={loading}
-                  onChange={(e) =>
-                    setForm((c) => ({ ...c, consent: e.target.checked }))
-                  }
+                  ref={(element) => { refs.current.consent = element; }}
+                  onChange={(e) => setValue("consent", e.target.checked)}
                 />
                 <span>
                   I am authorized to submit these institution details and
                   consent to being contacted about this request.
                 </span>
               </label>
+              {fieldErrors.consent && <p className="text-xs font-semibold text-red-600">{fieldErrors.consent}</p>}
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6">
                 <CheckCircle2 className="mb-2 h-5 w-5" />
                 <strong className="mb-1 block font-black">

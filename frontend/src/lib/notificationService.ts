@@ -5,6 +5,7 @@ const NOTIFICATIONS_STORAGE_KEY = "edutrack_local_notifications_v1";
 let activeScope: { institutionId: string; userId: string } | null = null;
 const getNotificationsStorageKey = () =>
   `${NOTIFICATIONS_STORAGE_KEY}_${activeScope ? `${activeScope.institutionId}_${activeScope.userId}` : "unscoped"}`;
+const isDemoNotificationScope = () => activeScope?.institutionId === "demo";
 export function setNotificationSessionScope(
   institutionId: string | null,
   userId: string | null = null,
@@ -61,28 +62,31 @@ const initialSampleNotifications: AppNotification[] = [
 ];
 
 export function getStoredNotifications(): AppNotification[] {
-  if (typeof window === "undefined") return initialSampleNotifications;
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(getNotificationsStorageKey());
+    const storageKey = getNotificationsStorageKey();
+    const raw = localStorage.getItem(storageKey);
     if (!raw) {
-      // If demo data was not cleared, return sample alerts
+      if (!isDemoNotificationScope()) return [];
       const demoCleared = localStorage.getItem(
         `${localDb.getStorageKey()}_demo_cleared`,
       );
-      if (demoCleared === "true") {
-        return [];
-      }
-      localStorage.setItem(
-        getNotificationsStorageKey(),
-        JSON.stringify(initialSampleNotifications),
-      );
+      if (demoCleared === "true") return [];
+      localStorage.setItem(storageKey, JSON.stringify(initialSampleNotifications));
       return initialSampleNotifications;
     }
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed;
+    if (!Array.isArray(parsed)) return [];
+    const containsOnlySeededSamples =
+      parsed.length > 0 &&
+      parsed.every((item) =>
+        initialSampleNotifications.some((sample) => sample.id === item?.id),
+      );
+    if (!isDemoNotificationScope() && containsOnlySeededSamples) {
+      localStorage.removeItem(storageKey);
+      return [];
     }
-    return [];
+    return parsed;
   } catch (err) {
     console.error("Failed to load notifications from localStorage", err);
     return [];

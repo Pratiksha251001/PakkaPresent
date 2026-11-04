@@ -1,6 +1,8 @@
 "use strict";
 const { createHash, randomBytes } = require("node:crypto");
 const { createClient } = require("@supabase/supabase-js");
+const { sendInstitutionInvitationEmail } = require("./institution-invitation-email.cjs");
+const { institutionFieldErrors } = require("./institution-details-validation.cjs");
 const digest = (v) => createHash("sha256").update(v).digest("hex");
 const uuid = (v) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -41,7 +43,15 @@ async function authorize(req, res, url, key) {
 }
 function registerPlatformAccessRequestOperations(
   app,
-  { supabaseUrl, supabaseKey, now = Date.now, random = randomBytes },
+  {
+    supabaseUrl,
+    supabaseKey,
+    now = Date.now,
+    random = randomBytes,
+    env = process.env,
+    fetchImpl = fetch,
+    sendInvitationEmail = sendInstitutionInvitationEmail,
+  },
 ) {
   const route = "/api/platform/institution-access-requests";
   const call = async (client, name, args) => client.rpc(name, args);
@@ -111,8 +121,29 @@ function registerPlatformAccessRequestOperations(
         return res
           .status(400)
           .json({ success: false, message: "A valid request ID is required." });
+      const requestDetail = await call(a.client, "platform_get_access_request", {
+        requested_request_id: req.params.requestId,
+      });
+      const request = requestDetail.data?.[0];
+      const fieldErrors = request
+        ? institutionFieldErrors({
+            institution_code: request.institution_code,
+            dte_code: request.dte_code,
+            official_email: request.official_email,
+            phone: request.phone,
+            state: request.state,
+            city: request.city,
+            student_count: request.student_count,
+          })
+        : { request: "Access request details are unavailable." };
+      if (Object.keys(fieldErrors).length)
+        return res.status(409).json({
+          success: false,
+          message: "Correct the invalid institution details before issuing an invitation.",
+          fieldErrors,
+        });
       const token = random(32).toString("base64url"),
-        code = random(9).toString("base64url").toUpperCase(),
+        code = random(9).toString("base64url").toUpperCase().slice(0, 12),
         hours = Math.min(
           168,
           Math.max(1, Number(req.body?.expiresInHours) || 72),
@@ -135,6 +166,20 @@ function registerPlatformAccessRequestOperations(
             error.code === "P0002" ? 404 : error.code === "P0001" ? 409 : 400,
           )
           .json({ success: false, message: error.message });
+      const recipient = String(request?.official_email || "").trim();
+      const emailDelivery = recipient
+        ? await sendInvitationEmail(
+            {
+              recipient,
+              contactName: request?.contact_name,
+              institutionName: request?.institution_name,
+              token,
+              onboardingCode: code,
+              expiresAt: expires,
+            },
+            { env, fetchImpl },
+          )
+        : { status: "provider_unavailable", recipient: "" };
       return res.status(201).json({
         success: true,
         invitation: {
@@ -142,6 +187,7 @@ function registerPlatformAccessRequestOperations(
           token,
           onboardingCode: code,
           expiresAt: expires,
+          emailDelivery,
         },
       });
     });

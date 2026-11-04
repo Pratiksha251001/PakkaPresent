@@ -35,11 +35,22 @@ export interface PlatformAccessRequest {
   invitation_created_at?: string | null;
   total_count?: number;
 }
+export type InvitationEmailStatus =
+  | "provider_accepted"
+  | "provider_rejected"
+  | "unknown"
+  | "disabled"
+  | "provider_unavailable";
+export interface InvitationEmailDelivery {
+  status: InvitationEmailStatus;
+  recipient: string;
+}
 export interface InvitationCredential {
   id: string;
   token: string;
   onboardingCode: string;
   expiresAt: string;
+  emailDelivery: InvitationEmailDelivery;
 }
 async function token() {
   const { data } = await platformSupabase.auth.getSession();

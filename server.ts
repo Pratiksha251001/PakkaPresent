@@ -9,6 +9,7 @@ import institutionOnboarding from "./backend/institution-onboarding.cjs";
 import institutionAccessRequests from "./backend/institution-access-requests.cjs";
 
 import platformAccessRequestOperations from "./backend/platform-access-request-operations.cjs";
+import indiaLocations from "./backend/india-locations.cjs";
 
 import platformInstitutionLifecycle from "./backend/platform-institution-lifecycle.cjs";
 
@@ -20,6 +21,7 @@ const { registerInstitutionOnboarding } = institutionOnboarding;
 const { registerInstitutionAccessRequests } = institutionAccessRequests;
 const { registerPlatformAccessRequestOperations } =
   platformAccessRequestOperations;
+const { registerIndiaLocations } = indiaLocations;
 const { registerPlatformInstitutionLifecycle } = platformInstitutionLifecycle;
 const { registerPlatformOnboardingRecovery } = platformOnboardingRecovery;
 const { registerPlatformAuditLog } = platformAuditLog;
@@ -825,6 +827,7 @@ async function startServer() {
     }),
   );
   app.use(express.json());
+  registerIndiaLocations(app);
   registerInstitutionOnboarding(app, { admin: supabaseAdmin });
   registerInstitutionAccessRequests(app, { admin: supabaseAdmin });
   registerPlatformAccessRequestOperations(app, { supabaseUrl, supabaseKey });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { ArrowLeft, Building2, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -33,6 +33,8 @@ export const InstitutionOnboarding: React.FC = () => {
   const navigate = useNavigate(),
     { invitationToken = "" } = useParams(),
     [form, setForm] = useState(initial),
+    [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}),
+    refs = useRef<Record<string, HTMLElement | null>>({}),
     [checking, setChecking] = useState(true),
     [valid, setValid] = useState(false),
     [loading, setLoading] = useState(false),
@@ -53,6 +55,10 @@ export const InstitutionOnboarding: React.FC = () => {
           displayName: r.institution?.name || "",
           code: r.institution?.code || "",
           dteCode: r.institution?.dteCode || "",
+          city: r.institution?.city || "",
+          state: r.institution?.state || "",
+          country: r.institution?.country || "India",
+          fullName: r.administratorName || "",
           email: r.administratorEmail || "",
         }));
       })
@@ -75,6 +81,14 @@ export const InstitutionOnboarding: React.FC = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const nextErrors: Record<string, string> = {};
+    if (!form.fullName.trim()) nextErrors.fullName = "Enter the administrator full name.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) nextErrors.email = "Enter a valid official email address.";
+    if (!(form.password.length >= 12 && !/\s/.test(form.password) && /[A-Z]/.test(form.password) && /[a-z]/.test(form.password) && /[0-9]/.test(form.password) && /[^A-Za-z0-9]/.test(form.password))) nextErrors.password = "Use 12+ characters with uppercase, lowercase, number, symbol, and no spaces.";
+    if (!form.onboardingCode.trim()) nextErrors.onboardingCode = "Enter the separate onboarding code.";
+    setFieldErrors(nextErrors);
+    const first = Object.keys(nextErrors)[0];
+    if (first) { refs.current[first]?.focus(); refs.current[first]?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
     if (form.password !== form.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -128,16 +142,20 @@ export const InstitutionOnboarding: React.FC = () => {
       setLoading(false);
     }
   };
-  const field = (l: string, k: keyof typeof initial, required = true) => (
+  const field = (l: string, k: keyof typeof initial, required = true, readOnly = false) => (
     <label className="space-y-1.5 text-xs font-semibold">
       {l}
       <Input
+        ref={(el) => { refs.current[k] = el; }}
         required={required}
+        readOnly={readOnly}
+        aria-invalid={!!fieldErrors[k]}
         value={String(form[k])}
         onChange={update(k)}
         disabled={loading}
         className="mt-1.5 h-10 rounded-xl"
       />
+      {fieldErrors[k] && <span className="mt-1 block text-xs font-semibold text-red-600">{fieldErrors[k]}</span>}
     </label>
   );
   return (
@@ -184,14 +202,14 @@ export const InstitutionOnboarding: React.FC = () => {
                   <Building2 className="h-5 w-5" /> Institution
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {field("Official name", "officialName")}
+                  {field("Official name", "officialName", true, true)}
                   {field("Display name", "displayName")}
-                  {field("Institution code", "code")}
-                  {field("DTE code (optional)", "dteCode", false)}
-                  {field("City (optional)", "city", false)}
+                  {field("Institution code", "code", true, true)}
+                  {field("DTE code (optional)", "dteCode", false, true)}
+                  {field("City", "city", true, true)}
                   {field("District (optional)", "district", false)}
-                  {field("State (optional)", "state", false)}
-                  {field("Country", "country")}
+                  {field("State", "state", true, true)}
+                  {field("Country", "country", true, true)}
                 </div>
               </section>
               <section>
@@ -200,7 +218,7 @@ export const InstitutionOnboarding: React.FC = () => {
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {field("Full name", "fullName")}
-                  {field("Official email", "email")}
+                  {field("Official email", "email", true, true)}
                   <label className="text-xs font-semibold">
                     Password
                     <PasswordInput

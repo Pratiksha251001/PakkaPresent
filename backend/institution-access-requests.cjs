@@ -1,6 +1,9 @@
 "use strict";
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE = /^\+?[0-9][0-9 -]{7,18}[0-9]$/;
+const {
+  institutionFieldErrors,
+  normalizeInstitutionCode,
+  normalizeDigits,
+} = require("./institution-details-validation.cjs");
 const TYPES = new Set([
   "college",
   "university",
@@ -38,12 +41,12 @@ function normalize(b) {
   return {
     institution_name: clean(b?.institutionName, 200),
     institution_type: clean(b?.institutionType, 40).toLowerCase(),
-    institution_code: clean(b?.institutionCode, 64).toUpperCase() || null,
-    dte_code: clean(b?.dteCode, 64) || null,
+    institution_code: normalizeInstitutionCode(b?.institutionCode) || null,
+    dte_code: normalizeDigits(b?.dteCode, 32) || null,
     contact_name: clean(b?.contactName, 160),
     designation: clean(b?.designation, 120),
     official_email: clean(b?.officialEmail, 254).toLowerCase(),
-    phone: clean(b?.phone, 24),
+    phone: normalizeDigits(b?.phone, 10),
     city: clean(b?.city, 120),
     state: clean(b?.state, 120),
     student_count: count,
@@ -56,10 +59,9 @@ function invalid(v) {
   if (!TYPES.has(v.institution_type)) return "Select a valid institution type.";
   if (!v.contact_name || !v.designation)
     return "Enter the authorized contact details.";
-  if (!EMAIL.test(v.official_email))
-    return "Enter a valid official email address.";
-  if (!PHONE.test(v.phone)) return "Enter a valid phone number.";
-  if (!v.city || !v.state) return "Enter the institution city and state.";
+  const fieldErrors = institutionFieldErrors(v);
+  if (Object.keys(fieldErrors).length)
+    return { message: "Correct the highlighted institution details.", fieldErrors };
   if (v.message.length < 10)
     return "Enter a short description of the institution requirements.";
   if (!v.consent_to_contact)
@@ -105,7 +107,12 @@ function registerInstitutionAccessRequests(
       });
     const value = normalize(req.body || {}),
       message = invalid(value);
-    if (message) return res.status(400).json({ success: false, message });
+    if (message)
+      return res.status(400).json({
+        success: false,
+        message: typeof message === "string" ? message : message.message,
+        ...(typeof message === "string" ? {} : { fieldErrors: message.fieldErrors }),
+      });
     const duplicate = await admin
       .from("institution_access_requests")
       .select("id")
