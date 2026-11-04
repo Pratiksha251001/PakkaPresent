@@ -102,6 +102,8 @@ function harness(options = {}) {
         user_id: user.id,
         roll_number: "ROLL-TEST",
         email: user.email,
+        institution_id: "institution-test",
+        status: "active",
         department_id: "dept-test",
         full_name: "Test Student",
       },
@@ -150,8 +152,16 @@ function harness(options = {}) {
       if (table === "institutions")
         return {
           data: options.inactiveInstitution
-            ? { id: "institution-test", status: "inactive" }
-            : { id: "institution-test", status: "active" },
+            ? {
+                id: "institution-test",
+                display_name: "Test Institution",
+                status: "inactive",
+              }
+            : {
+                id: "institution-test",
+                display_name: "Test Institution",
+                status: "active",
+              },
           error: null,
         };
       if (table === "students")
@@ -214,6 +224,8 @@ function harness(options = {}) {
           hasCustomPassword: () => true,
           isDefaultPassword: () => false,
         };
+      if (name === "../lib/institutionBrandingService")
+        return { fetchInstitutionLogoPath: async () => null };
       if (name === "../lib/notificationService")
         return {
           setNotificationSessionScope: () => {},
@@ -439,7 +451,8 @@ async function main() {
     const h = harness({
       storage: {
         edutrack_is_demo: "true",
-        edutrack_user: '{"id":"demo"}',
+        edutrack_user:
+          '{"id":"demo","institution_id":"demo","institution_name":"PakkaPresent Demo Institution","email":"demo@example.invalid","full_name":"Demo Teacher"}',
         edutrack_role: "teacher",
       },
     });

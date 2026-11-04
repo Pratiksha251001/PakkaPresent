@@ -369,6 +369,34 @@ export const PlatformAccessRequests: React.FC = () => {
                   <p className="mt-1 text-xs">
                     They are returned once and are not stored as plaintext.
                   </p>
+                  <div
+                    className={`mt-3 rounded-lg border p-3 text-sm ${
+                      credential.emailDelivery.status === "provider_accepted"
+                        ? "border-emerald-500/40 bg-emerald-500/10"
+                        : "border-amber-500/40 bg-amber-500/10"
+                    }`}
+                  >
+                    <p className="font-bold">
+                      {credential.emailDelivery.status === "provider_accepted"
+                        ? "Invitation email accepted by EmailJS"
+                        : credential.emailDelivery.status === "provider_rejected"
+                          ? "EmailJS rejected the invitation email"
+                          : credential.emailDelivery.status === "unknown"
+                            ? "EmailJS delivery outcome is unknown"
+                            : credential.emailDelivery.status === "disabled"
+                              ? "Automatic invitation email is disabled"
+                              : "Invitation email provider is unavailable"}
+                    </p>
+                    {credential.emailDelivery.recipient && (
+                      <p className="mt-1 break-all text-xs">
+                        Recipient: {credential.emailDelivery.recipient}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Provider acceptance does not confirm inbox delivery. Copy the
+                      credentials below as a manual fallback.
+                    </p>
+                  </div>
                   <div className="mt-3 space-y-2 font-mono text-xs">
                     <p className="break-all">Token: {credential.token}</p>
                     <p>Code: {credential.onboardingCode}</p>
@@ -429,7 +457,10 @@ Code: ${credential.onboardingCode}`)
                   disabled={!!busy}
                   onClick={() => void act(invitationAction)}
                 >
-                  Reissue invitation
+                  {credential &&
+                  credential.emailDelivery.status !== "provider_accepted"
+                    ? "Issue replacement and retry email"
+                    : "Reissue invitation"}
                 </Button>
                 <Button
                   variant="destructive"

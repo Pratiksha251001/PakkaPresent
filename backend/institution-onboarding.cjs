@@ -65,7 +65,7 @@ function registerInstitutionOnboarding(
     const q = await admin
       .from("institution_onboarding_invitations")
       .select(
-        "status,expires_at,request_id,institution_access_requests(institution_name,institution_code,dte_code,official_email)",
+        "status,expires_at,request_id,institution_access_requests(institution_name,institution_code,dte_code,official_email,contact_name,city,state)",
       )
       .eq("token_digest", digest(token))
       .maybeSingle();
@@ -86,7 +86,11 @@ function registerInstitutionOnboarding(
         name: r.institution_name,
         code: r.institution_code,
         dteCode: r.dte_code,
+        city: r.city,
+        state: r.state,
+        country: "India",
       },
+      administratorName: r.contact_name,
       administratorEmail: r.official_email,
       expiresAt: q.data.expires_at,
     });

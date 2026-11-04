@@ -2,7 +2,8 @@ import { apiFetch } from "./api";
 export interface InvitationDetails {
   success: boolean;
   message?: string;
-  institution?: { name: string; code?: string; dteCode?: string };
+  institution?: { name: string; code?: string; dteCode?: string; city?: string; state?: string; country?: string };
+  administratorName?: string;
   administratorEmail?: string;
   expiresAt?: string;
 }
@@ -23,6 +24,7 @@ export interface InstitutionOnboardingPayload {
 }
 export interface InstitutionOnboardingResult {
   success: boolean;
+  fieldErrors?: Record<string, string>;
   message?: string;
   recoveryRequired?: boolean;
   requestId?: string;
@@ -56,6 +58,7 @@ export async function onboardInstitution(
         success: false,
         message:
           result.message || "Institution onboarding could not be completed.",
+        fieldErrors: result.fieldErrors,
         recoveryRequired: result.recoveryRequired,
         requestId: result.requestId,
       };

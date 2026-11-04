@@ -29,6 +29,7 @@ test("Render blueprint uses repository root and root production scripts", () => 
 
 test("selected root server contains the production email routes", () => {
   assert.match(rootServer, /registerParentNotificationDispatch/);
+  assert.match(rootServer, /platform-access-request-operations\.cjs/);
   assert.match(rootServer, /"\/api\/email\/send"/);
   assert.match(rootServer, /"\/api\/health"/);
   assert.doesNotMatch(limitedServer, /"\/api\/email\/send"/);
@@ -40,3 +41,5 @@ test("production server registers bearer-authenticated Phase 7C operations", () 
   assert.doesNotMatch(rootServer, /registerInstitutionInvitationApproval/);
   assert.match(rootServer, /registerPlatformAuditLog/);
 });
+
+test("production server registers India location endpoints", () => { assert.match(rootServer, /registerIndiaLocations/); });
