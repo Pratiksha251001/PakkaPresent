@@ -1,3 +1,4 @@
+import { apiUrl } from "../api";
 import { platformSupabase } from "./platformAuth";
 export interface PlatformAuditEvent {
   event_id: string;
@@ -31,9 +32,12 @@ export async function listPlatformAuditEvents(
   if (options.institutionId) query.set("institutionId", options.institutionId);
   query.set("limit", String(options.limit ?? 25));
   query.set("offset", String(options.offset ?? 0));
-  const response = await fetch(`/api/platform/audit-events?${query}`, {
-    headers: await authHeaders(),
-  });
+  const response = await fetch(
+    apiUrl(`/api/platform/audit-events?${query}`),
+    {
+      headers: await authHeaders(),
+    },
+  );
   const body = await response.json().catch(() => ({}));
   if (!response.ok)
     throw new Error(body.message || "Unable to load the platform audit log.");
