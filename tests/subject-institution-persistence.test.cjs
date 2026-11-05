@@ -24,3 +24,16 @@ test("subject and faculty assignment writes use authenticated institution", () =
   );
   assert.ok(saveHandler.includes('myDepartmentId === "dept-1"'));
 });
+
+test("syllabus subject imports persist instead of mutating browser arrays", () => {
+  const modal = fs.readFileSync(
+    path.join(__dirname, "../frontend/src/components/SyllabusImportModal.tsx"),
+    "utf8",
+  );
+  assert.match(modal, /const handleExecuteImport = async \(\) =>/);
+  assert.match(modal, /await localDb\.insert\("subjects"/);
+  assert.match(modal, /await localDb\.update\("subjects"/);
+  assert.match(modal, /await localDb\.insert\("teacher_subjects"/);
+  assert.doesNotMatch(modal, /localDb\.subjects\.push/);
+  assert.doesNotMatch(modal, /localDb\.teacher_subjects\.push/);
+});

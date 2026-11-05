@@ -91,3 +91,18 @@ test("remaining critical Phase 5 isolation guards are present", () => {
     /async upsertAttendance[\s\S]*captureScope\(\)[\s\S]*assertScopeCurrent/,
   );
 });
+
+test("subjects and faculty assignments receive tenant-scoped realtime updates", () => {
+  assert.match(
+    db,
+    /table: "subjects",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
+  );
+  assert.match(
+    db,
+    /table: "teacher_subjects",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
+  );
+  assert.match(
+    db,
+    /TENANT_SCOPED_WRITE_TABLES\.has\(table\)[\s\S]*?record\?\.institution_id !== scope\.institutionId/,
+  );
+});

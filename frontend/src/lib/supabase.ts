@@ -837,6 +837,33 @@ class LocalDatabase {
         (change) =>
           this.applyRealtimeChange(scope, generation, "departments", change),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "subjects",
+          filter: `institution_id=eq.${scope.institutionId}`,
+        },
+        (change) =>
+          this.applyRealtimeChange(scope, generation, "subjects", change),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "teacher_subjects",
+          filter: `institution_id=eq.${scope.institutionId}`,
+        },
+        (change) =>
+          this.applyRealtimeChange(
+            scope,
+            generation,
+            "teacher_subjects",
+            change,
+          ),
+      )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           console.warn(
@@ -856,6 +883,14 @@ class LocalDatabase {
     const current = ((this as any)[table] || []) as any[];
     const record = change.new;
     const oldId = change.old?.id;
+    if (
+      TENANT_SCOPED_WRITE_TABLES.has(table) &&
+      (change.eventType === "INSERT" || change.eventType === "UPDATE") &&
+      record?.institution_id !== scope.institutionId
+    ) {
+      console.warn(`Ignored out-of-scope realtime ${table} record.`);
+      return;
+    }
     let next = current;
 
     if (change.eventType === "INSERT" && record?.id) {
@@ -1308,7 +1343,11 @@ class LocalDatabase {
 
           if (error) {
             console.error(`Supabase update error for ${table}:`, error);
-            if (table === "teachers" || table === "students") {
+            if (
+              table === "teachers" ||
+              table === "students" ||
+              TENANT_SCOPED_WRITE_TABLES.has(table)
+            ) {
               throw new Error(
                 `${table === "teachers" ? "Teacher" : "Student"} update failed in Supabase: ${error.message}`,
               );
@@ -1320,7 +1359,11 @@ class LocalDatabase {
           }
 
           console.error(`Supabase update exception on ${table}:`, err);
-          if (table === "teachers" || table === "students") {
+          if (
+              table === "teachers" ||
+              table === "students" ||
+              TENANT_SCOPED_WRITE_TABLES.has(table)
+            ) {
             list[idx] = previous;
             this.persist(table);
             throw err instanceof Error

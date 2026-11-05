@@ -21,15 +21,19 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ref,
   ) => {
     const [open, setOpen] = useState(false);
+    const selectedOptionLabel = options?.find(
+      (option) => option.value === String(value ?? ""),
+    )?.label;
     if (options || !children) {
       return (
         <select
           ref={ref}
           className={cn(
-            "flex h-10 w-full rounded-xl border-2 border-foreground/45 bg-card px-3 py-2 text-sm font-medium shadow-none transition-colors focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50",
+            "flex h-10 w-full truncate rounded-xl border-2 border-foreground/45 bg-card py-2 pl-3 pr-10 text-sm font-medium shadow-none transition-colors focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50",
             className,
           )}
           {...props}
+          title={props.title || selectedOptionLabel}
           value={value}
           onChange={onChange}
         >

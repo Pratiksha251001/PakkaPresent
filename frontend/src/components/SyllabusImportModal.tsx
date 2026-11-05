@@ -29,6 +29,22 @@ import {
   getEngineeringYearCode,
 } from "../lib/engineeringUtils";
 
+interface SubjectImportProgress {
+  current: number;
+  total: number;
+  code: string;
+  name: string;
+  phase: "saving_subject" | "saving_assignment";
+}
+
+interface SubjectImportResult {
+  processed: number;
+  created: number;
+  updated: number;
+  assignmentsCreated: number;
+  assignmentsSkipped: number;
+}
+
 interface SyllabusImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -70,8 +86,13 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
 
   // 2. Upload and Parsing State
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] =
+    useState<SubjectImportProgress | null>(null);
+  const [importResult, setImportResult] =
+    useState<SubjectImportResult | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [rawUploadedText, setRawUploadedText] = useState<string | null>(null);
 
@@ -141,7 +162,9 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
     }
   };
 
-  const handleClearImportedSubjects = () => {
+  const resetImportSession = () => {
+    setImportResult(null);
+    setImportProgress(null);
     setUploadedFileName(null);
     setRawUploadedText(null);
     setSubjectsList([]);
@@ -185,100 +208,158 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
       : `Semester ${selectedSemester}`;
 
   // Execute Import
-  const handleExecuteImport = () => {
-    const toImport = subjectsList.filter((s) => s.selected);
+  const handleExecuteImport = async () => {
+    const toImport = subjectsList.filter((subject) => subject.selected);
     if (toImport.length === 0) {
       setError("Please select at least one subject to import.");
       return;
     }
-
+    setIsImporting(true);
+    setError(null);
+    setImportResult(null);
+    const createdSubjectIds: string[] = [];
+    const createdAssignmentIds: string[] = [];
+    let createdCount = 0;
+    let updatedCount = 0;
+    let assignmentsCreated = 0;
+    let assignmentsSkipped = 0;
     try {
-      let addedCount = 0;
-      toImport.forEach((sub) => {
-        const newSubjectId = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-        // Check if subject code already exists in dept
-        const existingIdx = localDb.subjects.findIndex(
-          (s) =>
-            s.code.toLowerCase() === sub.code.toLowerCase() &&
-            s.department_id === (sub.department_id || selectedDeptId),
+      for (let index = 0; index < toImport.length; index += 1) {
+        const subject = toImport[index];
+        setImportProgress({
+          current: index + 1,
+          total: toImport.length,
+          code: subject.code,
+          name: subject.name,
+          phase: "saving_subject",
+        });
+        const departmentId = subject.department_id || selectedDeptId;
+        const existing = localDb.subjects.find(
+          (candidate) =>
+            candidate.code.toLowerCase() === subject.code.toLowerCase() &&
+            candidate.department_id === departmentId,
         );
-
-        if (existingIdx >= 0) {
-          // Update existing
-          localDb.subjects[existingIdx] = {
-            ...localDb.subjects[existingIdx],
-            name: sub.name,
-            semester: sub.semester,
-            year: sub.year,
-            credits: sub.credits,
-          };
-        } else {
-          // Insert new
-          localDb.subjects.push({
-            id: newSubjectId,
-            code: sub.code,
-            name: sub.name,
-            department_id: sub.department_id || selectedDeptId,
-            year: sub.year,
-            semester: sub.semester,
-            credits: sub.credits,
-            created_at: new Date().toISOString(),
+        let subjectId: string;
+        let subjectWasCreated = false;
+        if (existing) {
+          const updated = await localDb.update("subjects", existing.id, {
+            name: subject.name,
+            semester: subject.semester,
+            year: subject.year,
+            credits: subject.credits,
           });
-          addedCount++;
+          if (!updated) {
+            throw new Error(`Unable to update subject ${subject.code}.`);
+          }
+          subjectId = existing.id;
+          updatedCount += 1;
+        } else {
+          const [created] = await localDb.insert("subjects", [
+            {
+              code: subject.code,
+              name: subject.name,
+              department_id: departmentId,
+              year: subject.year,
+              semester: subject.semester,
+              credits: subject.credits,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+          if (!created) {
+            throw new Error(`Unable to create subject ${subject.code}.`);
+          }
+          subjectId = created.id;
+          subjectWasCreated = true;
+          createdSubjectIds.push(subjectId);
+          createdCount += 1;
         }
 
-        // If a teacher was assigned, map to teacher_subjects
-        if (sub.assigned_teacher_id) {
-          const subjectRecordId =
-            existingIdx >= 0 ? localDb.subjects[existingIdx].id : newSubjectId;
+        if (subject.assigned_teacher_id) {
+          setImportProgress({
+            current: index + 1,
+            total: toImport.length,
+            code: subject.code,
+            name: subject.name,
+            phase: "saving_assignment",
+          });
           const alreadyMapped = localDb.teacher_subjects.some(
-            (ts) =>
-              ts.teacher_id === sub.assigned_teacher_id &&
-              ts.subject_id === subjectRecordId,
+            (assignment) =>
+              assignment.teacher_id === subject.assigned_teacher_id &&
+              assignment.subject_id === subjectId,
           );
-          if (!alreadyMapped) {
-            localDb.teacher_subjects.push({
-              id: `ts_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-              teacher_id: sub.assigned_teacher_id,
-              subject_id: subjectRecordId,
-            });
+          if (alreadyMapped) {
+            assignmentsSkipped += 1;
+          } else {
+            try {
+              const [assignment] = await localDb.insert("teacher_subjects", [
+                {
+                  teacher_id: subject.assigned_teacher_id,
+                  subject_id: subjectId,
+                  year: subject.year,
+                  semester: subject.semester,
+                  created_at: new Date().toISOString(),
+                },
+              ]);
+              if (!assignment) {
+                throw new Error("Faculty assignment was not created.");
+              }
+              createdAssignmentIds.push(assignment.id);
+              assignmentsCreated += 1;
+            } catch (assignmentError) {
+              if (subjectWasCreated) {
+                await localDb.delete("subjects", subjectId);
+                createdSubjectIds.splice(createdSubjectIds.indexOf(subjectId), 1);
+                createdCount -= 1;
+              }
+              throw assignmentError;
+            }
           }
         }
-      });
-
-      // Notify database listeners
-      window.dispatchEvent(
-        new CustomEvent("localDbUpdate", { detail: { table: "subjects" } }),
-      );
-      window.dispatchEvent(
-        new CustomEvent("localDbUpdate", {
-          detail: { table: "teacher_subjects" },
-        }),
-      );
-
-      setSuccessMessage(
-        `✓ Successfully imported ${toImport.length} subjects for ${yearLabel} (${semLabel})!`,
-      );
-
-      if (onImportComplete) {
-        onImportComplete(toImport.length);
       }
 
-      setTimeout(() => {
-        onOpenChange(false);
-        setSuccessMessage(null);
-      }, 1300);
+      setImportProgress(null);
+      setImportResult({
+        processed: toImport.length,
+        created: createdCount,
+        updated: updatedCount,
+        assignmentsCreated,
+        assignmentsSkipped,
+      });
+      onImportComplete?.(toImport.length);
+      window.setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
     } catch (err: any) {
+      for (const assignmentId of [...createdAssignmentIds].reverse()) {
+        await localDb.delete("teacher_subjects", assignmentId);
+      }
+      for (const subjectId of [...createdSubjectIds].reverse()) {
+        await localDb.delete("subjects", subjectId);
+      }
       setError(err.message || "Error importing subjects into database.");
+    } finally {
+      setImportProgress(null);
+      setIsImporting(false);
     }
   };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] flex flex-col p-0 overflow-hidden bg-background">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen || !isImporting) onOpenChange(nextOpen);
+      }}
+    >
+      <DialogContent
+        onEscapeKeyDown={(event) => {
+          if (isImporting) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (isImporting) event.preventDefault();
+        }}
+        className="w-[min(1000px,calc(100vw-2rem))] max-w-none max-h-[90vh] flex flex-col overflow-hidden rounded-2xl bg-background p-0 shadow-2xl"
+      >
         {/* Header */}
-        <DialogHeader className="p-5 pb-3.5 border-b border-border bg-card/60">
+        <DialogHeader className="shrink-0 border-b border-border bg-card px-6 py-5 sm:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
@@ -304,9 +385,9 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
         </DialogHeader>
 
         {/* Body Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 pr-8 [scrollbar-width:thin] sm:px-8 sm:py-6 sm:pr-10">
           {/* STEP 1: Required Scope Selectors (Year, Semester, Department) */}
-          <div className="p-4 bg-muted/40 rounded-xl border border-border space-y-3">
+          <div className="space-y-4 rounded-xl border border-border bg-muted/40 p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <School className="h-3.5 w-3.5 text-primary" /> Step 1: Select
@@ -317,7 +398,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
               </span>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.25fr_1fr_1.15fr]">
               {/* Engineering Year */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-foreground flex items-center gap-1">
@@ -377,7 +458,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
           </div>
 
           {/* STEP 2: Syllabus PDF Upload */}
-          <div className="p-4 bg-card rounded-xl border border-border space-y-3">
+          <div className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5 text-primary" /> Step 2:
@@ -387,7 +468,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
               {uploadedFileName ? (
                 <button
                   type="button"
-                  onClick={handleClearImportedSubjects}
+                  onClick={resetImportSession}
                   className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
                 >
                   <RefreshCw className="h-3 w-3" /> Clear Imported Subjects
@@ -409,7 +490,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
             {/* Clean, compact drag/drop or click zone */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 transition-colors rounded-xl p-4 text-center cursor-pointer flex flex-col items-center justify-center gap-2"
+              className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2 text-xs text-primary font-medium py-2">
@@ -452,23 +533,73 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
             </div>
           )}
 
-          {successMessage && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-700 dark:text-emerald-400 flex items-center gap-2 font-medium">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>{successMessage}</span>
+          {(isImporting && importProgress) || importResult ? (
+            <div
+              ref={resultRef}
+              role="status"
+              aria-live="polite"
+              className="rounded-xl border border-primary/30 bg-primary/5 p-4"
+            >
+              {isImporting && importProgress ? (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {importProgress.phase === "saving_assignment"
+                          ? "Creating faculty assignment"
+                          : `Saving subject ${importProgress.current} of ${importProgress.total}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {importProgress.code} • {importProgress.name}
+                      </p>
+                    </div>
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{
+                        width: `${Math.round(
+                          (importProgress.current / importProgress.total) * 100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : importResult ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
+                    <div>
+                      <p className="font-semibold text-foreground">Import completed</p>
+                      <p className="text-xs text-muted-foreground">
+                        The Subjects page has been updated. Review the result, then select Done.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-5">
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.processed}</p><p>Processed</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.created}</p><p>Created</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.updated}</p><p>Updated</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.assignmentsCreated}</p><p>Assignments</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.assignmentsSkipped}</p><p>Unchanged</p></div>
+                  </div>
+                </div>
+              ) : null}
             </div>
-          )}
+          ) : null}
 
           {/* STEP 3: Subjects List for the Selected Year & Semester */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground">
+          {!importResult && <div className="space-y-2">
+            <div className="flex flex-col gap-3 text-xs sm:flex-row sm:items-end sm:justify-between">
+              <div className="space-y-1">
+                <span className="block font-bold text-foreground">
                   Subjects for {yearLabel} • {semLabel}
                 </span>
-                <Badge variant="secondary" className="font-mono text-xs">
-                  {subjectsList.length} Found
-                </Badge>
+                <p className="text-[11px] text-muted-foreground">
+                  {subjectsList.length} subject
+                  {subjectsList.length === 1 ? "" : "s"} found
+                </p>
               </div>
 
               <div className="flex items-center gap-2 text-xs">
@@ -493,9 +624,8 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
             {/* Streamlined Subjects Cards / List */}
             <div className="border border-border rounded-xl divide-y divide-border overflow-hidden bg-card">
               {subjectsList.length === 0 ? (
-                <div className="p-6 text-center text-xs text-muted-foreground">
-                  No courses found for this year & semester in the syllabus
-                  document.
+                <div className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-5 py-6 text-center text-xs text-muted-foreground">
+                  Upload a syllabus to view subjects for this semester.
                 </div>
               ) : (
                 subjectsList.map((subject, idx) => (
@@ -563,19 +693,20 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
                 ))
               )}
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Footer with Summary & Big Import Action */}
-        <div className="p-4 border-t border-border bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="text-xs">
-            <span className="font-bold text-foreground">
+        <div className="shrink-0 border-t border-border bg-background px-6 py-4 sm:px-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+<div className="space-y-0.5 text-xs">
+            <p className="font-bold text-foreground">
               {selectedCount} of {subjectsList.length} subjects selected
-            </span>
-            <span className="text-muted-foreground ml-1.5">
-              ({totalCredits} Total Credits) for{" "}
-              {getEngineeringYearCode(selectedYear)} {semLabel}
-            </span>
+            </p>
+            <p className="text-muted-foreground">
+              {totalCredits} total credits • {getEngineeringYearCode(selectedYear)} •{" "}
+              {semLabel}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -583,19 +714,37 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
+              disabled={isImporting}
             >
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={handleExecuteImport}
-              disabled={selectedCount === 0}
-              className="font-semibold shadow-sm"
-            >
-              <Check className="mr-1.5 h-4 w-4" /> Import {selectedCount}{" "}
-              Subjects
-            </Button>
+            {importResult ? (
+              <Button
+                size="sm"
+                onClick={() => {
+                  resetImportSession();
+                  onOpenChange(false);
+                }}
+              >
+                Done
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleExecuteImport}
+                disabled={selectedCount === 0 || isImporting}
+                className="font-semibold shadow-sm disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70"
+              >
+                {isImporting ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="mr-1.5 h-4 w-4" />
+                )}
+                {isImporting ? "Persisting subjects..." : `Import ${selectedCount} Subjects`}
+              </Button>
+            )}
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
