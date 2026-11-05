@@ -314,15 +314,14 @@ export const Attendance: React.FC = () => {
     );
 
     if (selectedClassName && selectedClassName !== "all") {
-      const filtered = list.filter((st) => {
+      const matchedClass = academicClasses.find(
+        (c) => c.name === selectedClassName || c.id === selectedClassName,
+      );
+      list = list.filter((st) => {
+        if (matchedClass && st.class_id) return st.class_id === matchedClass.id;
         if (st.class_name) return st.class_name === selectedClassName;
-        const matchedClass = academicClasses.find(
-          (c) => c.name === selectedClassName || c.id === selectedClassName,
-        );
-        if (matchedClass && st.class_id === matchedClass.id) return true;
         return st.section === selectedClassName;
       });
-      list = filtered;
     }
 
     return list;
@@ -342,7 +341,7 @@ export const Attendance: React.FC = () => {
         st.full_name.toLowerCase().includes(q) ||
         st.roll_number.toLowerCase().includes(q) ||
         (st.class_name && st.class_name.toLowerCase().includes(q)) ||
-        (st.parent_name && st.parent_name.toLowerCase().includes(q)),
+        (st.parent_email && st.parent_email.toLowerCase().includes(q)),
     );
   }, [cohortStudents, searchQuery]);
 
@@ -1028,14 +1027,17 @@ export const Attendance: React.FC = () => {
                     <TableHead className="min-w-[210px] font-bold">
                       Student Name
                     </TableHead>
-                    <TableHead className="min-w-[100px] font-bold">
-                      Class / Div
+                    <TableHead className="min-w-[90px] text-center font-bold">
+                      Semester
                     </TableHead>
-                    <TableHead className="min-w-[190px] font-bold">
-                      Guardian Contact
+                    <TableHead className="min-w-[140px] text-center font-bold">
+                      Class / Division
+                    </TableHead>
+                    <TableHead className="min-w-[210px] font-bold">
+                      Guardian Email
                     </TableHead>
 
-                    <TableHead className="min-w-[220px] text-right font-bold pr-4">
+                    <TableHead className="min-w-[220px] text-center font-bold">
                       Attendance Action
                     </TableHead>
                   </TableRow>
@@ -1044,6 +1046,14 @@ export const Attendance: React.FC = () => {
                   {displayedStudents.map((st, idx) => {
                     const status = attendanceState[st.id] || "present";
                     const isAbsent = status === "absent";
+                    const assignedClass = st.class_id
+                      ? academicClasses.find(
+                          (academicClass) => academicClass.id === st.class_id,
+                        )
+                      : undefined;
+                    const classDisplayName =
+                      assignedClass?.name || st.class_name || "—";
+                    const guardianEmail = st.parent_email?.trim() || "";
                     return (
                       <TableRow
                         key={st.id}
@@ -1066,39 +1076,46 @@ export const Attendance: React.FC = () => {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {st.class_name ? (
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[10px] font-bold"
+                          >
+                            Sem {st.semester}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {classDisplayName === "—" ? (
+                            <span className="text-muted-foreground text-[11px]">
+                              —
+                            </span>
+                          ) : (
                             <Badge
                               variant="outline"
                               className="font-mono text-[10px] font-bold"
                             >
-                              {st.class_name}
+                              {classDisplayName}
                             </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-[11px]">
-                              Sem {st.semester}
-                            </span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="space-y-0.5">
-                            <p className="font-medium text-foreground truncate max-w-[160px]">
-                              {st.parent_name || "Guardian"}
-                            </p>
-                            <p className="font-mono text-[11px] text-muted-foreground">
-                              {st.parent_mobile ? (
-                                <span>📱 {st.parent_mobile}</span>
-                              ) : (
-                                <span className="text-destructive font-semibold">
-                                  No Mobile
-                                </span>
-                              )}
-                            </p>
-                          </div>
+                          {guardianEmail ? (
+                            <a
+                              href={`mailto:${guardianEmail}`}
+                              title={guardianEmail}
+                              className="block max-w-[190px] truncate text-[11px] font-medium text-foreground hover:text-primary hover:underline"
+                            >
+                              {guardianEmail}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground text-[11px]">
+                              —
+                            </span>
+                          )}
                         </TableCell>
 
-                        <TableCell className="text-right pr-4">
-                          <div className="inline-flex items-center gap-1.5">
+                        <TableCell className="text-center">
+                          <div className="inline-flex items-center justify-center gap-1.5">
                             <Button
                               size="sm"
                               variant={!isAbsent ? "default" : "outline"}
