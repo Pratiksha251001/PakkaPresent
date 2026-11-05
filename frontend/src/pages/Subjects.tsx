@@ -17,6 +17,8 @@ export const Subjects: React.FC = () => {
     localDb.teacher_subjects,
   );
   const [syllabusModalOpen, setSyllabusModalOpen] = useState(false);
+  const [subjectDataVersion, setSubjectDataVersion] = useState(0);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -49,7 +51,13 @@ export const Subjects: React.FC = () => {
 
   return (
     <>
+      {importNotice && (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          {importNotice}
+        </div>
+      )}
       <CrudPage<Subject>
+        key={`subjects-${subjectDataVersion}`}
         title="Subjects & Curriculum"
         table="subjects"
         recordLabel="subjects"
@@ -218,6 +226,16 @@ export const Subjects: React.FC = () => {
         open={syllabusModalOpen}
         onOpenChange={setSyllabusModalOpen}
         defaultDepartmentId={coordinatorDeptId}
+        onImportComplete={(count) => {
+          setDepartments([...localDb.departments]);
+          setTeachers([...localDb.teachers]);
+          setTeacherSubjects([...localDb.teacher_subjects]);
+          setSubjectDataVersion((version) => version + 1);
+          setImportNotice(
+            `${count} subject${count === 1 ? "" : "s"} saved successfully.`,
+          );
+          window.setTimeout(() => setImportNotice(null), 5000);
+        }}
       />
     </>
   );
