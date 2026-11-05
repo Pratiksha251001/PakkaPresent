@@ -117,7 +117,7 @@ export const Subjects: React.FC = () => {
           {
             header: "Code",
             render: (s) => (
-              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-muted text-foreground">
+              <span className="inline-flex items-center whitespace-nowrap rounded bg-muted/80 px-2 py-0.5 font-mono text-xs font-bold text-foreground">
                 {s.code}
               </span>
             ),
