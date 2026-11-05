@@ -1558,4 +1558,9 @@ grant execute on function public.platform_get_institution(uuid) to authenticated
 comment on function public.platform_get_institution(uuid) is 'Read-only institution detail with access-request email and institution-admin profile fallback; exposes no credential digests.';
 notify pgrst, 'reload schema';
 commit;
+
+-- Persist each student's authoritative academic-class relationship.
+alter table public.students
+  add column if not exists class_id uuid references public.academic_classes(id) on delete set null;
+create index if not exists idx_students_class_id on public.students(class_id);
 `;
