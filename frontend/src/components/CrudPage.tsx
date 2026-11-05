@@ -123,6 +123,9 @@ export function CrudPage<T extends { id: string }>({
   }, [data, search, searchKeys, sortItems]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
+  useEffect(() => {
+    setPage((current) => Math.min(current, Math.max(totalPages - 1, 0)));
+  }, [totalPages]);
   const pageItems = filtered.slice(page * pageSize, (page + 1) * pageSize);
 
   const openAdd = () => {
@@ -515,19 +518,26 @@ export function CrudPage<T extends { id: string }>({
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this record?")) {
+    if (!window.confirm("Are you sure you want to delete this record?")) return;
+    try {
       await localDb.delete(table, id);
       if (table === "subjects") {
-        const toDelete = localDb.teacher_subjects.filter(
-          (ts) => ts.subject_id === id,
+        const assignments = localDb.teacher_subjects.filter(
+          (assignment) => assignment.subject_id === id,
         );
-        for (const ts of toDelete) {
-          await localDb.delete("teacher_subjects", ts.id);
+        for (const assignment of assignments) {
+          await localDb.delete("teacher_subjects", assignment.id);
         }
-        window.dispatchEvent(new CustomEvent("edutrack_data_updated"));
       }
       const updated = await localDb.get(table);
       setData([...updated]);
+    } catch (error) {
+      console.error("CrudPage delete failed:", error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "The record could not be deleted.",
+      );
     }
   };
 

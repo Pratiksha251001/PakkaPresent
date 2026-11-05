@@ -10,15 +10,9 @@ test("subject realtime listeners are institution filtered", () => {
     source.indexOf("private subscribeToRealtime"),
     source.indexOf("private applyRealtimeChange"),
   );
-  assert.match(realtime, /table: "subjects"/);
-  assert.match(realtime, /table: "teacher_subjects"/);
-  assert.equal(
-    (realtime.match(/filter: `institution_id=eq\.\$\{scope\.institutionId\}`/g) || [])
-      .length,
-    2,
-  );
+  assert.match(realtime, /const realtimeTables = \[[\s\S]*?"subjects"[\s\S]*?"teacher_subjects"/);
+  assert.match(realtime, /table,[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/);
 });
-
 test("out-of-scope realtime writes are ignored defensively", () => {
   const apply = source.slice(
     source.indexOf("private applyRealtimeChange"),

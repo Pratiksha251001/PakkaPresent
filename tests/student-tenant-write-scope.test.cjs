@@ -14,7 +14,7 @@ test("student writes derive tenant ownership from verified session scope", () =>
 
   assert.match(
     source,
-    /new Set\(\["students", "subjects", "teacher_subjects"\]\)/,
+    /TENANT_SCOPED_WRITE_TABLES[\s\S]*?"students"[\s\S]*?"subjects"[\s\S]*?"teacher_subjects"/,
   );
 
   assert.match(

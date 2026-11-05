@@ -53,6 +53,12 @@ export const HODClasses: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AcademicClass | null>(null);
   const [divisionNotice, setDivisionNotice] = useState<string | null>(null);
+  const [isSettingUpDivisions, setIsSettingUpDivisions] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -101,6 +107,7 @@ export const HODClasses: React.FC = () => {
   }, [classes, search]);
 
   const openAdd = () => {
+    setSaveFeedback(null);
     setEditing(null);
     const deptCode = department?.code || "CSE";
     setForm({
@@ -114,6 +121,7 @@ export const HODClasses: React.FC = () => {
   };
 
   const openEdit = (item: AcademicClass) => {
+    setSaveFeedback(null);
     setEditing(item);
     const yr = item.year || getEngineeringYearFromSemester(item.semester);
     let div = "A";
@@ -169,27 +177,51 @@ export const HODClasses: React.FC = () => {
 
   const save = async () => {
     if (!form.name.trim() || !departmentId) {
-      alert("Class name is required.");
+      setSaveFeedback({ type: "error", message: "Class name is required." });
       return;
     }
-    const semesterNum = Number(form.semester);
-    const yearNum =
-      Number(form.year) || getEngineeringYearFromSemester(semesterNum);
 
-    const data = {
-      name: form.name.trim(),
-      department_id: departmentId,
-      year: yearNum,
-      semester: semesterNum,
-      coordinator_teacher_id: form.coordinator_teacher_id || null,
-      status: "active" as const,
-    };
+    setIsSaving(true);
+    setSaveFeedback(null);
+    const wasEditing = Boolean(editing);
+    try {
+      const semesterNum = Number(form.semester);
+      const yearNum =
+        Number(form.year) || getEngineeringYearFromSemester(semesterNum);
+      const data = {
+        name: form.name.trim(),
+        department_id: departmentId,
+        year: yearNum,
+        semester: semesterNum,
+        coordinator_teacher_id: form.coordinator_teacher_id || null,
+        status: "active" as const,
+      };
 
-    if (editing) await localDb.update("academic_classes", editing.id, data);
-    else await localDb.insert("academic_classes", [data]);
+      if (editing) await localDb.update("academic_classes", editing.id, data);
+      else await localDb.insert("academic_classes", [data]);
 
-    refreshClasses();
-    setOpen(false);
+      refreshClasses();
+      setOpen(false);
+      setEditing(null);
+      setSaveFeedback({
+        type: "success",
+        message: wasEditing
+          ? "Class updated successfully."
+          : "Class created successfully.",
+      });
+      window.setTimeout(() => setSaveFeedback(null), 5000);
+    } catch (error) {
+      console.error("Class save failed:", error);
+      setSaveFeedback({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "The class could not be saved. Please try again.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const remove = async (item: AcademicClass) => {
@@ -198,18 +230,112 @@ export const HODClasses: React.FC = () => {
     refreshClasses();
   };
 
-  const handleSetupStandardDivisions = () => {
-    if (!departmentId) return;
-    localDb.ensureStandardEngineeringDivisions(departmentId);
-    refreshClasses();
-    setDivisionNotice(
-      "Standard Divisions (A & B) for 2nd Year (SY), 3rd Year (TY), and 4th Year (BE) verified and configured successfully!",
-    );
-    setTimeout(() => setDivisionNotice(null), 5000);
+  const handleSetupStandardDivisions = async () => {
+    if (!departmentId || isSettingUpDivisions) return;
+
+    const departmentCode = department?.code || "CSE";
+    const standardClasses = [
+      { name: `FY ${departmentCode}`, year: 1, semester: 1 },
+      { name: `SY ${departmentCode}-A`, year: 2, semester: 3 },
+      { name: `SY ${departmentCode}-B`, year: 2, semester: 3 },
+      { name: `TY ${departmentCode}-A`, year: 3, semester: 5 },
+      { name: `TY ${departmentCode}-B`, year: 3, semester: 5 },
+      { name: `BE ${departmentCode}-A`, year: 4, semester: 7 },
+      { name: `BE ${departmentCode}-B`, year: 4, semester: 7 },
+    ];
+
+    setIsSettingUpDivisions(true);
+    setSaveFeedback(null);
+    setDivisionNotice("Preparing 7 standard classes...");
+    let created = 0;
+    let existing = 0;
+    const failures: string[] = [];
+
+    try {
+      for (let index = 0; index < standardClasses.length; index += 1) {
+        const classDefinition = standardClasses[index];
+        setDivisionNotice(
+          `Creating class ${index + 1} of ${standardClasses.length}: ${classDefinition.name}`,
+        );
+
+        const alreadyExists = localDb.academic_classes.some(
+          (item) =>
+            item.department_id === departmentId &&
+            (item.name.trim().toLowerCase() ===
+              classDefinition.name.toLowerCase() ||
+              (item.year === classDefinition.year &&
+                item.semester === classDefinition.semester &&
+                item.name.trim().toLowerCase().endsWith(
+                  classDefinition.name.toLowerCase().slice(-2),
+                ))),
+        );
+
+        if (alreadyExists) {
+          existing += 1;
+          continue;
+        }
+
+        try {
+          await localDb.insert("academic_classes", [
+            {
+              ...classDefinition,
+              department_id: departmentId,
+              coordinator_teacher_id: null,
+              status: "active" as const,
+            },
+          ]);
+          created += 1;
+        } catch (error) {
+          failures.push(
+            `${classDefinition.name}: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          );
+        }
+      }
+
+      refreshClasses();
+      if (failures.length > 0) {
+        setSaveFeedback({
+          type: "error",
+          message: `Created ${created}, already existed ${existing}, failed ${failures.length}. ${failures.join(" | ")}`,
+        });
+      } else {
+        setSaveFeedback({
+          type: "success",
+          message: `Standard classes ready. Created ${created}; already existed ${existing}.`,
+        });
+        window.setTimeout(() => setSaveFeedback(null), 7000);
+      }
+      setDivisionNotice(null);
+    } finally {
+      setIsSettingUpDivisions(false);
+    }
   };
 
   return (
     <div className="space-y-6">
+      {saveFeedback && (
+        <div
+          role={saveFeedback.type === "error" ? "alert" : "status"}
+          aria-live={saveFeedback.type === "error" ? "assertive" : "polite"}
+          className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
+            saveFeedback.type === "error"
+              ? "border-destructive/30 bg-destructive/10 text-destructive"
+              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          }`}
+        >
+          <span>{saveFeedback.message}</span>
+          <button
+            type="button"
+            onClick={() => setSaveFeedback(null)}
+            className="rounded px-1 text-current opacity-70 hover:opacity-100"
+            aria-label="Dismiss class save message"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -245,7 +371,12 @@ export const HODClasses: React.FC = () => {
                 and Class Coordinator.
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen(false)}
+              disabled={isSaving}
+            >
               ✕
             </Button>
           </div>
@@ -345,12 +476,22 @@ export const HODClasses: React.FC = () => {
           </div>
 
           <div className="mt-4 flex justify-end gap-2 border-t border-border/60 pt-3">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={isSaving}
+            >
               Cancel
             </Button>
-            <Button onClick={save}>
+            <Button onClick={save} disabled={isSaving}>
               <Check className="mr-2 h-4 w-4" />{" "}
-              {editing ? "Update Class" : "Create Class"}
+              {isSaving
+                ? editing
+                  ? "Updating class..."
+                  : "Creating class..."
+                : editing
+                  ? "Update Class"
+                  : "Create Class"}
             </Button>
           </div>
         </Card>
@@ -428,10 +569,13 @@ export const HODClasses: React.FC = () => {
                           size="sm"
                           variant="outline"
                           onClick={handleSetupStandardDivisions}
+                          disabled={isSettingUpDivisions}
                           className="gap-1.5"
                         >
                           <Layers className="h-4 w-4 text-emerald-600" />
-                          Setup Standard Divisions
+                          {isSettingUpDivisions
+                            ? "Creating standard classes..."
+                            : "Setup Standard Divisions"}
                         </Button>
                         <Button size="sm" onClick={openAdd} className="gap-1.5">
                           <Plus className="h-4 w-4" />

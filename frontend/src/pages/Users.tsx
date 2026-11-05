@@ -1,11 +1,26 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { CrudPage } from "../components/CrudPage";
 import { UserAccount } from "../lib/types";
 import { Badge } from "../components/ui/badge";
 import { localDb } from "../lib/supabase";
 
-export const Users: React.FC = () => (
+export const Users: React.FC = () => {
+  const [revision, setRevision] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = (event: Event) => {
+      const table = (event as CustomEvent<{ table?: string }>).detail?.table;
+      if (!table || ["users", "teachers", "students", "departments"].includes(table)) {
+        setRevision((value) => value + 1);
+      }
+    };
+    window.addEventListener("edutrack_data_updated", handleUpdate);
+    return () => window.removeEventListener("edutrack_data_updated", handleUpdate);
+  }, []);
+
+  return (
   <CrudPage<UserAccount>
+    key={`users-${revision}`}
     title="Users"
     table="users"
     recordLabel="users"
@@ -149,4 +164,5 @@ export const Users: React.FC = () => (
       },
     ]}
   />
-);
+  );
+};

@@ -206,7 +206,7 @@ export const SmsLogs: React.FC = () => {
       })
       .filter((item) => item.total > 0 && item.rate !== null && item.rate < 75)
       .sort((a, b) => a.rate - b.rate);
-  }, []);
+  }, [logs]);
 
   const defaulterStudents = useMemo(
     () => defaulterDetails.map((d) => d.student),
