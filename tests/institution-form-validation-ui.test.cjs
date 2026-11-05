@@ -18,3 +18,13 @@ test("request design contains India dependent selectors and inline errors", () =
   assert.match(page, /text-red-600/);
   assert.match(page, /10-digit phone number/);
 });
+
+test("location selectors are searchable and preserve full official labels", () => {
+  assert.match(page, /SearchableLocationSelect/);
+  assert.match(page, /Search states/);
+  assert.match(page, /Search cities/);
+  assert.match(page, /value: state\.code/);
+  assert.match(page, /label: state\.name/);
+  assert.match(page, /disabled=\{!form\.state \|\| locationsLoading\}/);
+  assert.doesNotMatch(page, /<select ref=\{\(element\) => \{ refs\.current\.(state|city)/);
+});

@@ -22,3 +22,23 @@ test("secure submission states", () => {
   assert.match(page, /setForm\(initial\)/);
   assert.doesNotMatch(page, /mail\.google\.com|PasswordInput/);
 });
+
+test("searchable location selector is accessible and polished", () => {
+  const select = read("frontend/src/components/ui/searchable-location-select.tsx");
+  assert.match(select, /type="search"/);
+  assert.match(select, /aria-haspopup="listbox"/);
+  assert.match(select, /role="listbox"/);
+  assert.match(select, /role="option"/);
+  assert.match(select, /whitespace-normal break-words/);
+  assert.match(select, /closeOnOutsideClick/);
+  assert.match(select, /event\.key === "Escape"/);
+  assert.match(select, /selected\?\.label \|\| placeholder/);
+});
+
+test("access-request route opens at the top without disabling validation scrolling", () => {
+  assert.match(page, /useLayoutEffect/);
+  assert.match(page, /window\.history\.scrollRestoration = "manual"/);
+  assert.match(page, /window\.scrollTo\(\{ top: 0, left: 0, behavior: "auto" \}\)/);
+  assert.match(page, /previousScrollRestoration/);
+  assert.match(page, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
+});

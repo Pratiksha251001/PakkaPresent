@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { SearchableLocationSelect } from "../components/ui/searchable-location-select";
 import { PakkaPresentLogo } from "../components/PakkaPresentLogo";
 import {
   getIndiaCities,
@@ -46,6 +47,15 @@ export const InstitutionAccessRequest: React.FC = () => {
     [cities, setCities] = useState<string[]>([]),
     [locationsLoading, setLocationsLoading] = useState(false);
   const refs = useRef<Record<string, HTMLElement | null>>({});
+  useLayoutEffect(() => {
+    const previousScrollRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+    return () => {
+      window.history.scrollRestoration = previousScrollRestoration;
+    };
+  }, []);
   useEffect(() => {
     void getIndiaStates()
       .then(setStates)
@@ -299,22 +309,34 @@ export const InstitutionAccessRequest: React.FC = () => {
                     Country
                     <Input value="India" readOnly className="mt-1.5 h-10 rounded-xl bg-muted" />
                   </label>
-                  <label className="space-y-1.5 text-xs font-semibold">
-                    State
-                    <select ref={(element) => { refs.current.state = element; }} required value={states.find((state) => state.name === form.state)?.code || ""} onChange={(event) => void selectState(event.target.value)} aria-invalid={!!fieldErrors.state} className="mt-1.5 h-10 w-full rounded-xl border bg-background px-3">
-                      <option value="">Select state</option>
-                      {states.map((state) => <option key={state.code} value={state.code}>{state.name}</option>)}
-                    </select>
-                    {fieldErrors.state && <span className="block text-xs font-semibold text-red-600">{fieldErrors.state}</span>}
-                  </label>
-                  <label className="space-y-1.5 text-xs font-semibold">
-                    City
-                    <select ref={(element) => { refs.current.city = element; }} required disabled={!form.state || locationsLoading} value={form.city} onChange={update("city")} aria-invalid={!!fieldErrors.city} className="mt-1.5 h-10 w-full rounded-xl border bg-background px-3 disabled:opacity-60">
-                      <option value="">{locationsLoading ? "Loading cities..." : "Select city"}</option>
-                      {cities.map((city) => <option key={city} value={city}>{city}</option>)}
-                    </select>
-                    {fieldErrors.city && <span className="block text-xs font-semibold text-red-600">{fieldErrors.city}</span>}
-                  </label>
+                  <SearchableLocationSelect
+                    label="State"
+                    placeholder="Select state"
+                    searchPlaceholder="Search states..."
+                    emptyMessage="No matching state or union territory."
+                    value={states.find((state) => state.name === form.state)?.code || ""}
+                    options={states.map((state) => ({
+                      value: state.code,
+                      label: state.name,
+                    }))}
+                    onValueChange={(value) => void selectState(value)}
+                    error={fieldErrors.state}
+                    inputRef={(element) => { refs.current.state = element; }}
+                    dataSelector="state"
+                  />
+                  <SearchableLocationSelect
+                    label="City"
+                    placeholder={locationsLoading ? "Loading cities..." : "Select city"}
+                    searchPlaceholder="Search cities..."
+                    emptyMessage="No matching city."
+                    value={form.city}
+                    options={cities.map((city) => ({ value: city, label: city }))}
+                    onValueChange={(value) => setValue("city", value)}
+                    disabled={!form.state || locationsLoading}
+                    error={fieldErrors.city}
+                    inputRef={(element) => { refs.current.city = element; }}
+                    dataSelector="city"
+                  />
                 </div>
               </section>
               <section>
