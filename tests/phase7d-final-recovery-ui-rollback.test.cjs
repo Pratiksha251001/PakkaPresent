@@ -20,6 +20,9 @@ test("recovery route and navigation are registered", () => {
 test("service uses bearer-authenticated backend recovery routes", () => {
   assert.match(service, /getSession/);
   assert.match(service, /Authorization: `Bearer/);
+  assert.match(service, /import \{ apiUrl \} from \"\.\.\/api\"/);
+  assert.match(service, /fetch\(apiUrl\(path\),/);
+  assert.doesNotMatch(service, /fetch\(path,/);
   assert.match(service, /listPlatformRecovery/);
   assert.match(service, /getPlatformRecovery/);
   assert.match(service, /resolvePlatformRecovery/);

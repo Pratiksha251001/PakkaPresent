@@ -16,6 +16,9 @@ test("Stage 2 registers access request navigation and route", () => {
 test("service uses bearer-authenticated backend routes", () => {
   assert.match(service, /getSession/);
   assert.match(service, /Authorization/);
+  assert.match(service, /import \{ apiUrl \} from \"\.\.\/api\"/);
+  assert.match(service, /fetch\(apiUrl\(path\),/);
+  assert.doesNotMatch(service, /fetch\(path,/);
   assert.match(service, /institution-access-requests/);
   assert.doesNotMatch(service, /\.from\(/);
   for (const field of [

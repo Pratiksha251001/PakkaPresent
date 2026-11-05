@@ -1,3 +1,4 @@
+import { apiUrl } from "../api";
 import { platformSupabase } from "./platformAuth";
 
 export interface PlatformRecoverySummary {
@@ -30,7 +31,7 @@ async function authorizationHeader() {
   };
 }
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers: { ...(await authorizationHeader()), ...(init?.headers || {}) },
   });

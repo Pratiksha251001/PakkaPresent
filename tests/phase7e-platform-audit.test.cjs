@@ -13,7 +13,8 @@ const m = read(
   server = read("server.ts"),
   app = read("frontend/src/App.tsx"),
   shell = read("frontend/src/components/platform/PlatformShell.tsx"),
-  page = read("frontend/src/pages/platform/PlatformAuditLog.tsx");
+  page = read("frontend/src/pages/platform/PlatformAuditLog.tsx"),
+  service = read("frontend/src/lib/platform/platformAudit.ts");
 test("append-only audit safely covers platform mutations", () => {
   assert.match(m, /platform_audit_events/);
   assert.match(
@@ -47,4 +48,7 @@ test("backend and UI are registered", () => {
   assert.match(app, /platform\/audit-log/);
   assert.match(shell, /Audit log/);
   assert.match(page, /No audit events found/);
+  assert.match(service, /import \{ apiUrl \} from \"\.\.\/api\"/);
+  assert.match(service, /fetch\(\s*apiUrl\(`/);
+  assert.doesNotMatch(service, /fetch\(`\/api\/platform/);
 });

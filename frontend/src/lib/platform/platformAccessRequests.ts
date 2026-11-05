@@ -1,3 +1,4 @@
+import { apiUrl } from "../api";
 import { platformSupabase } from "./platformAuth";
 export type AccessRequestStatus =
   | "pending"
@@ -59,7 +60,7 @@ async function token() {
   return value;
 }
 async function request<T>(path: string, init: RequestInit = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     ...init,
     headers: {
       "Content-Type": "application/json",
