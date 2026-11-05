@@ -162,9 +162,9 @@ export const Teachers: React.FC = () => {
         ]}
         columns={[
           {
-            header: "College Emp ID",
+            header: "Employee ID",
             render: (t) => (
-              <span className="font-mono text-xs font-bold">
+              <span className="inline-flex items-center whitespace-nowrap rounded bg-muted/80 px-2 py-0.5 font-mono text-xs font-bold text-foreground">
                 {t.employee_id}
               </span>
             ),

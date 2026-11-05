@@ -1753,8 +1753,8 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   <TableHead className="min-w-[170px] font-bold">
                     Faculty Member
                   </TableHead>
-                  <TableHead className="min-w-[110px] pl-3 font-bold">
-                    College ID
+                  <TableHead className="min-w-[130px] whitespace-nowrap pl-3 font-bold">
+                    Employee ID
                   </TableHead>
                   <TableHead className="min-w-[120px] font-bold">
                     Academic Role
@@ -1886,7 +1886,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
                         {/* 3. College Employee ID */}
                         <TableCell className="pl-3">
-                          <span className="font-mono text-xs font-bold bg-muted px-2 py-0.5 rounded border border-border text-foreground">
+                          <span className="inline-flex items-center whitespace-nowrap rounded bg-muted/80 px-2 py-0.5 font-mono text-xs font-bold text-foreground">
                             {teacher.employee_id}
                           </span>
                         </TableCell>

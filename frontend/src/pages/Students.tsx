@@ -118,7 +118,7 @@ export const Students: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedStudent(s)}
-                className="font-mono text-xs font-bold text-primary hover:underline"
+                className="inline-flex items-center whitespace-nowrap rounded bg-muted/80 px-2 py-0.5 font-mono text-xs font-bold text-foreground transition-colors hover:bg-muted"
               >
                 {s.roll_number}
               </button>
