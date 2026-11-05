@@ -112,8 +112,37 @@ export const HODStudents: React.FC = () => {
   const [form, setForm] = useState({
     roll_number: "",
     prn_number: "",
+    reg_number: "",
     full_name: "",
     semester: "1",
+    class_id: "",
+    class_name: "",
+    student_mobile: "",
+    date_of_birth: "",
+    address: "",
+    status: "active",
+    parent_name: "",
+    parent_mobile: "",
+    parent_email: "",
+    email: "",
+    password: "",
+  });
+  const [isSavingStudent, setIsSavingStudent] = useState(false);
+  const [studentSaveNotice, setStudentSaveNotice] = useState<string | null>(null);
+  const [studentSaveError, setStudentSaveError] = useState<string | null>(null);
+
+  const emptyStudentForm = () => ({
+    roll_number: "",
+    prn_number: "",
+    reg_number: "",
+    full_name: "",
+    semester: "1",
+    class_id: "",
+    class_name: "",
+    student_mobile: "",
+    date_of_birth: "",
+    address: "",
+    status: "active",
     parent_name: "",
     parent_mobile: "",
     parent_email: "",
@@ -123,17 +152,9 @@ export const HODStudents: React.FC = () => {
 
   const openAddModal = () => {
     setEditingStudent(null);
-    setForm({
-      roll_number: "",
-      prn_number: "",
-      full_name: "",
-      semester: "1",
-      parent_name: "",
-      parent_mobile: "",
-      parent_email: "",
-      email: "",
-      password: "",
-    });
+    setForm(emptyStudentForm());
+    setStudentSaveNotice(null);
+    setStudentSaveError(null);
     setOpen(true);
   };
 
@@ -142,16 +163,39 @@ export const HODStudents: React.FC = () => {
     setForm({
       roll_number: st.roll_number || "",
       prn_number: st.prn_number || "",
+      reg_number: st.reg_number || "",
       full_name: st.full_name || "",
       semester: String(st.semester || 1),
+      class_id: st.class_id || "",
+      class_name: st.class_name || "",
+      student_mobile: st.student_mobile || "",
+      date_of_birth: st.date_of_birth || "",
+      address: st.address || "",
+      status: st.status || "active",
       parent_name: st.parent_name || "",
       parent_mobile: st.parent_mobile || "",
       parent_email: st.parent_email || "",
       email: st.email || "",
       password: "",
     });
+    setStudentSaveNotice(null);
+    setStudentSaveError(null);
     setOpen(true);
   };
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => {
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      const editor = document.getElementById("hod-student-editor");
+      editor?.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "start",
+      });
+      document.getElementById("hod-student-editor-heading")?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, editingStudent?.id]);
 
   // Calculate attendance & SMS stats per student
   const studentStatsMap = useMemo(() => {
@@ -223,6 +267,39 @@ export const HODStudents: React.FC = () => {
     return { totalCount, avgRate, defaulterCount, deptSmsCount };
   }, [students, studentStatsMap, smsLogs]);
 
+  const handleSemesterChange = (semester: string) => {
+    const nextEngineeringYear = Math.max(
+      1,
+      Math.min(4, Math.ceil(Number(semester || 1) / 2)),
+    );
+    const selectedClass = localDb.academic_classes.find(
+      (item) => item.id === form.class_id,
+    );
+    const keepSelectedClass = Boolean(
+      selectedClass &&
+        selectedClass.department_id === departmentId &&
+        selectedClass.status !== "inactive" &&
+        Number(selectedClass.year) === nextEngineeringYear,
+    );
+    setForm({
+      ...form,
+      semester,
+      class_id: keepSelectedClass ? form.class_id : "",
+      class_name: keepSelectedClass ? selectedClass?.name || "" : "",
+    });
+  };
+
+  const engineeringYear = Math.max(
+    1,
+    Math.min(4, Math.ceil(Number(form.semester || 1) / 2)),
+  );
+  const availableClasses = localDb.academic_classes.filter(
+    (item) =>
+      item.department_id === departmentId &&
+      item.status !== "inactive" &&
+      Number(item.year) === engineeringYear,
+  );
+
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim();
     if (!query) return students;
@@ -244,105 +321,87 @@ export const HODStudents: React.FC = () => {
     const errs: string[] = [];
     const rollErr = getRollNumberValidationError(form.roll_number);
     if (rollErr) errs.push(rollErr);
-
     if (
       localDb.students.some(
         (student) =>
           student.id !== editingStudent?.id &&
-          student.roll_number.toLowerCase() ===
-            form.roll_number.trim().toLowerCase(),
+          student.roll_number.toLowerCase() === form.roll_number.trim().toLowerCase(),
       )
     ) {
       errs.push("This roll number already exists in institutional records.");
     }
-
     const nameErr = getNameValidationError(form.full_name);
     if (nameErr) errs.push(nameErr);
-
-    const mobileErr = getMobileValidationError(
-      form.parent_mobile,
-      "Parent Mobile",
-      true,
-    );
+    const mobileErr = getMobileValidationError(form.parent_mobile, "Parent Mobile", true);
     if (mobileErr) errs.push(mobileErr);
-
+    const studentMobileErr = getMobileValidationError(form.student_mobile, "Student Mobile", false);
+    if (studentMobileErr) errs.push(studentMobileErr);
     if (form.parent_email && !isValidEmail(form.parent_email)) {
       errs.push("Please provide a valid parent email address.");
     }
-
     if (form.email && !isValidEmail(form.email)) {
       errs.push("Please provide a valid email address.");
     }
-
-    if (!departmentId) {
-      errs.push("Department assignment is required.");
+    if (!departmentId) errs.push("Department assignment is required.");
+    if (availableClasses.length > 0 && !form.class_id) {
+      errs.push("Please select a class or division.");
     }
-
     if (errs.length > 0) {
-      alert(errs.join("\n"));
+      setStudentSaveError(errs.join(" "));
+      window.requestAnimationFrame(() =>
+        document.getElementById("hod-student-save-error")?.focus(),
+      );
       return;
     }
 
-    if (editingStudent) {
-      // Update existing student
-      await localDb.update("students", editingStudent.id, {
+    setIsSavingStudent(true);
+    setStudentSaveNotice(null);
+    setStudentSaveError(null);
+    try {
+      const selectedClass = availableClasses.find((item) => item.id === form.class_id);
+      const studentData = {
         roll_number: form.roll_number.trim(),
-        prn_number: form.prn_number.trim(),
+        prn_number: form.prn_number.trim() || null,
+        reg_number: form.reg_number.trim() || null,
         full_name: form.full_name.trim(),
         semester: Number(form.semester),
+        class_id: selectedClass?.id || null,
+        class_name: selectedClass?.name || null,
+        student_mobile: cleanMobile(form.student_mobile),
+        date_of_birth: form.date_of_birth || null,
+        address: form.address.trim() || null,
+        status: form.status || "active",
         parent_name: form.parent_name.trim() || null,
         parent_mobile: cleanMobile(form.parent_mobile),
         parent_email: form.parent_email.trim().toLowerCase() || null,
-        email: form.email.trim() || null,
-      });
+        email: form.email.trim().toLowerCase() || null,
+      };
 
-      // Update user account if present
-      const account = localDb.users.find(
-        (u) => u.student_id === editingStudent.id,
-      );
-      if (account) {
-        await localDb.update("users", account.id, {
-          full_name: form.full_name.trim(),
-          email:
-            form.email.trim() ||
-            account.email ||
-            `${form.roll_number.toLowerCase()}@student.pakkapresent.edu`,
-        });
-      }
-
-      if (form.password.trim()) {
-        await resetManagedAccountPassword({
-          studentId: editingStudent.id,
-          password: form.password.trim(),
-        });
-      }
-    } else {
-      // Insert new student
-      const inserted = await localDb.insert("students", [
-        {
-          roll_number: form.roll_number.trim(),
-          prn_number: form.prn_number.trim(),
-          full_name: form.full_name.trim(),
-          semester: Number(form.semester),
-          parent_name: form.parent_name.trim() || null,
-          parent_mobile: cleanMobile(form.parent_mobile),
-          parent_email: form.parent_email.trim().toLowerCase() || null,
-          email: form.email.trim() || null,
-          department_id: departmentId,
-          status: "active",
-        },
-      ]);
-
-      const student = inserted[0];
-      if (student) {
-        if (!student.email) {
-          await localDb.delete("students", student.id);
-          throw new Error(
-            "A valid student email is required for a persistent login account.",
-          );
+      if (editingStudent) {
+        await localDb.update("students", editingStudent.id, studentData);
+        const account = localDb.users.find((user) => user.student_id === editingStudent.id);
+        if (account) {
+          await localDb.update("users", account.id, {
+            full_name: studentData.full_name,
+            email: studentData.email || account.email,
+          });
         }
-        const effectivePwd =
-          form.password.trim() || student.roll_number || "123";
+        if (form.password.trim()) {
+          await resetManagedAccountPassword({
+            studentId: editingStudent.id,
+            password: form.password.trim(),
+          });
+        }
+      } else {
+        const inserted = await localDb.insert("students", [
+          { ...studentData, department_id: departmentId },
+        ]);
+        const student = inserted[0];
+        if (!student?.email) {
+          if (student?.id) await localDb.delete("students", student.id);
+          throw new Error("A valid student email is required for a persistent login account.");
+        }
+        const effectivePwd = form.password.trim() || student.roll_number || "123";
         try {
           await provisionManagedAccount({
             email: student.email,
@@ -357,11 +416,23 @@ export const HODStudents: React.FC = () => {
           throw error;
         }
       }
-    }
 
-    setOpen(false);
-    setEditingStudent(null);
-    refresh();
+      setOpen(false);
+      setEditingStudent(null);
+      refresh();
+      setStudentSaveNotice(
+        editingStudent ? "Student updated successfully." : "Student created successfully.",
+      );
+    } catch (error) {
+      setStudentSaveError(
+        error instanceof Error ? error.message : "Student save failed.",
+      );
+      window.requestAnimationFrame(() =>
+        document.getElementById("hod-student-save-error")?.focus(),
+      );
+    } finally {
+      setIsSavingStudent(false);
+    }
   };
 
   const remove = async (student: Student) => {
@@ -551,15 +622,39 @@ export const HODStudents: React.FC = () => {
       </div>
 
       {/* Add / Edit Student Dialog */}
+      {studentSaveNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-300"
+        >
+          {studentSaveNotice}
+        </div>
+      )}
       {open && (
-        <Card className="border-primary/30 bg-primary/[0.03] p-5 shadow-xs">
+        <Card
+          id="hod-student-editor"
+          className="scroll-mt-28 border-primary/30 bg-primary/[0.03] p-5 shadow-xs"
+        >
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold">
-              {editingStudent ? "Edit Student Details" : "Add New Student"}
-            </h2>
+            <div>
+              <h2
+                id="hod-student-editor-heading"
+                tabIndex={-1}
+                className="font-display text-lg font-bold outline-none"
+              >
+                {editingStudent ? "Edit Student Details" : "Add New Student"}
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Update academic placement and essential communication details.
+              </p>
+            </div>
             <Button
               variant="ghost"
               size="sm"
+              aria-label="Close student editor"
+              title="Close student editor"
+              disabled={isSavingStudent}
               onClick={() => {
                 setOpen(false);
                 setEditingStudent(null);
@@ -569,157 +664,67 @@ export const HODStudents: React.FC = () => {
             </Button>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Roll Number *
-              </label>
-              <Input
-                placeholder="e.g. 21CS101"
-                value={form.roll_number}
-                onChange={(event) =>
-                  setForm({ ...form, roll_number: event.target.value })
-                }
-              />
+          {studentSaveError && (
+            <div
+              id="hod-student-save-error"
+              tabIndex={-1}
+              role="alert"
+              className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive outline-none"
+            >
+              {studentSaveError}
             </div>
+          )}
 
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Full Name *
-              </label>
-              <Input
-                placeholder="Student Full Name"
-                value={form.full_name}
-                onChange={(event) =>
-                  setForm({ ...form, full_name: event.target.value })
-                }
-              />
+          <section aria-labelledby="student-academic-heading">
+            <h3 id="student-academic-heading" className="mb-3 text-sm font-bold text-foreground">
+              Academic and essential details
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Roll Number *</label><Input placeholder="e.g. 21CS101" value={form.roll_number} onChange={(event) => setForm({ ...form, roll_number: event.target.value })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Full Name *</label><Input placeholder="Student Full Name" value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Semester *</label><Select value={form.semester} onChange={(event) => handleSemesterChange(event.target.value)} options={[1,2,3,4,5,6,7,8].map((value) => ({ value: String(value), label: `Semester ${value}` }))} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Class / Division *</label><Select value={form.class_id} onChange={(event) => { const selected = availableClasses.find((item) => item.id === event.target.value); setForm({ ...form, class_id: event.target.value, class_name: selected?.name || "" }); }} options={[{ value: "", label: availableClasses.length ? "Select class / division" : "No persisted classes for this year" }, ...availableClasses.map((item) => ({ value: item.id, label: item.name }))]} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Status</label><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Parent Mobile (10 Digits) *</label><Input maxLength={10} inputMode="numeric" value={form.parent_mobile} onChange={(event) => setForm({ ...form, parent_mobile: sanitizeMobileInput(event.target.value) })} /></div>
+              <div className="sm:col-span-2"><label className="mb-1 block text-xs font-semibold text-muted-foreground">Student Email</label><Input type="email" placeholder="student@college.edu" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
             </div>
+          </section>
 
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Semester *
-              </label>
-              <Select
-                value={form.semester}
-                onChange={(event) =>
-                  setForm({ ...form, semester: event.target.value })
-                }
-                options={[1, 2, 3, 4, 5, 6, 7, 8].map((value) => ({
-                  value: String(value),
-                  label: `Semester ${value}`,
-                }))}
-              />
+          <details className="mt-5 rounded-xl border border-border/70 bg-muted/15 p-4">
+            <summary className="cursor-pointer select-none text-sm font-bold text-foreground">
+              Additional student details
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                PRN, registration, personal and guardian information
+              </span>
+            </summary>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">PRN Number</label><Input value={form.prn_number} onChange={(event) => setForm({ ...form, prn_number: event.target.value })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Registration Number</label><Input value={form.reg_number} onChange={(event) => setForm({ ...form, reg_number: event.target.value })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Student Mobile</label><Input maxLength={10} inputMode="numeric" value={form.student_mobile} onChange={(event) => setForm({ ...form, student_mobile: sanitizeMobileInput(event.target.value) })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Date of Birth</label><Input type="date" value={form.date_of_birth} onChange={(event) => setForm({ ...form, date_of_birth: event.target.value })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Parent / Guardian Name</label><Input placeholder="Father / Mother Name" value={form.parent_name} onChange={(event) => setForm({ ...form, parent_name: event.target.value })} /></div>
+              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Parent Email</label><Input type="email" placeholder="parent@example.com" value={form.parent_email} onChange={(event) => setForm({ ...form, parent_email: event.target.value })} /></div>
+              <div className="sm:col-span-2"><label className="mb-1 block text-xs font-semibold text-muted-foreground">Address</label><Input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} /></div>
             </div>
+          </details>
 
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Parent / Guardian Name
-              </label>
-              <Input
-                placeholder="Father / Mother Name"
-                value={form.parent_name}
-                onChange={(event) =>
-                  setForm({ ...form, parent_name: event.target.value })
-                }
-              />
+          <details className="mt-3 rounded-xl border border-border/70 bg-muted/15 p-4">
+            <summary className="cursor-pointer select-none text-sm font-bold text-foreground">
+              Account access
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                Optional password reset
+              </span>
+            </summary>
+            <div className="mt-4">
+              <label className="mb-1 block text-xs font-semibold text-muted-foreground">New Login Password</label>
+              <Input type="password" placeholder={editingStudent ? "Leave blank to keep current password" : "Default: Student's Roll Number"} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
             </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <label className="font-semibold text-muted-foreground">
-                  Parent Mobile (10 Digits) *
-                </label>
-                <span
-                  className={`font-mono text-[10px] ${
-                    form.parent_mobile.length === 10
-                      ? "text-emerald-600 font-bold"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {form.parent_mobile.length}/10
-                </span>
-              </div>
-              <Input
-                maxLength={10}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="9876543210 (10 digits)"
-                value={form.parent_mobile}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    parent_mobile: sanitizeMobileInput(event.target.value),
-                  })
-                }
-                className={
-                  form.parent_mobile &&
-                  !isValid10DigitMobile(form.parent_mobile)
-                    ? "border-destructive"
-                    : ""
-                }
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Parent Email
-              </label>
-              <Input
-                type="email"
-                placeholder="parent@example.com"
-                value={form.parent_email}
-                onChange={(event) =>
-                  setForm({ ...form, parent_email: event.target.value })
-                }
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Student Email (Optional)
-              </label>
-              <Input
-                type="email"
-                placeholder="student@college.edu"
-                value={form.email}
-                onChange={(event) =>
-                  setForm({ ...form, email: event.target.value })
-                }
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-muted-foreground mb-1 block">
-                Login Password
-              </label>
-              <Input
-                type="password"
-                placeholder={
-                  editingStudent
-                    ? "Leave blank to keep current password"
-                    : "Default: Student's Roll Number"
-                }
-                value={form.password}
-                onChange={(event) =>
-                  setForm({ ...form, password: event.target.value })
-                }
-              />
-            </div>
-          </div>
+          </details>
 
           <div className="mt-5 flex justify-end gap-2 border-t border-border/60 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setOpen(false);
-                setEditingStudent(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button onClick={save}>
-              {editingStudent ? "Update Student" : "Save Student"}
+            <Button variant="outline" disabled={isSavingStudent} onClick={() => { setOpen(false); setEditingStudent(null); }}>Cancel</Button>
+            <Button onClick={save} disabled={isSavingStudent}>
+              {isSavingStudent ? (editingStudent ? "Updating student..." : "Creating student...") : editingStudent ? "Update Student" : "Save Student"}
             </Button>
           </div>
         </Card>
