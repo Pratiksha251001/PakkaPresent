@@ -144,6 +144,7 @@ export const Attendance: React.FC = () => {
           "teacher_subjects",
           "students",
           "academic_classes",
+          "attendance",
         ].includes(table)
       ) {
         setAttendanceDataVersion((version) => version + 1);
@@ -365,7 +366,13 @@ export const Attendance: React.FC = () => {
       map[st.id] = rec ? rec.status : "present";
     });
     setAttendanceState(map);
-  }, [selectedSubjectId, selectedDate, selectedClassName, cohortStudents]);
+  }, [
+    selectedSubjectId,
+    selectedDate,
+    selectedClassName,
+    cohortStudents,
+    attendanceDataVersion,
+  ]);
 
   const markAll = (status: "present" | "absent") => {
     const next: Record<string, "present" | "absent"> = {};

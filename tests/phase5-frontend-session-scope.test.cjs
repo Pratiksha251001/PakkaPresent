@@ -92,25 +92,17 @@ test("remaining critical Phase 5 isolation guards are present", () => {
   );
 });
 
-test("subjects and faculty assignments receive tenant-scoped realtime updates", () => {
-  assert.match(
-    db,
-    /table: "subjects",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
+test("operational realtime uses an institution-filtered table loop", () => {
+  const realtime = db.slice(
+    db.indexOf("private subscribeToRealtime"),
+    db.indexOf("private applyRealtimeChange"),
   );
-  assert.match(
-    db,
-    /table: "teacher_subjects",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
-  );
+  for (const table of ["teachers", "subjects", "teacher_subjects"]) {
+    assert.match(realtime, new RegExp(`"${table}"`));
+  }
+  assert.match(realtime, /table,[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/);
   assert.match(
     db,
     /TENANT_SCOPED_WRITE_TABLES\.has\(table\)[\s\S]*?record\?\.institution_id !== scope\.institutionId/,
   );
-});
-
-test("teachers receive tenant-scoped realtime updates", () => {
-  assert.match(
-    db,
-    /table: "teachers",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
-  );
-  assert.match(db, /TENANT_SCOPED_WRITE_TABLES = new Set\(\["teachers"/);
 });

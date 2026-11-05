@@ -87,6 +87,7 @@ export const supabase = createClient(
 const TABLE_COLUMNS: Record<string, string[]> = {
   departments: [
     "id",
+    "institution_id",
     "name",
     "code",
     "institution_name",
@@ -143,6 +144,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   ],
   academic_classes: [
     "id",
+    "institution_id",
     "name",
     "department_id",
     "year",
@@ -153,6 +155,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   ],
   class_coordinator_assignments: [
     "id",
+    "institution_id",
     "teacher_id",
     "department_id",
     "year",
@@ -217,7 +220,8 @@ const TABLE_COLUMNS: Record<string, string[]> = {
     "sent_at",
     "created_at",
   ],
-  notices: ["id", "title", "message", "audience", "status", "created_at"],
+  notices: ["id",
+    "institution_id", "title", "message", "audience", "status", "created_at"],
 };
 
 export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
@@ -273,7 +277,18 @@ export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
   return item;
 }
 
-const TENANT_SCOPED_WRITE_TABLES = new Set(["teachers", "students", "subjects", "teacher_subjects"]);
+const TENANT_SCOPED_WRITE_TABLES = new Set([
+  "departments",
+  "teachers",
+  "students",
+  "academic_classes",
+  "class_coordinator_assignments",
+  "subjects",
+  "teacher_subjects",
+  "attendance",
+  "notices",
+  "sms_logs",
+]);
 
 const LOCAL_DATABASE_TABLES = [
   "departments",
@@ -600,6 +615,22 @@ class LocalDatabase {
    * two divisions (A and B) exist. First year (FY) is left as a single cohort.
    */
   public ensureStandardEngineeringDivisions(targetDeptId?: string) {
+    if (isSupabaseConfigured) {
+      const persistedClasses = this.academic_classes.filter((item) => isUuid(item.id));
+      if (persistedClasses.length !== this.academic_classes.length) {
+        this.academic_classes = persistedClasses;
+        this.persist("academic_classes");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("edutrack_data_updated", {
+              detail: { table: "academic_classes", data: persistedClasses },
+            }),
+          );
+        }
+      }
+      return;
+    }
+
     const depts = targetDeptId
       ? this.departments.filter((d) => d.id === targetDeptId)
       : this.departments;
@@ -715,7 +746,10 @@ class LocalDatabase {
     ];
     for (const table of syncTables) {
       try {
-        const { data, error } = await supabase.from(table).select("*");
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .eq("institution_id", expectedScope.institutionId);
         if (
           !error &&
           Array.isArray(data) &&
@@ -824,59 +858,40 @@ class LocalDatabase {
     )
       return;
 
-    this.realtimeChannel = supabase
-      .channel(`edutrack-data-${scope.institutionId}-${scope.userId}`)
-      .on(
+    const realtimeTables = [
+      "departments",
+      "teachers",
+      "students",
+      "academic_classes",
+      "class_coordinator_assignments",
+      "subjects",
+      "teacher_subjects",
+      "attendance",
+      "notices",
+      "sms_logs",
+    ];
+
+    let channel = supabase.channel(
+      `edutrack-data-${scope.institutionId}-${scope.userId}`,
+    );
+    for (const table of realtimeTables) {
+      channel = channel.on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "teachers",
+          table,
           filter: `institution_id=eq.${scope.institutionId}`,
         },
-        (change) =>
-          this.applyRealtimeChange(scope, generation, "teachers", change),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "departments" },
-        (change) =>
-          this.applyRealtimeChange(scope, generation, "departments", change),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "subjects",
-          filter: `institution_id=eq.${scope.institutionId}`,
-        },
-        (change) =>
-          this.applyRealtimeChange(scope, generation, "subjects", change),
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "teacher_subjects",
-          filter: `institution_id=eq.${scope.institutionId}`,
-        },
-        (change) =>
-          this.applyRealtimeChange(
-            scope,
-            generation,
-            "teacher_subjects",
-            change,
-          ),
-      )
-      .subscribe((status) => {
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          console.warn(
-            `Supabase realtime subscription ${status.toLowerCase()}.`,
-          );
-        }
-      });
+        (change) => this.applyRealtimeChange(scope, generation, table, change),
+      );
+    }
+
+    this.realtimeChannel = channel.subscribe((status) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.warn(`Supabase realtime subscription ${status.toLowerCase()}.`);
+      }
+    });
   }
 
   private applyRealtimeChange(
@@ -1341,10 +1356,11 @@ class LocalDatabase {
               ? { institution_id: scope.institutionId }
               : {}),
           });
-          const { error } = await supabase
-            .from(table)
-            .update(payload)
-            .eq("id", id);
+          let request = supabase.from(table).update(payload).eq("id", id);
+          if (TENANT_SCOPED_WRITE_TABLES.has(table)) {
+            request = request.eq("institution_id", scope.institutionId);
+          }
+          const { data: updatedRows, error } = await request.select("id");
           this.assertScopeCurrent(scope, generation);
 
           if (error) {
@@ -1354,10 +1370,28 @@ class LocalDatabase {
               table === "students" ||
               TENANT_SCOPED_WRITE_TABLES.has(table)
             ) {
+              const label =
+                table === "teachers"
+                  ? "Teacher"
+                  : table === "students"
+                    ? "Student"
+                    : table === "academic_classes"
+                      ? "Class"
+                      : table === "class_coordinator_assignments"
+                        ? "Coordinator assignment"
+                        : table.replaceAll("_", " ");
               throw new Error(
-                `${table === "teachers" ? "Teacher" : "Student"} update failed in Supabase: ${error.message}`,
+                `${label} update failed in Supabase: ${error.message}`,
               );
             }
+          }
+          if (
+            TENANT_SCOPED_WRITE_TABLES.has(table) &&
+            !updatedRows?.length
+          ) {
+            throw new Error(
+              `${table.replaceAll("_", " ")} update affected no institution-owned record.`,
+            );
           }
         } catch (err) {
           if (!this.scopeIsCurrent(scope, generation)) {
@@ -1375,7 +1409,7 @@ class LocalDatabase {
             throw err instanceof Error
               ? err
               : new Error(
-                  `${table === "teachers" ? "Teacher" : "Student"} update failed; local rollback required.`,
+                  `${table.replaceAll("_", " ")} update failed; local rollback required.`,
                 );
           }
         }
@@ -1398,45 +1432,54 @@ class LocalDatabase {
 
   async delete(table: string, id: string) {
     const { scope, generation } = this.captureScope();
+    if (isSupabaseConfigured) await this.syncReady;
     this.assertScopeCurrent(scope, generation);
 
-    const list = (this as any)[table] || [];
-    const idx = list.findIndex((x: any) => x.id === id);
-    if (idx !== -1) {
-      list.splice(idx, 1);
-      this.persist(table);
+    const list = ((this as any)[table] || []) as any[];
+    const idx = list.findIndex((item: any) => item.id === id);
+    if (idx === -1) return false;
 
+    const previous = list[idx];
+    list.splice(idx, 1);
+    this.persist(table);
+
+    try {
       if (isSupabaseConfigured) {
-        try {
-          const { error } = await supabase.from(table).delete().eq("id", id);
-
-          this.assertScopeCurrent(scope, generation);
-
-          if (error) {
-            console.error(`Supabase delete error for ${table}:`, error);
-          }
-        } catch (err) {
-          if (!this.scopeIsCurrent(scope, generation)) {
-            throw err;
-          }
-
-          console.error(`Supabase delete exception on ${table}:`, err);
+        let request = supabase.from(table).delete().eq("id", id);
+        if (TENANT_SCOPED_WRITE_TABLES.has(table)) {
+          request = request.eq("institution_id", scope.institutionId);
+        }
+        const { data: deletedRows, error } = await request.select("id");
+        this.assertScopeCurrent(scope, generation);
+        if (error) throw new Error(`${table} delete failed: ${error.message}`);
+        if (TENANT_SCOPED_WRITE_TABLES.has(table) && !deletedRows?.length) {
+          throw new Error(`${table} delete affected no institution-owned record.`);
         }
       }
-
-      this.assertScopeCurrent(scope, generation);
-
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("edutrack_data_updated", {
-            detail: { table, data: list },
-          }),
-        );
+    } catch (error) {
+      if (this.scopeIsCurrent(scope, generation)) {
+        list.splice(idx, 0, previous);
+        this.persist(table);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("edutrack_data_updated", {
+              detail: { table, data: [...list] },
+            }),
+          );
+        }
       }
-
-      return true;
+      throw error instanceof Error ? error : new Error(`${table} delete failed.`);
     }
-    return false;
+
+    this.assertScopeCurrent(scope, generation);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("edutrack_data_updated", {
+          detail: { table, data: [...list] },
+        }),
+      );
+    }
+    return true;
   }
 
   async upsertAttendance(records: any[]) {
@@ -1484,6 +1527,13 @@ class LocalDatabase {
       }
     }
     this.persist("attendance");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("edutrack_data_updated", {
+          detail: { table: "attendance", data: [...this.attendance] },
+        }),
+      );
+    }
   }
 }
 

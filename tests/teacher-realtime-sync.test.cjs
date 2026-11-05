@@ -9,12 +9,9 @@ test("teacher realtime is institution filtered", () => {
     source.indexOf("private subscribeToRealtime"),
     source.indexOf("private applyRealtimeChange"),
   );
-  assert.match(
-    realtime,
-    /table: "teachers",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
-  );
+  assert.match(realtime, /const realtimeTables = \[[\s\S]*?"teachers"/);
+  assert.match(realtime, /table,[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/);
 });
-
 test("out-of-scope teacher events are rejected by the shared guard", () => {
   assert.match(source, /TENANT_SCOPED_WRITE_TABLES\.has\(table\)/);
   assert.match(source, /record\?\.institution_id !== scope\.institutionId/);

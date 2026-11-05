@@ -420,6 +420,26 @@ begin
   end if;
 end $$;
 
+-- Enable tenant-owned operational tables in Supabase Realtime.
+do $$
+declare realtime_table text;
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach realtime_table in array array[
+      'departments','teachers','students','academic_classes',
+      'class_coordinator_assignments','subjects','teacher_subjects',
+      'attendance','notices','sms_logs'
+    ] loop
+      if not exists (
+        select 1 from pg_publication_tables
+        where pubname='supabase_realtime' and schemaname='public'
+          and tablename=realtime_table
+      ) then
+        execute format('alter publication supabase_realtime add table public.%I', realtime_table);
+      end if;
+    end loop;
+  end if;
+end $$;
 -- Parent notification ledger compatibility and institution-scoped RPCs
 create table if not exists public.parent_notification_attempts (
   student_id uuid not null references public.students(id) on delete cascade,
