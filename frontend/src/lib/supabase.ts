@@ -116,6 +116,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   ],
   students: [
     "id",
+    "institution_id",
     "roll_number",
     "prn_number",
     "reg_number",
@@ -271,7 +272,7 @@ export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
   return item;
 }
 
-const TENANT_SCOPED_WRITE_TABLES = new Set(["subjects", "teacher_subjects"]);
+const TENANT_SCOPED_WRITE_TABLES = new Set(["students", "subjects", "teacher_subjects"]);
 
 const LOCAL_DATABASE_TABLES = [
   "departments",
