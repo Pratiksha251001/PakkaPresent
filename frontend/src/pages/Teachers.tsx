@@ -12,6 +12,7 @@ export const Teachers: React.FC = () => {
   const [departments, setDepartments] = useState(localDb.departments);
   const [notice, setNotice] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [teacherDataVersion, setTeacherDataVersion] = useState(0);
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -31,6 +32,7 @@ export const Teachers: React.FC = () => {
         </div>
       )}
       <CrudPage<Teacher>
+        key={`teachers-${teacherDataVersion}`}
         title="Teachers & Faculty"
         table="teachers"
         searchKeys={["full_name", "employee_id", "email", "mobile", "role"]}
@@ -233,6 +235,8 @@ export const Teachers: React.FC = () => {
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
         onImportComplete={(count) => {
+          setDepartments([...localDb.departments]);
+          setTeacherDataVersion((version) => version + 1);
           setNotice(
             `${count} faculty member${count === 1 ? "" : "s"} imported successfully.`,
           );

@@ -106,3 +106,11 @@ test("subjects and faculty assignments receive tenant-scoped realtime updates", 
     /TENANT_SCOPED_WRITE_TABLES\.has\(table\)[\s\S]*?record\?\.institution_id !== scope\.institutionId/,
   );
 });
+
+test("teachers receive tenant-scoped realtime updates", () => {
+  assert.match(
+    db,
+    /table: "teachers",[\s\S]*?filter: `institution_id=eq\.\$\{scope\.institutionId\}`/,
+  );
+  assert.match(db, /TENANT_SCOPED_WRITE_TABLES = new Set\(\["teachers"/);
+});
