@@ -18,7 +18,8 @@ import {
   X,
 } from "lucide-react";
 import { Department } from "../lib/types";
-import { localDb } from "../lib/supabase";
+import { localDb, isSupabaseConfigured } from "../lib/supabase";
+import { provisionManagedAccount } from "../lib/accountService";
 import { saveCredential } from "../lib/authUtils";
 import {
   ParsedTeacherRow,
@@ -37,6 +38,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
+
+interface TeacherImportProgress {
+  current: number;
+  total: number;
+  teacherName: string;
+  phase: "creating_teacher" | "creating_account";
+}
+
+interface TeacherImportResult {
+  teachersCreated: number;
+  accountsCreated: number;
+  existingSkipped: number;
+  failures: string[];
+  failedRows: ParsedTeacherRow[];
+}
 
 interface TeacherImportModalProps {
   open: boolean;
@@ -63,6 +79,10 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
   const [rows, setRows] = useState<ParsedTeacherRow[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "valid" | "errors">("all");
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] =
+    useState<TeacherImportProgress | null>(null);
+  const [importResult, setImportResult] = useState<TeacherImportResult | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const [createAccounts, setCreateAccounts] = useState(true);
   const [passwordMode, setPasswordMode] = useState<"empid" | "custom">("empid");
   const [customPassword, setCustomPassword] = useState("Teacher@123");
@@ -75,6 +95,8 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
     setActiveTab("all");
     setIsParsing(false);
     setIsImporting(false);
+    setImportProgress(null);
+    setImportResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -175,115 +197,202 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
     setRows((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  const validCount = rows.filter((r) => r.isValid).length;
-  const invalidCount = rows.length - validCount;
-
-  const filteredRows = rows.filter((r) => {
-    if (activeTab === "valid") return r.isValid;
-    if (activeTab === "errors") return !r.isValid;
+  const isExistingTeacherRow = (row: ParsedTeacherRow) =>
+    !row.isValid &&
+    row.errors.length > 0 &&
+    row.errors.every((message) =>
+      message.toLowerCase().includes("already exists"),
+    );
+  const validRows = rows.filter((row) => row.isValid);
+  const existingRows = rows.filter(isExistingTeacherRow);
+  const invalidRows = rows.filter(
+    (row) => !row.isValid && !isExistingTeacherRow(row),
+  );
+  const validCount = validRows.length;
+  const existingCount = existingRows.length;
+  const invalidCount = invalidRows.length;
+  const filteredRows = rows.filter((row) => {
+    if (activeTab === "valid") return row.isValid;
+    if (activeTab === "errors") return !row.isValid;
     return true;
   });
 
   const handleExecuteImport = async () => {
-    const validRows = rows.filter((r) => r.isValid);
     if (validRows.length === 0) {
-      alert("No valid teacher records to import. Please correct errors first.");
+      setParseError("No valid teacher records are available to import.");
+      return;
+    }
+    if (createAccounts && passwordMode === "custom" && customPassword.trim().length < 6) {
+      setParseError("The custom initial password must be at least 6 characters long.");
       return;
     }
 
     setIsImporting(true);
+    setParseError(null);
+    setImportResult(null);
+    let teachersCreated = 0;
+    let accountsCreated = 0;
+    const failures: string[] = [];
+    const failedRows: ParsedTeacherRow[] = [];
 
-    try {
-      for (const item of validRows) {
+    for (let rowIndex = 0; rowIndex < validRows.length; rowIndex += 1) {
+      const item = validRows[rowIndex];
+      setImportProgress({
+        current: rowIndex + 1,
+        total: validRows.length,
+        teacherName: item.full_name,
+        phase: "creating_teacher",
+      });
+      let insertedTeacherId: string | null = null;
+      try {
         const isCoordinator = item.role === "class_coordinator";
-
-        // Determine department per row or use fallback
         const rowDept = (item.department || "").trim().toLowerCase();
         const matchedDept = departments.find(
-          (d) =>
-            d.name.toLowerCase() === rowDept ||
-            d.code.toLowerCase() === rowDept ||
-            d.id.toLowerCase() === rowDept,
+          (candidate) =>
+            candidate.name.toLowerCase() === rowDept ||
+            candidate.code.toLowerCase() === rowDept ||
+            candidate.id.toLowerCase() === rowDept,
         );
         const departmentId =
-          department?.id ||
-          matchedDept?.id ||
-          selectedDeptId ||
-          departments[0]?.id ||
-          "dept-1";
-
-        // 1. Insert teacher record
-        const teacherData = {
-          employee_id: item.employee_id.trim(),
-          full_name: item.full_name.trim(),
-          email: item.email.trim() || null,
-          mobile: item.mobile.trim() || null, // Optional phone
-          designation: item.designation.trim() || "Assistant Professor",
-          department_id: departmentId,
-          qualification: item.qualification.trim() || null,
-          date_of_birth: null, // DOB not required
-          experience_years: item.experience_years.trim() || null,
-          role: item.role,
-          is_class_coordinator: isCoordinator,
-          password:
-            passwordMode === "empid"
-              ? item.employee_id.trim() || "Teacher@123"
-              : customPassword.trim() ||
-                item.employee_id.trim() ||
-                "Teacher@123",
-          status: "active" as const,
-        };
-
-        const insertedTeachers = await localDb.insert("teachers", [
-          teacherData,
-        ]);
-        const teacher = insertedTeachers[0];
-
-        if (teacher && createAccounts) {
-          // 2. Create user account
-          const accountId = `teacher-user-${teacher.id}`;
-          const effectiveEmail =
-            item.email.trim() ||
-            `${item.employee_id.toLowerCase().replace(/[^a-z0-9]/g, "")}@pakkapresent.edu`;
-
-          await localDb.insert("users", [
-            {
-              id: accountId,
-              full_name: teacher.full_name,
-              email: effectiveEmail,
-              role: isCoordinator ? "class_coordinator" : "teacher",
-              department_id: departmentId,
-              teacher_id: teacher.id,
-              employee_id: teacher.employee_id,
-              status: "active",
-            },
-          ]);
-
-          await localDb.update("teachers", teacher.id, { user_id: accountId });
-
-          // 3. Save default password credential (Employee ID or custom password)
-          const pwd = teacher.password || teacher.employee_id || "Teacher@123";
-          saveCredential(
-            [accountId, teacher.id, teacher.employee_id, effectiveEmail],
-            pwd,
-          );
+          department?.id || matchedDept?.id || selectedDeptId || departments[0]?.id;
+        if (!departmentId) {
+          throw new Error("A verified department is required.");
         }
-      }
 
-      onImportComplete(validRows.length);
-      resetState();
-      onOpenChange(false);
-    } catch (err: any) {
-      alert(`Import failed: ${err.message || "An unknown error occurred"}`);
-    } finally {
-      setIsImporting(false);
+        const initialPassword =
+          passwordMode === "empid"
+            ? item.employee_id.trim()
+            : customPassword.trim();
+        const [teacher] = await localDb.insert("teachers", [
+          {
+            employee_id: item.employee_id.trim(),
+            full_name: item.full_name.trim(),
+            email: item.email.trim().toLowerCase(),
+            mobile: item.mobile.trim() || null,
+            designation: item.designation.trim() || "Assistant Professor",
+            department_id: departmentId,
+            qualification: item.qualification.trim() || null,
+            date_of_birth: null,
+            experience_years: item.experience_years.trim() || null,
+            role: item.role,
+            is_class_coordinator: isCoordinator,
+            password: initialPassword,
+            status: "active" as const,
+          },
+        ]);
+        if (!teacher) throw new Error("Teacher record was not created.");
+        insertedTeacherId = teacher.id;
+        teachersCreated += 1;
+
+        if (createAccounts) {
+          setImportProgress({
+            current: rowIndex + 1,
+            total: validRows.length,
+            teacherName: item.full_name,
+            phase: "creating_account",
+          });
+          const effectiveEmail = item.email.trim().toLowerCase();
+          if (isSupabaseConfigured) {
+            const provisioned = await provisionManagedAccount({
+              email: effectiveEmail,
+              password: initialPassword,
+              fullName: teacher.full_name,
+              role: isCoordinator ? "class_coordinator" : "teacher",
+              departmentId,
+              teacherId: teacher.id,
+            });
+            if (!provisioned.userId) {
+              throw new Error("Account provisioning did not return a Supabase Auth user ID.");
+            }
+            await localDb.update("teachers", teacher.id, {
+              user_id: provisioned.userId,
+              email: effectiveEmail,
+            });
+          } else {
+            const localUserId = `teacher-user-${teacher.id}`;
+            await localDb.insert("users", [
+              {
+                id: localUserId,
+                full_name: teacher.full_name,
+                email: effectiveEmail,
+                role: isCoordinator ? "class_coordinator" : "teacher",
+                department_id: departmentId,
+                teacher_id: teacher.id,
+                employee_id: teacher.employee_id,
+                status: "active",
+              },
+            ]);
+            await localDb.update("teachers", teacher.id, { user_id: localUserId });
+            saveCredential(
+              [localUserId, teacher.id, teacher.employee_id, effectiveEmail],
+              initialPassword,
+            );
+          }
+          accountsCreated += 1;
+        }
+      } catch (error) {
+        if (insertedTeacherId) {
+          await localDb.delete("teachers", insertedTeacherId);
+          teachersCreated -= 1;
+        }
+        failures.push(
+          `${item.full_name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+        failedRows.push(item);
+      }
     }
+
+    setImportProgress(null);
+    setIsImporting(false);
+    setImportResult({
+      teachersCreated,
+      accountsCreated,
+      existingSkipped: existingCount,
+      failures,
+      failedRows,
+    });
+    if (teachersCreated > 0) onImportComplete(teachersCreated);
+    window.setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
   };
 
+  const retryFailedRows = () => {
+    if (!importResult?.failedRows.length) return;
+    setRows(importResult.failedRows);
+    setActiveTab("all");
+    setImportResult(null);
+    setImportProgress(null);
+  };
+
+  const closeImportModal = () => {
+    if (isImporting) return;
+    if (!importResult && rows.length > 0) {
+      const discard = window.confirm(
+        "Discard the prepared teacher import and close this dialog?",
+      );
+      if (!discard) return;
+    }
+    resetState();
+    onOpenChange(false);
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-[95vw] sm:w-full border-border bg-card p-4 sm:p-6 shadow-2xl rounded-2xl max-h-[92vh] flex flex-col overflow-hidden">
-        <DialogHeader className="pb-3 border-b border-border/60 shrink-0">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen || !isImporting) onOpenChange(nextOpen);
+      }}
+    >
+      <DialogContent
+        onEscapeKeyDown={(event) => {
+          if (isImporting) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (isImporting) event.preventDefault();
+        }}
+        className="w-[min(1000px,calc(100vw-2rem))] max-w-none max-h-[90vh] flex flex-col overflow-hidden rounded-2xl border-border bg-card p-0 shadow-2xl"
+      >
+        <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-5 sm:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
@@ -301,7 +410,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4 py-3 pr-1">
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 pr-8 [scrollbar-width:thin] sm:px-8 sm:py-6 sm:pr-10">
           {/* Quick Template Download & Guidelines Toggle Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl border border-border/70 bg-muted/20 text-xs">
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -352,20 +461,20 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
               <p className="text-muted-foreground text-[11px]">
                 Spreadsheet columns (* indicates strictly required field):
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5 text-[11px]">
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+              <div className="grid grid-cols-1 gap-3 pt-1 text-[11px] sm:grid-cols-2 lg:grid-cols-4">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Full Name *</p>
                   <p className="text-muted-foreground text-[10px]">
                     Required identifier
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">College Emp ID *</p>
                   <p className="text-muted-foreground text-[10px]">
                     e.g. EMP-101
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground text-primary">
                     Email Address *
                   </p>
@@ -373,31 +482,31 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                     teacher@college.edu
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Department</p>
                   <p className="text-muted-foreground text-[10px]">
                     Auto-matched
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Designation</p>
                   <p className="text-muted-foreground text-[10px]">
                     Prof / Asst Prof
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Qualification</p>
                   <p className="text-muted-foreground text-[10px]">
                     Ph.D, M.Tech, etc
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Experience</p>
                   <p className="text-muted-foreground text-[10px]">
                     Years (Optional)
                   </p>
                 </div>
-                <div className="bg-background p-2 rounded-lg border border-border/60">
+                <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Phone</p>
                   <p className="text-muted-foreground text-[10px]">
                     10 digits (Optional)
@@ -550,7 +659,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
             </div>
 
             {createAccounts && (
-              <div className="pt-2 border-t border-border/50 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="grid grid-cols-1 gap-5 border-t border-border/50 pt-3 text-xs lg:grid-cols-[1.1fr_0.9fr]">
                 <div>
                   <p className="font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
                     <Lock className="h-3.5 w-3.5 text-primary" />
@@ -624,8 +733,70 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
             )}
           </div>
 
+          {(isImporting && importProgress) || importResult ? (
+            <div
+              ref={resultRef}
+              role="status"
+              aria-live="polite"
+              className="rounded-xl border border-primary/30 bg-primary/5 p-4"
+            >
+              {isImporting && importProgress ? (
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {importProgress.phase === "creating_account"
+                          ? "Creating faculty portal account"
+                          : `Creating teacher ${importProgress.current} of ${importProgress.total}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {importProgress.teacherName}
+                      </p>
+                    </div>
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{
+                        width: `${Math.round(
+                          (importProgress.current / importProgress.total) * 100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : importResult ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
+                    <div>
+                      <p className="font-semibold text-foreground">Import completed</p>
+                      <p className="text-xs text-muted-foreground">
+                        Review the results, then select Done.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.teachersCreated}</p><p>Teachers</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.accountsCreated}</p><p>Accounts</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.existingSkipped}</p><p>Existing</p></div>
+                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.failures.length}</p><p>Failed</p></div>
+                  </div>
+                  {importResult.failures.length > 0 && (
+                    <div className="max-h-32 overflow-y-auto rounded-lg border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive">
+                      {importResult.failures.map((failure) => (
+                        <p key={failure}>{failure}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {/* Interactive Preview Table */}
-          {rows.length > 0 && (
+          {rows.length > 0 && !importResult && (
             <div className="space-y-3">
               {/* Tab Filters & Options */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
@@ -701,7 +872,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
               {/* Editable Spreadsheet Table Container */}
               <div className="border border-border rounded-xl overflow-hidden overflow-x-auto max-h-[380px]">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-muted text-muted-foreground text-[11px] uppercase tracking-wider font-semibold sticky top-0 z-10 border-b border-border">
+                  <thead className="sticky top-0 z-30 border-b border-border bg-card text-[11px] font-semibold uppercase tracking-wider text-muted-foreground shadow-sm">
                     <tr>
                       <th className="py-2.5 px-3 w-10 text-center">#</th>
                       <th className="py-2.5 px-3 min-w-[150px]">Full Name *</th>
@@ -932,38 +1103,36 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
         </div>
 
         {/* Modal Action Controls */}
-        <div className="pt-3 border-t border-border/60 shrink-0 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={isImporting}
-          >
-            Cancel
-          </Button>
-
-          <div className="flex items-center gap-2 justify-end">
-            {rows.length > 0 && (
-              <Button
-                size="sm"
-                onClick={handleExecuteImport}
-                disabled={validCount === 0 || isImporting}
-                className="bg-primary text-primary-foreground font-medium shadow-xs"
-              >
-                {isImporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Importing {validCount} Teachers...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Confirm & Import {validCount} Teacher
-                    {validCount !== 1 ? "s" : ""}
-                  </>
-                )}
+        <div className="shrink-0 border-t border-border/60 bg-card px-6 py-4 sm:px-8">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {!importResult && (
+              <Button variant="outline" size="sm" onClick={closeImportModal} disabled={isImporting}>
+                Cancel
               </Button>
             )}
+            <div className="flex items-center justify-end gap-2 sm:ml-auto">
+              {importResult?.failedRows.length ? (
+                <Button variant="outline" size="sm" onClick={retryFailedRows}>
+                  Retry failed rows
+                </Button>
+              ) : null}
+              {importResult ? (
+                <Button size="sm" onClick={closeImportModal}>Done</Button>
+              ) : rows.length > 0 ? (
+                <Button
+                  size="sm"
+                  onClick={handleExecuteImport}
+                  disabled={validCount === 0 || isImporting}
+                  className="bg-primary font-medium text-primary-foreground shadow-xs disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                >
+                  {isImporting ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing {importProgress?.current || 0} of {validCount}...</>
+                  ) : (
+                    <><UserPlus className="mr-2 h-4 w-4" />Confirm & Import {validCount} Teacher{validCount !== 1 ? "s" : ""}</>
+                  )}
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
       </DialogContent>

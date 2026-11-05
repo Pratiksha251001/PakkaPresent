@@ -96,6 +96,7 @@ const TABLE_COLUMNS: Record<string, string[]> = {
   ],
   teachers: [
     "id",
+    "institution_id",
     "employee_id",
     "full_name",
     "designation",
@@ -272,7 +273,7 @@ export function sanitizePayloadForSupabase(table: string, rawItem: any): any {
   return item;
 }
 
-const TENANT_SCOPED_WRITE_TABLES = new Set(["students", "subjects", "teacher_subjects"]);
+const TENANT_SCOPED_WRITE_TABLES = new Set(["teachers", "students", "subjects", "teacher_subjects"]);
 
 const LOCAL_DATABASE_TABLES = [
   "departments",
@@ -827,7 +828,12 @@ class LocalDatabase {
       .channel(`edutrack-data-${scope.institutionId}-${scope.userId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "teachers" },
+        {
+          event: "*",
+          schema: "public",
+          table: "teachers",
+          filter: `institution_id=eq.${scope.institutionId}`,
+        },
         (change) =>
           this.applyRealtimeChange(scope, generation, "teachers", change),
       )

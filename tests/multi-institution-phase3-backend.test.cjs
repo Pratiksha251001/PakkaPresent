@@ -71,3 +71,12 @@ test("account provisioning safely recovers only compatible unlinked Auth users",
   assert.match(route, /linked\.id !== targetId/);
   assert.match(route, /userId && createdByThisRequest/);
 });
+
+test("teacher import targets the protected account provisioning route", () => {
+  const modal = fs.readFileSync(
+    "frontend/src/components/TeacherImportModal.tsx",
+    "utf8",
+  );
+  assert.match(modal, /provisionManagedAccount/);
+  assert.match(modal, /teacherId: teacher\.id/);
+});
