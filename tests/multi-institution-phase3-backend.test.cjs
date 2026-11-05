@@ -58,3 +58,16 @@ test("Phase 3 final tenant enforcement scopes privileged update and rollback pat
     /previousHodTeacher[\s\S]*?eq\("institution_id", actor\.institutionId\)/,
   );
 });
+
+test("account provisioning safely recovers only compatible unlinked Auth users", () => {
+  const route = server.slice(
+    server.indexOf('"/api/admin/accounts/provision"'),
+    server.indexOf('"/api/admin/accounts/update"'),
+  );
+  assert.match(route, /auth\.admin\.listUsers/);
+  assert.match(route, /auth\.admin\.updateUserById/);
+  assert.match(route, /existingProfile\.institution_id !== actor\.institutionId/);
+  assert.match(route, /existingRole\.role !== role/);
+  assert.match(route, /linked\.id !== targetId/);
+  assert.match(route, /userId && createdByThisRequest/);
+});

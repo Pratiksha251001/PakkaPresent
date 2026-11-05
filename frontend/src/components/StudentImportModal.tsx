@@ -17,7 +17,8 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { localDb, supabase, isSupabaseConfigured } from "../lib/supabase";
+import { localDb, isSupabaseConfigured } from "../lib/supabase";
+import { provisionManagedAccount } from "../lib/accountService";
 import { saveCredential } from "../lib/authUtils";
 import {
   ParsedStudentRow,
@@ -43,6 +44,21 @@ interface StudentImportModalProps {
   onImportComplete: (count: number) => void;
 }
 
+interface StudentImportProgress {
+  current: number;
+  total: number;
+  studentName: string;
+  phase: "creating_student" | "creating_account";
+}
+
+interface StudentImportResult {
+  studentsCreated: number;
+  accountsCreated: number;
+  existingSkipped: number;
+  failures: string[];
+  failedRows: ParsedStudentRow[];
+}
+
 export const StudentImportModal: React.FC<StudentImportModalProps> = ({
   open,
   onOpenChange,
@@ -56,10 +72,13 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [rows, setRows] = useState<ParsedStudentRow[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "valid" | "invalid">(
-    "all",
-  );
+  const [activeTab, setActiveTab] = useState<
+    "all" | "valid" | "existing" | "invalid"
+  >("all");
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<StudentImportProgress | null>(null);
+  const [importResult, setImportResult] = useState<StudentImportResult | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   // Portal Account & Password Strategy
   const [createAccounts, setCreateAccounts] = useState(true);
@@ -78,7 +97,27 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
     setActiveTab("all");
     setIsParsing(false);
     setIsImporting(false);
+    setImportProgress(null);
+    setImportResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const closeImportModal = () => {
+    if (isImporting) return;
+    if (!importResult && rows.length > 0) {
+      const discard = window.confirm("Discard the prepared student import and close this dialog?");
+      if (!discard) return;
+    }
+    resetState();
+    onOpenChange(false);
+  };
+
+  const retryFailedRows = () => {
+    if (!importResult?.failedRows.length) return;
+    setRows(importResult.failedRows);
+    setActiveTab("all");
+    setImportResult(null);
+    setImportProgress(null);
   };
 
   const handleFileProcess = async (file: File) => {
@@ -150,17 +189,30 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
     setRows((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const validRows = rows.filter((r) => r.isValid);
-  const invalidRows = rows.filter((r) => !r.isValid);
+  const isAlreadyExistingError = (message: string) =>
+    message.toLowerCase().includes("already exists");
+  const isExistingRow = (row: ParsedStudentRow) =>
+    !row.isValid &&
+    row.errors.length > 0 &&
+    row.errors.every(isAlreadyExistingError);
+
+  const validRows = rows.filter((row) => row.isValid);
+  const existingRows = rows.filter(isExistingRow);
+  const invalidRows = rows.filter(
+    (row) => !row.isValid && !isExistingRow(row),
+  );
 
   const displayedRows =
     activeTab === "all"
       ? rows
       : activeTab === "valid"
         ? validRows
-        : invalidRows;
+        : activeTab === "existing"
+          ? existingRows
+          : invalidRows;
 
   const validCount = validRows.length;
+  const existingCount = existingRows.length;
   const invalidCount = invalidRows.length;
 
   const handleExecuteImport = async () => {
@@ -179,11 +231,15 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
     }
 
     setIsImporting(true);
+    setImportResult(null);
     let studentsCreated = 0;
     let accountsCreated = 0;
     const failures: string[] = [];
+    const failedRows: ParsedStudentRow[] = [];
 
-    for (const item of validRows) {
+    for (let rowIndex = 0; rowIndex < validRows.length; rowIndex += 1) {
+      const item = validRows[rowIndex];
+      setImportProgress({ current: rowIndex + 1, total: validRows.length, studentName: item.full_name, phase: "creating_student" });
       let insertedStudentId: string | null = null;
       try {
         const studentData = {
@@ -209,6 +265,7 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
         studentsCreated += 1;
 
         if (createAccounts) {
+          setImportProgress({ current: rowIndex + 1, total: validRows.length, studentName: item.full_name, phase: "creating_account" });
           const effectiveEmail =
             item.email?.trim().toLowerCase() ||
             `${item.roll_number.toLowerCase().replace(/[^a-z0-9]/g, "")}@student.college.edu`;
@@ -220,32 +277,22 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
             rawPassword.length >= 6 ? rawPassword : `${rawPassword}@123`;
 
           if (isSupabaseConfigured) {
-            const { data, error } = await supabase.functions.invoke(
-              "provision-student-accounts",
-              {
-                body: {
-                  students: [
-                    {
-                      studentId: student.id,
-                      email: effectiveEmail,
-                      password: initialPassword,
-                      fullName: student.full_name,
-                      departmentId: selectedDepartmentId,
-                    },
-                  ],
-                },
-              },
-            );
-            if (error || !data?.results?.[0]?.ok) {
-              const reason =
-                data?.results?.[0]?.error ||
-                error?.message ||
-                "Account provisioning failed";
-              throw new Error(reason);
+            const provisioned = await provisionManagedAccount({
+              email: effectiveEmail,
+              password: initialPassword,
+              fullName: student.full_name,
+              role: "student",
+              departmentId: selectedDepartmentId,
+              studentId: student.id,
+            });
+            if (!provisioned.userId) {
+              throw new Error(
+                "Account provisioning did not return a Supabase Auth user ID.",
+              );
             }
             accountsCreated += 1;
             await localDb.update("students", student.id, {
-              user_id: data.results[0].userId,
+              user_id: provisioned.userId,
               email: effectiveEmail,
             });
           } else {
@@ -281,23 +328,29 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
         failures.push(
           `${item.full_name}: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
+        failedRows.push(item);
       }
     }
 
     setIsImporting(false);
+    setImportProgress(null);
     if (studentsCreated > 0) onImportComplete(studentsCreated);
-    const summary = `Import completed: ${studentsCreated} student(s) created, ${accountsCreated} account(s) created, ${failures.length} failed.`;
-    if (failures.length > 0) {
-      alert(`${summary}\n\n${failures.join("\n")}`);
-      return;
-    }
-    alert(summary);
-    resetState();
-    onOpenChange(false);
+    setImportResult({
+      studentsCreated,
+      accountsCreated,
+      existingSkipped: existingCount,
+      failures,
+      failedRows,
+    });
+    window.setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
   };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(960px,calc(100vw-2rem))] max-w-none max-h-[86vh] overflow-hidden rounded-2xl border-border/70 bg-card p-0 shadow-2xl flex flex-col">
+    <Dialog open={open} onOpenChange={(nextOpen) => nextOpen ? onOpenChange(true) : closeImportModal()}>
+      <DialogContent
+        onEscapeKeyDown={(event) => { if (isImporting) event.preventDefault(); }}
+        onInteractOutside={(event) => { if (isImporting) event.preventDefault(); }}
+        className="w-[min(960px,calc(100vw-2rem))] max-w-none max-h-[86vh] overflow-hidden rounded-2xl border-border/70 bg-card p-0 shadow-2xl flex flex-col"
+      >
         <DialogHeader className="shrink-0 border-b border-border/60 bg-muted/10 px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
@@ -368,6 +421,32 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
               assigned to this department.
             </p>
           </div>
+          {(isImporting || importResult) && (
+            <div ref={resultRef} role="status" aria-live="polite" className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+              {isImporting && importProgress ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3"><div>
+                    <p className="font-semibold">{importProgress.phase === "creating_account" ? "Creating portal account" : "Creating student record"}</p>
+                    <p className="text-xs text-muted-foreground">{importProgress.studentName} • {importProgress.current} of {importProgress.total}</p>
+                  </div><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((importProgress.current / importProgress.total) * 100)}%` }} /></div>
+                  <p className="text-xs text-muted-foreground">The import continues if another browser tab is selected. Keep this page open until completion.</p>
+                </div>
+              ) : importResult ? (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-500" /><div><p className="font-semibold">Import completed</p><p className="text-xs text-muted-foreground">The result remains here until Done is selected.</p></div></div>
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
+                    <div className="rounded-lg border p-2"><p className="text-lg font-bold">{importResult.studentsCreated}</p><p>Students</p></div>
+                    <div className="rounded-lg border p-2"><p className="text-lg font-bold">{importResult.accountsCreated}</p><p>Accounts</p></div>
+                    <div className="rounded-lg border p-2"><p className="text-lg font-bold">{importResult.existingSkipped}</p><p>Already existed</p></div>
+                    <div className="rounded-lg border p-2"><p className="text-lg font-bold">{importResult.failures.length}</p><p>Failed</p></div>
+                  </div>
+                  {importResult.failures.length > 0 && <div className="max-h-32 overflow-y-auto rounded-lg border border-destructive/30 p-2 text-xs text-destructive">{importResult.failures.map((failure) => <p key={failure}>• {failure}</p>)}</div>}
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {/* Format Specification Banner */}
           <div className="rounded-xl border border-border/70 bg-muted/10 p-3 text-xs space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -599,6 +678,21 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                     <Check className="h-3 w-3 mr-1" />
                     Ready to Import ({validCount})
                   </Button>
+                  {existingCount > 0 && (
+                    <Button
+                      variant={activeTab === "existing" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setActiveTab("existing")}
+                      className={`h-7 text-xs text-amber-600 dark:text-amber-400 ${
+                        activeTab === "existing"
+                          ? "border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15"
+                          : ""
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Already exists ({existingCount})
+                    </Button>
+                  )}
                   {invalidCount > 0 && (
                     <Button
                       variant={
@@ -613,7 +707,7 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                       }`}
                     >
                       <AlertCircle className="h-3 w-3 mr-1" />
-                      Has Issues ({invalidCount})
+                      Invalid ({invalidCount})
                     </Button>
                   )}
                 </div>
@@ -628,7 +722,7 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
               {/* Data Table */}
               <div className="rounded-xl border border-border/70 overflow-x-auto max-h-72 shadow-sm">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-muted/60 sticky top-0 z-10 border-b border-border">
+                  <thead className="bg-card sticky top-0 z-30 border-b border-border shadow-sm">
                     <tr>
                       <th className="py-2 px-2.5 font-semibold text-muted-foreground w-10">
                         #
@@ -661,7 +755,7 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {displayedRows.map((row) => {
+                    {displayedRows.map((row, displayIndex) => {
                       const originalIndex = rows.findIndex(
                         (r) => r.rowNumber === row.rowNumber,
                       );
@@ -674,13 +768,15 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                         <tr
                           key={row.rowNumber}
                           className={
-                            !row.isValid
-                              ? "bg-destructive/5 hover:bg-destructive/10"
-                              : "hover:bg-muted/30"
+                            isExistingRow(row)
+                              ? "bg-amber-500/5 hover:bg-amber-500/10"
+                              : !row.isValid
+                                ? "bg-destructive/5 hover:bg-destructive/10"
+                                : "hover:bg-muted/30"
                           }
                         >
                           <td className="py-1.5 px-2.5 text-muted-foreground font-mono">
-                            {row.rowNumber}
+                            {displayIndex + 1}
                           </td>
 
                           {/* Status Badge & Tooltip */}
@@ -692,18 +788,27 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                               >
                                 Ready
                               </Badge>
+                            ) : isExistingRow(row) ? (
+                              <span title={row.errors.join("; ")}>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                >
+                                  Already exists
+                                </Badge>
+                              </span>
                             ) : (
-                              <span
-                                title={row.errors.join("; ")}
-                                className="cursor-help"
-                              >
+                              <div className="min-w-[170px] space-y-1">
                                 <Badge
                                   variant="destructive"
                                   className="text-[10px]"
                                 >
-                                  Error
+                                  Invalid
                                 </Badge>
-                              </span>
+                                <p className="text-[10px] leading-4 text-destructive">
+                                  {row.errors.join(" ")}
+                                </p>
+                              </div>
                             )}
                           </td>
 
@@ -891,37 +996,14 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
 
         {/* Modal Action Controls */}
         <div className="shrink-0 flex flex-col-reverse gap-3 border-t border-border/60 bg-card/95 px-6 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenChange(false)}
-            disabled={isImporting}
-          >
-            Cancel
-          </Button>
-
-          <div className="flex items-center gap-2 justify-end">
-            {rows.length > 0 && (
-              <Button
-                size="sm"
-                onClick={handleExecuteImport}
-                disabled={validCount === 0 || isImporting}
-                className="bg-primary text-primary-foreground font-medium shadow-xs"
-              >
-                {isImporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Importing {validCount} Students...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Confirm & Import {validCount} Student
-                    {validCount !== 1 ? "s" : ""}
-                  </>
-                )}
+          {!importResult && <Button variant="outline" size="sm" onClick={closeImportModal} disabled={isImporting}>Cancel</Button>}
+          <div className="flex items-center gap-2 justify-end sm:ml-auto">
+            {importResult?.failedRows.length ? <Button variant="outline" size="sm" onClick={retryFailedRows}>Retry failed rows</Button> : null}
+            {importResult ? <Button size="sm" onClick={closeImportModal}>Done</Button> : rows.length > 0 ? (
+              <Button size="sm" onClick={handleExecuteImport} disabled={validCount === 0 || isImporting} className="bg-primary text-primary-foreground font-medium shadow-xs">
+                {isImporting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Importing {importProgress?.current || 0} of {validCount}...</> : <><UserPlus className="h-4 w-4 mr-2" />Confirm & Import {validCount} Student{validCount !== 1 ? "s" : ""}</>}
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </DialogContent>

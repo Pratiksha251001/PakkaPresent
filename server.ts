@@ -949,6 +949,7 @@ async function startServer() {
       const normalizedEmail = String(email).trim().toLowerCase();
       let userId = "";
       try {
+        let createdByThisRequest = false;
         const { data: created, error: createError } =
           await supabaseAdmin.auth.admin.createUser({
             email: normalizedEmail,
@@ -956,11 +957,56 @@ async function startServer() {
             email_confirm: true,
             user_metadata: { full_name: String(fullName).trim() },
           });
-        if (createError || !created.user)
-          throw new Error(
-            createError?.message || "Unable to create Auth user.",
-          );
-        userId = created.user.id;
+        if (created.user) {
+          userId = created.user.id;
+          createdByThisRequest = true;
+        } else {
+          const duplicateEmail =
+            createError?.message?.toLowerCase().includes("already been registered") ||
+            createError?.message?.toLowerCase().includes("already exists");
+          if (!duplicateEmail)
+            throw new Error(createError?.message || "Unable to create Auth user.");
+          let existingUser: any = null;
+          for (let page = 1; page <= 20 && !existingUser; page += 1) {
+            const { data: listed, error: listError } =
+              await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+            if (listError) throw new Error(listError.message);
+            existingUser = listed.users.find(
+              (candidate: any) => candidate.email?.trim().toLowerCase() === normalizedEmail,
+            );
+            if (listed.users.length < 1000) break;
+          }
+          if (!existingUser)
+            throw new Error("The existing Auth account could not be verified safely.");
+          userId = existingUser.id;
+          const { data: existingProfile, error: profileLookupError } =
+            await supabaseAdmin.from("profiles").select("institution_id").eq("id", userId).maybeSingle();
+          if (profileLookupError) throw new Error(profileLookupError.message);
+          if (existingProfile?.institution_id && existingProfile.institution_id !== actor.institutionId)
+            throw new Error("The existing Auth account belongs to another institution.");
+          const { data: existingRoles, error: rolesLookupError } =
+            await supabaseAdmin.from("user_roles").select("role,institution_id,department_id").eq("user_id", userId);
+          if (rolesLookupError) throw new Error(rolesLookupError.message);
+          if ((existingRoles || []).some((existingRole: any) =>
+            existingRole.institution_id !== actor.institutionId ||
+            existingRole.role !== role ||
+            (existingRole.department_id && existingRole.department_id !== targetRecord.department_id)))
+            throw new Error("The existing Auth account has an incompatible institution, role, or department.");
+          for (const linkedTable of ["students", "teachers"]) {
+            const { data: linkedRows, error: linkedError } = await supabaseAdmin
+              .from(linkedTable).select("id,institution_id").eq("user_id", userId).limit(2);
+            if (linkedError) throw new Error(linkedError.message);
+            if ((linkedRows || []).some((linked: any) =>
+              linked.institution_id !== actor.institutionId || linked.id !== targetId))
+              throw new Error("The existing Auth account is already linked to another record.");
+          }
+          const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+            password: String(password),
+            email_confirm: true,
+            user_metadata: { full_name: String(fullName).trim() },
+          });
+          if (updateAuthError) throw new Error(updateAuthError.message);
+        }
         const { error: profileError } = await supabaseAdmin
           .from("profiles")
           .upsert({
@@ -993,7 +1039,8 @@ async function startServer() {
         if (linkError) throw new Error(linkError.message);
         return res.status(201).json({ success: true, userId, role });
       } catch (error: any) {
-        if (userId) await supabaseAdmin.auth.admin.deleteUser(userId);
+        if (userId && createdByThisRequest)
+          await supabaseAdmin.auth.admin.deleteUser(userId);
         return res.status(400).json({
           success: false,
           message:

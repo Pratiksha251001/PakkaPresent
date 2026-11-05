@@ -21,7 +21,7 @@ test("actual subject save path preserves authenticated tenant scope", () => {
   assert.ok(teacherSubjectColumns.includes('"institution_id"'));
   assert.ok(
     source.includes(
-      'const TENANT_SCOPED_WRITE_TABLES = new Set(["subjects", "teacher_subjects"])',
+      'const TENANT_SCOPED_WRITE_TABLES = new Set(["students", "subjects", "teacher_subjects"])',
     ),
   );
   assert.ok(source.includes("? { institution_id: scope.institutionId }"));
