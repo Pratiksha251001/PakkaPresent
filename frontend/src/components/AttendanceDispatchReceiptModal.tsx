@@ -1,13 +1,7 @@
 import React from "react";
 import { CheckCircle2, FileText, Mail, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { AlertChannel, SmsLanguage, Student, Subject } from "../lib/types";
@@ -15,7 +9,7 @@ import { AlertChannel, SmsLanguage, Student, Subject } from "../lib/types";
 interface NotificationResult {
   student: Student;
   channel: AlertChannel;
-  status: "accepted" | "failed";
+  status: "accepted" | "failed" | "skipped";
   message: string;
   attendanceStatus: "absent" | "present";
 }
@@ -51,11 +45,10 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
   const absentWord = totalAbsent === 1 ? "student" : "students";
 
   const channelSummary = (channel: AlertChannel) => {
-    const results = notificationResults.filter(
-      (result) => result.channel === channel,
-    );
+    const results = notificationResults.filter((result) => result.channel === channel);
     return {
       accepted: results.filter((result) => result.status === "accepted").length,
+      skipped: results.filter((result) => result.status === "skipped").length,
       failed: results.filter((result) => result.status === "failed").length,
       results,
     };
@@ -79,8 +72,7 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
                 Attendance Recorded
               </DialogTitle>
               <p className="mt-1 truncate text-xs text-muted-foreground">
-                {subject?.code} · {subject?.name} · Sem {subject?.semester} ·{" "}
-                {date}
+                {subject?.code} · {subject?.name} · Sem {subject?.semester} · {date}
               </p>
             </div>
           </div>
@@ -99,8 +91,7 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
               {
                 label: "Absent",
                 value: totalAbsent,
-                className:
-                  "border-rose-500/25 bg-rose-500/[0.06] text-rose-700 dark:text-rose-300",
+                className: "border-rose-500/25 bg-rose-500/[0.06] text-rose-700 dark:text-rose-300",
               },
             ].map((stat) => (
               <div
@@ -110,9 +101,7 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
                 <span className="block text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                   {stat.label}
                 </span>
-                <span className="mt-0.5 block text-xl font-bold leading-none">
-                  {stat.value}
-                </span>
+                <span className="mt-0.5 block text-xl font-bold leading-none">{stat.value}</span>
               </div>
             ))}
           </div>
@@ -142,32 +131,25 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
             <div
               className={`grid gap-2 ${selectedChannelResults.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}
             >
-              {selectedChannelResults.map(
-                ({ channel, accepted, failed, results }) => {
-                  const Icon = channel === "email" ? Mail : MessageSquare;
-                  const noResultText = allPresent
-                    ? "Not required for an all-present result"
-                    : "No result was recorded";
-                  return (
-                    <div
-                      key={channel}
-                      className="rounded-xl border border-border/70 bg-muted/15 p-3"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4 text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-wide">
-                          {channel}
-                        </span>
-                      </div>
-                      <p className="mt-1.5 text-xs text-muted-foreground">
-                        {results.length > 0
-                          ? `${accepted} accepted · ${failed} failed`
-                          : noResultText}
-                      </p>
+              {selectedChannelResults.map(({ channel, accepted, skipped, failed, results }) => {
+                const Icon = channel === "email" ? Mail : MessageSquare;
+                const noResultText = allPresent
+                  ? "Not required for an all-present result"
+                  : "No result was recorded";
+                return (
+                  <div key={channel} className="rounded-xl border border-border/70 bg-muted/15 p-3">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-bold uppercase tracking-wide">{channel}</span>
                     </div>
-                  );
-                },
-              )}
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {results.length > 0
+                        ? `${accepted} accepted · ${skipped} skipped · ${failed} failed`
+                        : noResultText}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -184,7 +166,11 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
                     </span>
                     <Badge
                       variant={
-                        result.status === "accepted" ? "success" : "destructive"
+                        result.status === "accepted"
+                          ? "success"
+                          : result.status === "skipped"
+                            ? "secondary"
+                            : "destructive"
                       }
                       className="text-[10px]"
                     >
@@ -199,11 +185,7 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
         </div>
 
         <DialogFooter className="flex-col-reverse gap-2 border-t border-border/70 bg-muted/10 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            to="/sms-logs"
-            onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
-          >
+          <Link to="/sms-logs" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
             <Button variant="ghost" size="sm" className="w-full sm:w-auto">
               <FileText className="mr-1.5 h-3.5 w-3.5" />
               View Logs

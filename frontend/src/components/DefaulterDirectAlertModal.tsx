@@ -354,10 +354,10 @@ export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         data-testid="defaulter-alert-modal"
-        className="w-[min(94vw,42rem)] max-w-[42rem] max-h-[92vh] overflow-hidden flex flex-col p-0 gap-0 border-border/60 bg-background shadow-2xl animate-in fade-in-0 zoom-in-[0.97] slide-in-from-bottom-2 duration-250"
+        className="w-[min(94vw,46rem)] max-w-[46rem] h-[min(86dvh,44rem)] max-h-[86dvh] overflow-hidden flex flex-col p-0 gap-0 border-border/60 bg-background shadow-2xl animate-in fade-in-0 zoom-in-[0.97] slide-in-from-bottom-2 duration-250"
       >
         {/* Header */}
-        <DialogHeader className="shrink-0 border-b border-border/60 bg-background px-6 py-5 sm:px-7">
+        <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-4 sm:px-7">
           <div className="flex items-start gap-3.5 pr-7">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="h-5 w-5" />
@@ -480,8 +480,8 @@ export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps>
           </div>
         ) : (
           /* Selection & Configuration Screen */
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-7">
-            <div className="space-y-5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4 pr-4 sm:px-7 sm:pr-5 [scrollbar-gutter:stable]">
+            <div className="space-y-4">
               <section className="space-y-3">
                 <h3 className="text-sm font-semibold text-foreground">Delivery channel</h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -559,7 +559,7 @@ export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps>
                     </p>
                   </div>
                 ) : (
-                  <div className="max-h-[19rem] space-y-2 overflow-y-auto pr-1">
+                  <div className="space-y-2">
                     {filteredDefaulters.map((d) => {
                       const isSelected = selectedIds.has(d.student.id);
                       return (
@@ -567,7 +567,7 @@ export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps>
                           key={d.student.id}
                           data-testid="defaulter-student-row"
                           onClick={() => toggleStudent(d.student.id)}
-                          className={`grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-xl border p-3.5 transition-colors ${
+                          className={`grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 rounded-xl border px-4 py-3 transition-colors ${
                             isSelected
                               ? "border-primary/35 bg-primary/[0.05]"
                               : "border-border/60 bg-card hover:bg-muted/30"
@@ -578,27 +578,48 @@ export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps>
                             onCheckedChange={() => toggleStudent(d.student.id)}
                             onClick={(event) => event.stopPropagation()}
                             aria-label={`Select ${d.name}`}
-                            className="mt-1"
+                            className="mt-0.5"
                           />
+
                           <div className="min-w-0">
-                            <p className="truncate text-[15px] font-semibold leading-5 text-foreground">
-                              {d.name}
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                              <p className="truncate text-base font-bold leading-5 text-foreground">
+                                {d.name}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {d.roll} · {d.className || "Class not assigned"}
+                              </p>
+                            </div>
+
+                            <p className="mt-1 truncate text-sm text-muted-foreground">
+                              {d.parentName || "Parent name unavailable"} ·{" "}
+                              {d.parentMobile || "Mobile unavailable"}
                             </p>
-                            <p className="mt-1 truncate text-xs text-muted-foreground">
-                              Roll no. {d.roll} · {d.className}
-                            </p>
-                            <p className="mt-1 truncate text-xs text-muted-foreground">
-                              Parent: {d.parentName}
-                            </p>
-                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                              Contact: {d.parentMobile || d.parentEmail || "Not available"}
+
+                            <p
+                              className={`mt-1 text-xs font-medium ${
+                                d.parentEmail
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-amber-600 dark:text-amber-400"
+                              }`}
+                            >
+                              {d.parentEmail || "No parent email"}
                             </p>
                           </div>
+
                           <div className="shrink-0 text-right">
-                            <p className="text-[15px] font-bold leading-5 text-amber-700 dark:text-amber-300">
+                            <p className="text-lg font-extrabold leading-5 text-amber-700 dark:text-amber-300">
                               {Number(d.percentage.toFixed(1))}%
                             </p>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">Attendance</p>
+
+                            <p className="mt-1 whitespace-nowrap text-xs text-muted-foreground">
+                              {d.attendedLectures} / {d.totalLectures} lectures
+                            </p>
+
+                            <p className="mt-1 whitespace-nowrap text-xs font-medium text-amber-700 dark:text-amber-300">
+                              {Number(Math.max(0, 75 - d.percentage).toFixed(1))} points below
+                              target
+                            </p>
                           </div>
                         </div>
                       );
@@ -611,7 +632,7 @@ export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps>
         )}
         {/* Footer */}
         {!sentSuccessDetails && (
-          <DialogFooter className="shrink-0 border-t border-border/60 bg-background px-6 py-3.5 sm:px-7 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
+          <DialogFooter className="shrink-0 border-t border-border/60 px-6 py-3.5 sm:px-7 flex flex-col-reverse sm:flex-row items-center justify-between gap-3">
             <Button
               type="button"
               variant="outline"
