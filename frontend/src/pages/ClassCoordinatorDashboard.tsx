@@ -27,10 +27,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { localDb } from "../lib/supabase";
-import {
-  provisionManagedAccount,
-  resetManagedAccountPassword,
-} from "../lib/accountService";
+import { provisionManagedAccount, resetManagedAccountPassword } from "../lib/accountService";
 import { Student, Subject, AcademicClass, TeacherSubject } from "../lib/types";
 import { college } from "../lib/college";
 import {
@@ -80,19 +77,16 @@ interface ClassCoordinatorDashboardProps {
   studentsOnly?: boolean;
 }
 
-export const ClassCoordinatorDashboard: React.FC<
-  ClassCoordinatorDashboardProps
-> = ({ studentsOnly = false }) => {
+export const ClassCoordinatorDashboard: React.FC<ClassCoordinatorDashboardProps> = ({
+  studentsOnly = false,
+}) => {
   const { user } = useAuth();
-  const [activeMainTab, setActiveMainTab] = useState<"students" | "subjects">(
-    "students",
-  );
+  const [activeMainTab, setActiveMainTab] = useState<"students" | "subjects">("students");
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState<string>("all");
   const [studentDialogOpen, setStudentDialogOpen] = useState(false);
   const [studentImportModalOpen, setStudentImportModalOpen] = useState(false);
-  const [passwordModalStudent, setPasswordModalStudent] =
-    useState<Student | null>(null);
+  const [passwordModalStudent, setPasswordModalStudent] = useState<Student | null>(null);
   const [batchPasswordModalOpen, setBatchPasswordModalOpen] = useState(false);
   const [alertStudent, setAlertStudent] = useState<Student | null>(null);
   const [successToastMsg, setSuccessToastMsg] = useState<string | null>(null);
@@ -102,14 +96,12 @@ export const ClassCoordinatorDashboard: React.FC<
 
   // Subject and class management state
   const [subjectSearch, setSubjectSearch] = useState("");
-  const [subjectSemesterFilter, setSubjectSemesterFilter] =
-    useState<string>("all");
+  const [subjectSemesterFilter, setSubjectSemesterFilter] = useState<string>("all");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [subjectDialogOpen, setSubjectDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [assignFacultyModalOpen, setAssignFacultyModalOpen] = useState(false);
-  const [targetSubjectForAssign, setTargetSubjectForAssign] =
-    useState<Subject | null>(null);
+  const [targetSubjectForAssign, setTargetSubjectForAssign] = useState<Subject | null>(null);
   const [selectedFacultyForAssign, setSelectedFacultyForAssign] = useState("");
   const [selectedClassForAssign, setSelectedClassForAssign] = useState("");
   const [subjectForm, setSubjectForm] = useState({
@@ -154,14 +146,29 @@ export const ClassCoordinatorDashboard: React.FC<
   const allSubjects = localDb.subjects;
   const teacherSubjects = localDb.teacher_subjects as TeacherSubject[];
   const academicClasses = (localDb.academic_classes || []) as AcademicClass[];
+  const classDivisionOptions = useMemo(() => {
+    const names = new Set([
+      ...academicClasses.map((item) => item.name).filter(Boolean),
+      "SY CSE-A",
+      "SY CSE-B",
+      "TY CSE-A",
+      "TY CSE-B",
+      "BE CSE-A",
+      "FY CSE-A",
+    ]);
+    if (studentForm.class_name) names.add(studentForm.class_name);
+    if (selectedClassForAssign) names.add(selectedClassForAssign);
+    return Array.from(names)
+      .sort()
+      .map((name) => ({ value: name, label: name }));
+  }, [academicClasses, studentForm.class_name, selectedClassForAssign]);
 
   const me = teachers.find(
     (t) =>
       t.id === user?.teacher_id ||
       (user?.email && t.email?.toLowerCase() === user.email.toLowerCase()) ||
       (user?.employee_id && t.employee_id === user.employee_id) ||
-      (t.is_class_coordinator &&
-        t.department_id === (user?.department_id || "dept-1")),
+      (t.is_class_coordinator && t.department_id === (user?.department_id || "dept-1")),
   );
   const myDepartmentId = user?.department_id || me?.department_id || "dept-1";
   const myDepartment = departments.find((d) => d.id === myDepartmentId);
@@ -169,31 +176,22 @@ export const ClassCoordinatorDashboard: React.FC<
 
   // Faculty members belonging to coordinator's department (imported or created by HOD)
   const departmentTeachers = useMemo(() => {
-    return teachers.filter(
-      (t) => !myDepartmentId || t.department_id === myDepartmentId,
-    );
+    return teachers.filter((t) => !myDepartmentId || t.department_id === myDepartmentId);
   }, [teachers, myDepartmentId, version]);
 
   // Subjects for coordinator's department / semester
   const coordinatorSubjects = useMemo(() => {
-    let list = allSubjects.filter(
-      (s) => !myDepartmentId || s.department_id === myDepartmentId,
-    );
+    let list = allSubjects.filter((s) => !myDepartmentId || s.department_id === myDepartmentId);
     if (subjectSemesterFilter !== "all") {
       list = list.filter((s) => s.semester === Number(subjectSemesterFilter));
     }
     if (subjectSearch) {
       const q = subjectSearch.toLowerCase();
       list = list.filter((s) => {
-        const assignedT = departmentTeachers.find(
-          (t) => t.id === (s as any).teacher_id,
-        );
+        const assignedT = departmentTeachers.find((t) => t.id === (s as any).teacher_id);
         const tsMapped = teacherSubjects.filter((ts) => ts.subject_id === s.id);
         const mappedNames = tsMapped
-          .map(
-            (ts) =>
-              teachers.find((t) => t.id === ts.teacher_id)?.full_name || "",
-          )
+          .map((ts) => teachers.find((t) => t.id === ts.teacher_id)?.full_name || "")
           .join(" ")
           .toLowerCase();
         return (
@@ -232,18 +230,10 @@ export const ClassCoordinatorDashboard: React.FC<
       unassigned,
       facultyCount: departmentTeachers.length,
     };
-  }, [
-    allSubjects,
-    myDepartmentId,
-    teacherSubjects,
-    departmentTeachers,
-    version,
-  ]);
+  }, [allSubjects, myDepartmentId, teacherSubjects, departmentTeachers, version]);
 
   const myStudents = useMemo(() => {
-    let list = students.filter(
-      (s) => !myDepartmentId || s.department_id === myDepartmentId,
-    );
+    let list = students.filter((s) => !myDepartmentId || s.department_id === myDepartmentId);
     if (myAssignedSemester && semesterFilter === "all") {
       // Prioritize assigned semester if coordinator has one, but show all if none found
       const semList = list.filter((s) => s.semester === myAssignedSemester);
@@ -253,8 +243,7 @@ export const ClassCoordinatorDashboard: React.FC<
     }
     if (classFilter !== "all") {
       list = list.filter(
-        (st) =>
-          st.class_name === classFilter || (st as any).class_id === classFilter,
+        (st) => st.class_name === classFilter || (st as any).class_id === classFilter,
       );
     }
     if (search) {
@@ -269,23 +258,11 @@ export const ClassCoordinatorDashboard: React.FC<
       );
     }
     return list;
-  }, [
-    students,
-    myDepartmentId,
-    myAssignedSemester,
-    semesterFilter,
-    classFilter,
-    search,
-    version,
-  ]);
+  }, [students, myDepartmentId, myAssignedSemester, semesterFilter, classFilter, search, version]);
 
   const statsSemesters = useMemo(() => {
-    const all = students.filter(
-      (s) => !myDepartmentId || s.department_id === myDepartmentId,
-    );
-    const my = myAssignedSemester
-      ? all.filter((s) => s.semester === myAssignedSemester)
-      : all;
+    const all = students.filter((s) => !myDepartmentId || s.department_id === myDepartmentId);
+    const my = myAssignedSemester ? all.filter((s) => s.semester === myAssignedSemester) : all;
     const active = my.filter((s) => s.status === "active").length;
     return {
       total: my.length,
@@ -380,9 +357,7 @@ export const ClassCoordinatorDashboard: React.FC<
     const clParent = cleanMobile(studentForm.parent_mobile);
     const clStudent = cleanMobile(studentForm.student_mobile);
     if (clParent && clStudent && clParent === clStudent) {
-      errs.push(
-        "Parent Mobile and Student Mobile cannot be identical numbers.",
-      );
+      errs.push("Parent Mobile and Student Mobile cannot be identical numbers.");
     }
 
     // Email format
@@ -433,15 +408,12 @@ export const ClassCoordinatorDashboard: React.FC<
       status: "active" as const,
     };
 
-    const effectivePwd =
-      studentForm.password.trim() || data.roll_number || "123";
+    const effectivePwd = studentForm.password.trim() || data.roll_number || "123";
 
     try {
       if (editingStudent) {
         await localDb.update("students", editingStudent.id, data);
-        const account = localDb.users.find(
-          (u) => u.student_id === editingStudent.id,
-        );
+        const account = localDb.users.find((u) => u.student_id === editingStudent.id);
         if (account) {
           await localDb.update("users", account.id, {
             full_name: data.full_name,
@@ -491,11 +463,7 @@ export const ClassCoordinatorDashboard: React.FC<
     setStudentDialogOpen(false);
     setEditingStudent(null);
     setVersion((v) => v + 1);
-    alert(
-      wasEditing
-        ? "Student updated successfully."
-        : "Student added successfully.",
-    );
+    alert(wasEditing ? "Student updated successfully." : "Student added successfully.");
   };
 
   const handleDeleteStudent = async (id: string) => {
@@ -560,15 +528,11 @@ export const ClassCoordinatorDashboard: React.FC<
         (!editingSubject || s.id !== editingSubject.id),
     );
     if (duplicate) {
-      alert(
-        `Subject code '${codeNorm}' already exists in this department (${duplicate.name}).`,
-      );
+      alert(`Subject code '${codeNorm}' already exists in this department (${duplicate.name}).`);
       return;
     }
 
-    const assignedTeacher = departmentTeachers.find(
-      (t) => t.id === subjectForm.teacher_id,
-    );
+    const assignedTeacher = departmentTeachers.find((t) => t.id === subjectForm.teacher_id);
 
     if (editingSubject) {
       await localDb.update("subjects", editingSubject.id, {
@@ -581,9 +545,7 @@ export const ClassCoordinatorDashboard: React.FC<
         teacher_id: subjectForm.teacher_id || null,
       });
 
-      const existingTs = teacherSubjects.filter(
-        (ts) => ts.subject_id === editingSubject.id,
-      );
+      const existingTs = teacherSubjects.filter((ts) => ts.subject_id === editingSubject.id);
       for (const ts of existingTs) {
         await localDb.delete("teacher_subjects", ts.id);
       }
@@ -602,9 +564,7 @@ export const ClassCoordinatorDashboard: React.FC<
 
       setSuccessToastMsg(
         `Updated subject ${codeNorm} - ${subjectForm.name.trim()}${
-          assignedTeacher
-            ? ` and mapped to ${assignedTeacher.full_name} (Imported by HOD)`
-            : ""
+          assignedTeacher ? ` and mapped to ${assignedTeacher.full_name} (Imported by HOD)` : ""
         }!`,
       );
     } else {
@@ -638,9 +598,7 @@ export const ClassCoordinatorDashboard: React.FC<
 
       setSuccessToastMsg(
         `Created subject ${codeNorm} - ${subjectForm.name.trim()}${
-          assignedTeacher
-            ? ` and assigned to ${assignedTeacher.full_name} (Imported by HOD)`
-            : ""
+          assignedTeacher ? ` and assigned to ${assignedTeacher.full_name} (Imported by HOD)` : ""
         }!`,
       );
     }
@@ -652,12 +610,7 @@ export const ClassCoordinatorDashboard: React.FC<
   };
 
   const handleDeleteSubject = async (s: Subject) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete subject '${s.code} - ${s.name}'?`,
-      )
-    )
-      return;
+    if (!confirm(`Are you sure you want to delete subject '${s.code} - ${s.name}'?`)) return;
     await localDb.delete("subjects", s.id);
     const existingTs = teacherSubjects.filter((ts) => ts.subject_id === s.id);
     for (const ts of existingTs) {
@@ -673,13 +626,9 @@ export const ClassCoordinatorDashboard: React.FC<
     setTargetSubjectForAssign(s);
     setSelectedClassForAssign(preselectedClass || "");
     const currentTs = preselectedClass
-      ? teacherSubjects.find(
-          (ts) => ts.subject_id === s.id && ts.class_name === preselectedClass,
-        )
+      ? teacherSubjects.find((ts) => ts.subject_id === s.id && ts.class_name === preselectedClass)
       : teacherSubjects.find((ts) => ts.subject_id === s.id);
-    setSelectedFacultyForAssign(
-      currentTs?.teacher_id || (s as any).teacher_id || "",
-    );
+    setSelectedFacultyForAssign(currentTs?.teacher_id || (s as any).teacher_id || "");
     setAssignFacultyModalOpen(true);
   };
 
@@ -691,16 +640,13 @@ export const ClassCoordinatorDashboard: React.FC<
       (c) => c.name.toLowerCase() === trimmedClass?.toLowerCase(),
     );
 
-    const assignedTeacher = departmentTeachers.find(
-      (t) => t.id === selectedFacultyForAssign,
-    );
+    const assignedTeacher = departmentTeachers.find((t) => t.id === selectedFacultyForAssign);
 
     if (selectedFacultyForAssign) {
       // Remove any existing assignment for this EXACT subject and class division
       const existingForClass = teacherSubjects.filter(
         (ts) =>
-          ts.subject_id === targetSubjectForAssign.id &&
-          (ts.class_name || null) === trimmedClass,
+          ts.subject_id === targetSubjectForAssign.id && (ts.class_name || null) === trimmedClass,
       );
       for (const ts of existingForClass) {
         await localDb.delete("teacher_subjects", ts.id);
@@ -715,9 +661,7 @@ export const ClassCoordinatorDashboard: React.FC<
           class_id: matchedClass?.id || null,
           year:
             targetSubjectForAssign.year ||
-            (targetSubjectForAssign.semester
-              ? Math.ceil(targetSubjectForAssign.semester / 2)
-              : 1),
+            (targetSubjectForAssign.semester ? Math.ceil(targetSubjectForAssign.semester / 2) : 1),
           semester: targetSubjectForAssign.semester,
           created_at: new Date().toISOString(),
         },
@@ -734,8 +678,7 @@ export const ClassCoordinatorDashboard: React.FC<
       if (trimmedClass) {
         const existingForClass = teacherSubjects.filter(
           (ts) =>
-            ts.subject_id === targetSubjectForAssign.id &&
-            (ts.class_name || null) === trimmedClass,
+            ts.subject_id === targetSubjectForAssign.id && (ts.class_name || null) === trimmedClass,
         );
         for (const ts of existingForClass) {
           await localDb.delete("teacher_subjects", ts.id);
@@ -753,9 +696,7 @@ export const ClassCoordinatorDashboard: React.FC<
         await localDb.update("subjects", targetSubjectForAssign.id, {
           teacher_id: null,
         });
-        setSuccessToastMsg(
-          `Unassigned faculty from ${targetSubjectForAssign.code}.`,
-        );
+        setSuccessToastMsg(`Unassigned faculty from ${targetSubjectForAssign.code}.`);
       }
     }
 
@@ -793,9 +734,7 @@ export const ClassCoordinatorDashboard: React.FC<
 
   const statCards = [
     {
-      label: myAssignedSemester
-        ? `Semester ${myAssignedSemester} Students`
-        : "Dept Students",
+      label: myAssignedSemester ? `Semester ${myAssignedSemester} Students` : "Dept Students",
       value: String(statsSemesters.total),
       icon: GraduationCap,
       border: "border-cyan-500/20",
@@ -843,10 +782,7 @@ export const ClassCoordinatorDashboard: React.FC<
       label: "Pending Assignment",
       value: String(subjectStats.unassigned),
       icon: subjectStats.unassigned > 0 ? XCircle : CheckCircle2,
-      border:
-        subjectStats.unassigned > 0
-          ? "border-amber-500/20"
-          : "border-emerald-500/20",
+      border: subjectStats.unassigned > 0 ? "border-amber-500/20" : "border-emerald-500/20",
       iconBg:
         subjectStats.unassigned > 0
           ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -914,10 +850,7 @@ export const ClassCoordinatorDashboard: React.FC<
               >
                 <BookOpen className="h-3.5 w-3.5" />
                 <span>Subjects & Faculty</span>
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] px-1 py-0 h-4"
-                >
+                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
                   {coordinatorSubjects.length}
                 </Badge>
               </button>
@@ -938,31 +871,22 @@ export const ClassCoordinatorDashboard: React.FC<
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {(activeMainTab === "students" ? statCards : subjectStatCards).map(
-          (s, i) => {
-            const Icon = s.icon;
-            return (
-              <Card
-                key={i}
-                className={`border ${s.border} p-4 relative overflow-hidden`}
-              >
-                <div className="relative">
-                  <div
-                    className={`h-10 w-10 rounded-lg flex items-center justify-center mb-2 ${s.iconBg}`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="text-2xl font-black text-foreground">
-                    {s.value}
-                  </div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {s.label}
-                  </div>
+        {(activeMainTab === "students" ? statCards : subjectStatCards).map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <Card key={i} className={`border ${s.border} p-4 relative overflow-hidden`}>
+              <div className="relative">
+                <div
+                  className={`h-10 w-10 rounded-lg flex items-center justify-center mb-2 ${s.iconBg}`}
+                >
+                  <Icon className="h-5 w-5" />
                 </div>
-              </Card>
-            );
-          },
-        )}
+                <div className="text-2xl font-black text-foreground">{s.value}</div>
+                <div className="text-sm font-semibold text-foreground">{s.label}</div>
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       {/* STUDENT ROSTER TAB */}
@@ -983,8 +907,8 @@ export const ClassCoordinatorDashboard: React.FC<
                 className="text-xs"
                 title="Set or reset portal login passwords for all students in class"
               >
-                <KeyRound className="h-3.5 w-3.5 mr-1.5 dashboard-accent-text" />{" "}
-                Batch Set Passwords
+                <KeyRound className="h-3.5 w-3.5 mr-1.5 dashboard-accent-text" /> Batch Set
+                Passwords
               </Button>
               <Button
                 size="sm"
@@ -994,10 +918,7 @@ export const ClassCoordinatorDashboard: React.FC<
               >
                 <Upload className="h-3.5 w-3.5 mr-1.5" /> Import CSV/Excel
               </Button>
-              <Dialog
-                open={studentDialogOpen}
-                onOpenChange={setStudentDialogOpen}
-              >
+              <Dialog open={studentDialogOpen} onOpenChange={setStudentDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" onClick={handleAddStudent}>
                     <Plus className="h-4 w-4 mr-1.5" /> Add Student
@@ -1005,9 +926,7 @@ export const ClassCoordinatorDashboard: React.FC<
                 </DialogTrigger>
                 <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>
-                      {editingStudent ? "Edit Student" : "Add New Student"}
-                    </DialogTitle>
+                    <DialogTitle>{editingStudent ? "Edit Student" : "Add New Student"}</DialogTitle>
                   </DialogHeader>
                   <div className="grid grid-cols-2 gap-3 py-4">
                     <div>
@@ -1050,9 +969,7 @@ export const ClassCoordinatorDashboard: React.FC<
                       </label>
                       <Select
                         value={studentForm.semester}
-                        onValueChange={(v) =>
-                          setStudentForm({ ...studentForm, semester: v })
-                        }
+                        onValueChange={(v) => setStudentForm({ ...studentForm, semester: v })}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -1070,28 +987,20 @@ export const ClassCoordinatorDashboard: React.FC<
                       <label className="text-xs font-semibold text-muted-foreground mb-1 block">
                         Class / Division
                       </label>
-                      <Input
+                      <Select
                         value={studentForm.class_name}
-                        onChange={(e) =>
-                          setStudentForm({
-                            ...studentForm,
-                            class_name: e.target.value,
-                          })
+                        onValueChange={(value) =>
+                          setStudentForm({ ...studentForm, class_name: value })
                         }
-                        placeholder="e.g. TY CSE-A, TY CSE-B"
-                        list="cc-student-classes"
+                        searchable
+                        searchPlaceholder="Search classes or divisions..."
+                        emptyMessage="No matching class or division"
+                        placeholder="Select class / division"
+                        options={[
+                          { value: "", label: "Select class / division" },
+                          ...classDivisionOptions,
+                        ]}
                       />
-                      <datalist id="cc-student-classes">
-                        {academicClasses.map((c) => (
-                          <option key={c.id} value={c.name} />
-                        ))}
-                        <option value="SY CSE-A" />
-                        <option value="SY CSE-B" />
-                        <option value="TY CSE-A" />
-                        <option value="TY CSE-B" />
-                        <option value="BE CSE-A" />
-                        <option value="FY CSE-A" />
-                      </datalist>
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground mb-1 block">
@@ -1099,9 +1008,7 @@ export const ClassCoordinatorDashboard: React.FC<
                       </label>
                       <Select
                         value={studentForm.gender}
-                        onValueChange={(v) =>
-                          setStudentForm({ ...studentForm, gender: v as any })
-                        }
+                        onValueChange={(v) => setStudentForm({ ...studentForm, gender: v as any })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select..." />
@@ -1253,16 +1160,13 @@ export const ClassCoordinatorDashboard: React.FC<
                         }
                       />
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        Students can log in to their student portal using their
-                        Roll Number and password.
+                        Students can log in to their student portal using their Roll Number and
+                        password.
                       </p>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setStudentDialogOpen(false)}
-                    >
+                    <Button variant="ghost" onClick={() => setStudentDialogOpen(false)}>
                       Cancel
                     </Button>
                     <Button onClick={handleStudentSubmit}>
@@ -1292,15 +1196,10 @@ export const ClassCoordinatorDashboard: React.FC<
               <span className="dashboard-filter-label">Semester</span>
 
               <Select value={semesterFilter} onValueChange={setSemesterFilter}>
-                <SelectTrigger
-                  className="w-full"
-                  aria-label="Filter students by semester"
-                >
+                <SelectTrigger className="w-full" aria-label="Filter students by semester">
                   <SelectValue
                     displayValue={
-                      semesterFilter === "all"
-                        ? "All Semesters"
-                        : `Semester ${semesterFilter}`
+                      semesterFilter === "all" ? "All Semesters" : `Semester ${semesterFilter}`
                     }
                   />
                 </SelectTrigger>
@@ -1321,30 +1220,23 @@ export const ClassCoordinatorDashboard: React.FC<
               <span className="dashboard-filter-label">Class / Division</span>
 
               <Select value={classFilter} onValueChange={setClassFilter}>
-                <SelectTrigger
-                  className="w-full"
-                  aria-label="Filter students by class or division"
-                >
+                <SelectTrigger className="w-full" aria-label="Filter students by class or division">
                   <SelectValue
                     placeholder="All Divisions"
-                    displayValue={
-                      classFilter === "all"
-                        ? "All Divisions / Classes"
-                        : classFilter
-                    }
+                    displayValue={classFilter === "all" ? "All Divisions / Classes" : classFilter}
                   />
                 </SelectTrigger>
 
                 <SelectContent>
                   <SelectItem value="all">All Divisions / Classes</SelectItem>
 
-                  {Array.from(
-                    new Set(students.map((s) => s.class_name).filter(Boolean)),
-                  ).map((cn) => (
-                    <SelectItem key={cn} value={cn!}>
-                      {cn}
-                    </SelectItem>
-                  ))}
+                  {Array.from(new Set(students.map((s) => s.class_name).filter(Boolean))).map(
+                    (cn) => (
+                      <SelectItem key={cn} value={cn!}>
+                        {cn}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1361,9 +1253,7 @@ export const ClassCoordinatorDashboard: React.FC<
                     <TableHead>Class / Div</TableHead>
                     <TableHead>Parent Contact</TableHead>
                     <TableHead>Student Mobile</TableHead>
-                    <TableHead className="text-right w-[115px]">
-                      Actions
-                    </TableHead>
+                    <TableHead className="text-right w-[115px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1379,16 +1269,10 @@ export const ClassCoordinatorDashboard: React.FC<
                   )}
                   {myStudents.map((s) => (
                     <TableRow key={s.id}>
-                      <TableCell className="font-mono font-bold text-xs">
-                        {s.roll_number}
-                      </TableCell>
+                      <TableCell className="font-mono font-bold text-xs">{s.roll_number}</TableCell>
                       <TableCell>
-                        <div className="font-semibold text-sm">
-                          {s.full_name}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {s.email || "—"}
-                        </div>
+                        <div className="font-semibold text-sm">{s.full_name}</div>
+                        <div className="text-[11px] text-muted-foreground">{s.email || "—"}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">Sem {s.semester}</Badge>
@@ -1402,9 +1286,7 @@ export const ClassCoordinatorDashboard: React.FC<
                             {s.class_name}
                           </Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">
-                            —
-                          </span>
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -1414,9 +1296,7 @@ export const ClassCoordinatorDashboard: React.FC<
                           </div>
                           <div className="text-muted-foreground">
                             {s.parent_mobile || (
-                              <span className="text-rose-500 font-bold">
-                                NO CONTACT!
-                              </span>
+                              <span className="text-rose-500 font-bold">NO CONTACT!</span>
                             )}
                           </div>
                         </div>
@@ -1426,10 +1306,7 @@ export const ClassCoordinatorDashboard: React.FC<
                           {s.parent_mobile &&
                           s.student_mobile &&
                           s.parent_mobile === s.student_mobile ? (
-                            <Badge
-                              variant="destructive"
-                              className="text-[10px]"
-                            >
+                            <Badge variant="destructive" className="text-[10px]">
                               Same as Parent!
                             </Badge>
                           ) : (
@@ -1498,20 +1375,15 @@ export const ClassCoordinatorDashboard: React.FC<
               </div>
               <p className="text-xs text-muted-foreground">
                 Define and organize courses for{" "}
-                <strong className="text-foreground">
-                  {myDepartment?.name || "Department"}
-                </strong>{" "}
-                (Semester {myAssignedSemester || "All"}), and assign lecturers
-                from faculty members imported or managed by your Head of
-                Department (HOD).
+                <strong className="text-foreground">{myDepartment?.name || "Department"}</strong>{" "}
+                (Semester {myAssignedSemester || "All"}), and assign lecturers from faculty members
+                imported or managed by your Head of Department (HOD).
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
                 <Users className="h-3.5 w-3.5" />
-                <span>
-                  {departmentTeachers.length} Faculty in Department Pool
-                </span>
+                <span>{departmentTeachers.length} Faculty in Department Pool</span>
               </span>
             </div>
           </div>
@@ -1530,11 +1402,7 @@ export const ClassCoordinatorDashboard: React.FC<
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                onClick={handleOpenAddSubject}
-                className="text-xs font-semibold"
-              >
+              <Button size="sm" onClick={handleOpenAddSubject} className="text-xs font-semibold">
                 <Plus className="h-4 w-4 mr-1.5" /> Create Subject
               </Button>
             </div>
@@ -1550,10 +1418,7 @@ export const ClassCoordinatorDashboard: React.FC<
                 className="pl-9 text-xs"
               />
             </div>
-            <Select
-              value={subjectSemesterFilter}
-              onValueChange={setSubjectSemesterFilter}
-            >
+            <Select value={subjectSemesterFilter} onValueChange={setSubjectSemesterFilter}>
               <SelectTrigger className="w-[170px] text-xs">
                 <SelectValue placeholder="Semester" />
               </SelectTrigger>
@@ -1578,9 +1443,7 @@ export const ClassCoordinatorDashboard: React.FC<
                     <TableHead>Subject Name</TableHead>
                     <TableHead className="w-[90px]">Sem</TableHead>
                     <TableHead>Assigned Faculty (Imported by HOD)</TableHead>
-                    <TableHead className="text-right w-[140px]">
-                      Actions
-                    </TableHead>
+                    <TableHead className="text-right w-[140px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1592,20 +1455,12 @@ export const ClassCoordinatorDashboard: React.FC<
                       >
                         <div className="flex flex-col items-center justify-center gap-2">
                           <BookOpen className="h-8 w-8 text-muted-foreground/50" />
-                          <p className="font-semibold text-foreground">
-                            No subjects found
-                          </p>
+                          <p className="font-semibold text-foreground">No subjects found</p>
                           <p className="text-xs">
-                            Click "Create Subject" to add curriculum courses and
-                            assign HOD faculty.
+                            Click "Create Subject" to add curriculum courses and assign HOD faculty.
                           </p>
-                          <Button
-                            size="sm"
-                            onClick={handleOpenAddSubject}
-                            className="mt-2 text-xs"
-                          >
-                            <Plus className="h-3.5 w-3.5 mr-1" /> Create First
-                            Subject
+                          <Button size="sm" onClick={handleOpenAddSubject} className="mt-2 text-xs">
+                            <Plus className="h-3.5 w-3.5 mr-1" /> Create First Subject
                           </Button>
                         </div>
                       </TableCell>
@@ -1615,9 +1470,7 @@ export const ClassCoordinatorDashboard: React.FC<
                     const directTeacher = departmentTeachers.find(
                       (t) => t.id === (sub as any).teacher_id,
                     );
-                    const tsMappings = teacherSubjects.filter(
-                      (ts) => ts.subject_id === sub.id,
-                    );
+                    const tsMappings = teacherSubjects.filter((ts) => ts.subject_id === sub.id);
                     const mappedTeachers = tsMappings
                       .map((ts) => teachers.find((t) => t.id === ts.teacher_id))
                       .filter(Boolean);
@@ -1636,19 +1489,14 @@ export const ClassCoordinatorDashboard: React.FC<
                           </span>
                         </TableCell>
                         <TableCell>
-                          <div className="font-semibold text-sm text-foreground">
-                            {sub.name}
-                          </div>
+                          <div className="font-semibold text-sm text-foreground">{sub.name}</div>
                           <div className="text-[11px] text-muted-foreground">
-                            {departments.find((d) => d.id === sub.department_id)
-                              ?.name || "General Department"}
+                            {departments.find((d) => d.id === sub.department_id)?.name ||
+                              "General Department"}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className="text-xs font-semibold"
-                          >
+                          <Badge variant="outline" className="text-xs font-semibold">
                             Sem {sub.semester}
                           </Badge>
                         </TableCell>
@@ -1656,9 +1504,7 @@ export const ClassCoordinatorDashboard: React.FC<
                           {tsMappings.length > 0 ? (
                             <div className="flex flex-wrap items-center gap-1.5">
                               {tsMappings.map((ts) => {
-                                const t = teachers.find(
-                                  (teach) => teach.id === ts.teacher_id,
-                                );
+                                const t = teachers.find((teach) => teach.id === ts.teacher_id);
                                 if (!t) return null;
                                 return (
                                   <div
@@ -1681,9 +1527,7 @@ export const ClassCoordinatorDashboard: React.FC<
                                     )}
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        handleRemoveTeacherSubjectMapping(ts.id)
-                                      }
+                                      onClick={() => handleRemoveTeacherSubjectMapping(ts.id)}
                                       className="ml-0.5 text-muted-foreground hover:text-rose-500 p-0.5 rounded transition-colors"
                                       title={`Remove assignment for ${ts.class_name || "All Divisions"}`}
                                     >
@@ -1737,8 +1581,7 @@ export const ClassCoordinatorDashboard: React.FC<
                                 onClick={() => handleOpenQuickAssign(sub)}
                                 className="h-7 text-xs border-primary/40 text-primary hover:bg-primary/10 font-semibold"
                               >
-                                <UserCheck className="h-3.5 w-3.5 mr-1" />{" "}
-                                Assign Teacher
+                                <UserCheck className="h-3.5 w-3.5 mr-1" /> Assign Teacher
                               </Button>
                             </div>
                           )}
@@ -1789,9 +1632,7 @@ export const ClassCoordinatorDashboard: React.FC<
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingSubject
-                ? `Edit Subject: ${editingSubject.code}`
-                : "Create New Subject"}
+              {editingSubject ? `Edit Subject: ${editingSubject.code}` : "Create New Subject"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3.5 py-3">
@@ -1801,9 +1642,7 @@ export const ClassCoordinatorDashboard: React.FC<
               </label>
               <Input
                 value={subjectForm.code}
-                onChange={(e) =>
-                  setSubjectForm({ ...subjectForm, code: e.target.value })
-                }
+                onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })}
                 placeholder="CS501"
                 className="font-mono uppercase"
               />
@@ -1815,9 +1654,7 @@ export const ClassCoordinatorDashboard: React.FC<
               </label>
               <Input
                 value={subjectForm.name}
-                onChange={(e) =>
-                  setSubjectForm({ ...subjectForm, name: e.target.value })
-                }
+                onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
                 placeholder="e.g. Compiler Design & Construction"
               />
             </div>
@@ -1829,9 +1666,7 @@ export const ClassCoordinatorDashboard: React.FC<
                 </label>
                 <Select
                   value={subjectForm.semester}
-                  onValueChange={(v) =>
-                    setSubjectForm({ ...subjectForm, semester: v })
-                  }
+                  onValueChange={(v) => setSubjectForm({ ...subjectForm, semester: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1852,9 +1687,7 @@ export const ClassCoordinatorDashboard: React.FC<
                 </label>
                 <Select
                   value={subjectForm.department_id}
-                  onValueChange={(v) =>
-                    setSubjectForm({ ...subjectForm, department_id: v })
-                  }
+                  onValueChange={(v) => setSubjectForm({ ...subjectForm, department_id: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1883,37 +1716,29 @@ export const ClassCoordinatorDashboard: React.FC<
               </div>
               <Select
                 value={subjectForm.teacher_id}
-                onValueChange={(v) =>
-                  setSubjectForm({ ...subjectForm, teacher_id: v })
-                }
+                onValueChange={(v) => setSubjectForm({ ...subjectForm, teacher_id: v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="-- Select Faculty Member --" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  <SelectItem value="">
-                    -- Unassigned (Assign Later) --
-                  </SelectItem>
+                  <SelectItem value="">-- Unassigned (Assign Later) --</SelectItem>
                   {departmentTeachers.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.full_name} —{" "}
-                      {t.designation ||
-                        (t.role === "hod" ? "HOD & Lecturer" : "Faculty")}
+                      {t.designation || (t.role === "hod" ? "HOD & Lecturer" : "Faculty")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Lists all teachers imported via Excel/CSV or added to this
-                department by the Head of Department (HOD).
+                Lists all teachers imported via Excel/CSV or added to this department by the Head of
+                Department (HOD).
               </p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setSubjectDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setSubjectDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveSubject}>
@@ -1924,10 +1749,7 @@ export const ClassCoordinatorDashboard: React.FC<
       </Dialog>
 
       {/* Quick Teacher Assignment Modal */}
-      <Dialog
-        open={assignFacultyModalOpen}
-        onOpenChange={setAssignFacultyModalOpen}
-      >
+      <Dialog open={assignFacultyModalOpen} onOpenChange={setAssignFacultyModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1951,29 +1773,23 @@ export const ClassCoordinatorDashboard: React.FC<
               <label className="text-xs font-semibold text-foreground mb-1.5 block">
                 Select Teaching Faculty (Imported by HOD):
               </label>
-              <Select
-                value={selectedFacultyForAssign}
-                onValueChange={setSelectedFacultyForAssign}
-              >
+              <Select value={selectedFacultyForAssign} onValueChange={setSelectedFacultyForAssign}>
                 <SelectTrigger>
                   <SelectValue placeholder="-- Select Teacher / Lecturer --" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  <SelectItem value="">
-                    -- Unassigned (No Teacher) --
-                  </SelectItem>
+                  <SelectItem value="">-- Unassigned (No Teacher) --</SelectItem>
                   {departmentTeachers.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.full_name} —{" "}
-                      {t.designation ||
-                        (t.role === "hod" ? "HOD & Lecturer" : "Faculty")}
+                      {t.designation || (t.role === "hod" ? "HOD & Lecturer" : "Faculty")}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground mt-1">
-                The assigned teacher will be able to conduct lectures, take
-                attendance, and track student compliance.
+                The assigned teacher will be able to conduct lectures, take attendance, and track
+                student compliance.
               </p>
             </div>
 
@@ -1984,35 +1800,20 @@ export const ClassCoordinatorDashboard: React.FC<
                   Multi-Class Teaching
                 </span>
               </label>
-              <Input
+              <Select
                 value={selectedClassForAssign}
-                onChange={(e) => setSelectedClassForAssign(e.target.value)}
-                placeholder="e.g. TY CSE-A, TY CSE-B (or leave blank for All Divisions)"
-                list="cc-modal-assign-classes"
-                className="text-xs"
+                onValueChange={setSelectedClassForAssign}
+                searchable
+                searchPlaceholder="Search classes or divisions..."
+                emptyMessage="No matching class or division"
+                placeholder="All Divisions"
+                options={[{ value: "", label: "All Divisions" }, ...classDivisionOptions]}
               />
-              <datalist id="cc-modal-assign-classes">
-                {academicClasses.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-                <option value="SY CSE-A" />
-                <option value="SY CSE-B" />
-                <option value="TY CSE-A" />
-                <option value="TY CSE-B" />
-                <option value="BE CSE-A" />
-                <option value="FY CSE-A" />
-              </datalist>
 
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                <span className="text-[11px] text-muted-foreground mr-1">
-                  Quick pick:
-                </span>
+                <span className="text-[11px] text-muted-foreground mr-1">Quick pick:</span>
                 {Array.from(
-                  new Set(
-                    academicClasses
-                      .map((c) => c.name)
-                      .concat(["TY CSE-A", "TY CSE-B"]),
-                  ),
+                  new Set(academicClasses.map((c) => c.name).concat(["TY CSE-A", "TY CSE-B"])),
                 )
                   .slice(0, 4)
                   .map((cName) => (
@@ -2044,10 +1845,7 @@ export const ClassCoordinatorDashboard: React.FC<
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setAssignFacultyModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setAssignFacultyModalOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveQuickAssign}>Save Assignment</Button>
@@ -2061,8 +1859,7 @@ export const ClassCoordinatorDashboard: React.FC<
         onOpenChange={setStudentImportModalOpen}
         departmentId={myDepartmentId}
         defaultSemester={
-          myAssignedSemester ||
-          (semesterFilter !== "all" ? Number(semesterFilter) : 1)
+          myAssignedSemester || (semesterFilter !== "all" ? Number(semesterFilter) : 1)
         }
         onImportComplete={(count) => {
           setVersion((v) => v + 1);

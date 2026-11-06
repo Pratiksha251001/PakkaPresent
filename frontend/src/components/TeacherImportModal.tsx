@@ -38,6 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
+import { Select } from "./ui/select";
 
 interface TeacherImportProgress {
   current: number;
@@ -79,8 +80,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
   const [rows, setRows] = useState<ParsedTeacherRow[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "valid" | "errors">("all");
   const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] =
-    useState<TeacherImportProgress | null>(null);
+  const [importProgress, setImportProgress] = useState<TeacherImportProgress | null>(null);
   const [importResult, setImportResult] = useState<TeacherImportResult | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const [createAccounts, setCreateAccounts] = useState(true);
@@ -135,15 +135,10 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
     }
   };
 
-  const handleCellChange = (
-    index: number,
-    field: keyof ParsedTeacherRow,
-    value: string,
-  ) => {
+  const handleCellChange = (index: number, field: keyof ParsedTeacherRow, value: string) => {
     setRows((prev) => {
       const next = [...prev];
-      const sanitizedValue =
-        field === "mobile" ? sanitizeMobileInput(value) : value;
+      const sanitizedValue = field === "mobile" ? sanitizeMobileInput(value) : value;
       const row = { ...next[index], [field]: sanitizedValue };
 
       // Re-validate row
@@ -161,19 +156,13 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
           (t) => t.employee_id.trim().toLowerCase() === normEmp,
         );
         if (existingEmp) {
-          errors.push(
-            `Employee ID "${row.employee_id}" already exists in system`,
-          );
+          errors.push(`Employee ID "${row.employee_id}" already exists in system`);
         }
       }
 
       // 10-Digit Mobile Validation
       if (row.mobile) {
-        const mobileErr = getMobileValidationError(
-          row.mobile,
-          "Mobile number",
-          false,
-        );
+        const mobileErr = getMobileValidationError(row.mobile, "Mobile number", false);
         if (mobileErr) {
           errors.push(mobileErr);
         }
@@ -200,14 +189,10 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
   const isExistingTeacherRow = (row: ParsedTeacherRow) =>
     !row.isValid &&
     row.errors.length > 0 &&
-    row.errors.every((message) =>
-      message.toLowerCase().includes("already exists"),
-    );
+    row.errors.every((message) => message.toLowerCase().includes("already exists"));
   const validRows = rows.filter((row) => row.isValid);
   const existingRows = rows.filter(isExistingTeacherRow);
-  const invalidRows = rows.filter(
-    (row) => !row.isValid && !isExistingTeacherRow(row),
-  );
+  const invalidRows = rows.filter((row) => !row.isValid && !isExistingTeacherRow(row));
   const validCount = validRows.length;
   const existingCount = existingRows.length;
   const invalidCount = invalidRows.length;
@@ -260,9 +245,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
         }
 
         const initialPassword =
-          passwordMode === "empid"
-            ? item.employee_id.trim()
-            : customPassword.trim();
+          passwordMode === "empid" ? item.employee_id.trim() : customPassword.trim();
         const [teacher] = await localDb.insert("teachers", [
           {
             employee_id: item.employee_id.trim(),
@@ -368,9 +351,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
   const closeImportModal = () => {
     if (isImporting) return;
     if (!importResult && rows.length > 0) {
-      const discard = window.confirm(
-        "Discard the prepared teacher import and close this dialog?",
-      );
+      const discard = window.confirm("Discard the prepared teacher import and close this dialog?");
       if (!discard) return;
     }
     resetState();
@@ -415,9 +396,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl border border-border/70 bg-muted/20 text-xs">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span className="font-medium text-foreground">
-                Need standard template?
-              </span>
+              <span className="font-medium text-foreground">Need standard template?</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -464,53 +443,35 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
               <div className="grid grid-cols-1 gap-3 pt-1 text-[11px] sm:grid-cols-2 lg:grid-cols-4">
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Full Name *</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    Required identifier
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">Required identifier</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">College Emp ID *</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    e.g. EMP-101
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">e.g. EMP-101</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
-                  <p className="font-bold text-foreground text-primary">
-                    Email Address *
-                  </p>
-                  <p className="text-muted-foreground text-[10px]">
-                    teacher@college.edu
-                  </p>
+                  <p className="font-bold text-foreground text-primary">Email Address *</p>
+                  <p className="text-muted-foreground text-[10px]">teacher@college.edu</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Department</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    Auto-matched
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">Auto-matched</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Designation</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    Prof / Asst Prof
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">Prof / Asst Prof</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Qualification</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    Ph.D, M.Tech, etc
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">Ph.D, M.Tech, etc</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Experience</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    Years (Optional)
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">Years (Optional)</p>
                 </div>
                 <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
                   <p className="font-bold text-foreground">Phone</p>
-                  <p className="text-muted-foreground text-[10px]">
-                    10 digits (Optional)
-                  </p>
+                  <p className="text-muted-foreground text-[10px]">10 digits (Optional)</p>
                 </div>
               </div>
             </div>
@@ -581,12 +542,9 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                   <FileSpreadsheet className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-foreground truncate">
-                    {fileName}
-                  </p>
+                  <p className="text-xs font-bold text-foreground truncate">{fileName}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {rows.length} rows · {validCount} valid · {invalidCount}{" "}
-                    issues
+                    {rows.length} rows · {validCount} valid · {invalidCount} issues
                   </p>
                 </div>
               </div>
@@ -608,20 +566,21 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
           {/* Department Selection for College-wide Admin Import (Compact) */}
           {!department && departments.length > 0 && rows.length === 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-muted/20 rounded-xl border border-border/70 text-xs">
-              <span className="font-semibold text-foreground">
-                Fallback Department:
-              </span>
-              <select
+              <span className="font-semibold text-foreground">Fallback Department:</span>
+              <Select
                 value={selectedDeptId}
-                onChange={(e) => setSelectedDeptId(e.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-medium w-full sm:w-auto min-w-[200px]"
-              >
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.code})
-                  </option>
-                ))}
-              </select>
+                onValueChange={setSelectedDeptId}
+                searchable
+                searchPlaceholder="Search departments..."
+                emptyMessage="No matching department"
+                className="w-full sm:w-auto sm:min-w-[240px]"
+                options={departments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                  description: department.code,
+                  searchText: `${department.name} ${department.code}`,
+                }))}
+              />
             </div>
           )}
 
@@ -702,13 +661,10 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                       <span className="font-semibold text-foreground block mb-0.5">
                         Employee ID as Default Password:
                       </span>
-                      Each teacher’s portal account will initially use their
-                      assigned Employee ID Ref No (e.g.{" "}
-                      <code className="font-bold text-foreground font-mono">
-                        EMP-CSE-01
-                      </code>
-                      ). They will be prompted to set a private password on
-                      first login.
+                      Each teacher’s portal account will initially use their assigned Employee ID
+                      Ref No (e.g.{" "}
+                      <code className="font-bold text-foreground font-mono">EMP-CSE-01</code>
+                      ). They will be prompted to set a private password on first login.
                     </div>
                   ) : (
                     <div className="space-y-1.5">
@@ -723,8 +679,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                         className="h-8 text-xs font-mono"
                       />
                       <p className="text-[10px] text-muted-foreground">
-                        All imported teachers will initially use this password
-                        to sign in.
+                        All imported teachers will initially use this password to sign in.
                       </p>
                     </div>
                   )}
@@ -749,9 +704,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                           ? "Creating faculty portal account"
                           : `Creating teacher ${importProgress.current} of ${importProgress.total}`}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {importProgress.teacherName}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{importProgress.teacherName}</p>
                     </div>
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
@@ -778,10 +731,22 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-4">
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.teachersCreated}</p><p>Teachers</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.accountsCreated}</p><p>Accounts</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.existingSkipped}</p><p>Existing</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.failures.length}</p><p>Failed</p></div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.teachersCreated}</p>
+                      <p>Teachers</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.accountsCreated}</p>
+                      <p>Accounts</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.existingSkipped}</p>
+                      <p>Existing</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.failures.length}</p>
+                      <p>Failed</p>
+                    </div>
                   </div>
                   {importResult.failures.length > 0 && (
                     <div className="max-h-32 overflow-y-auto rounded-lg border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive">
@@ -859,13 +824,10 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                   Strict Validation Rule
                 </span>
                 <span className="text-muted-foreground">
-                  Strictly Mandatory:{" "}
-                  <strong className="text-foreground">Full Name *</strong>,{" "}
-                  <strong className="text-foreground">College Emp ID *</strong>,
-                  and{" "}
-                  <strong className="text-foreground">Email Address *</strong>.
-                  Other fields (Designation, Qualification, Experience, Phone)
-                  remain optional.
+                  Strictly Mandatory: <strong className="text-foreground">Full Name *</strong>,{" "}
+                  <strong className="text-foreground">College Emp ID *</strong>, and{" "}
+                  <strong className="text-foreground">Email Address *</strong>. Other fields
+                  (Designation, Qualification, Experience, Phone) remain optional.
                 </span>
               </div>
 
@@ -876,28 +838,18 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                     <tr>
                       <th className="py-2.5 px-3 w-10 text-center">#</th>
                       <th className="py-2.5 px-3 min-w-[150px]">Full Name *</th>
-                      <th className="py-2.5 px-3 min-w-[130px]">
-                        College Emp ID *
-                      </th>
+                      <th className="py-2.5 px-3 min-w-[130px]">College Emp ID *</th>
                       <th className="py-2.5 px-3 min-w-[150px]">Email *</th>
-                      <th className="py-2.5 px-3 min-w-[130px]">
-                        Designation (Opt)
-                      </th>
-                      <th className="py-2.5 px-3 min-w-[130px]">
-                        Qualification (Opt)
-                      </th>
-                      <th className="py-2.5 px-3 min-w-[110px]">
-                        Experience (Opt)
-                      </th>
+                      <th className="py-2.5 px-3 min-w-[130px]">Designation (Opt)</th>
+                      <th className="py-2.5 px-3 min-w-[130px]">Qualification (Opt)</th>
+                      <th className="py-2.5 px-3 min-w-[110px]">Experience (Opt)</th>
                       <th className="py-2.5 px-3 min-w-[120px]">Phone (Opt)</th>
                       <th className="py-2.5 px-3 w-12 text-center">Remove</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {filteredRows.map((row, idx) => {
-                      const originalIndex = rows.findIndex(
-                        (r) => r.rowNumber === row.rowNumber,
-                      );
+                      const originalIndex = rows.findIndex((r) => r.rowNumber === row.rowNumber);
                       return (
                         <tr
                           key={row.rowNumber}
@@ -907,9 +859,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                         >
                           <td className="py-2 px-2 text-center font-mono text-[11px]">
                             {row.isValid ? (
-                              <span className="text-emerald-500 font-bold">
-                                ✓
-                              </span>
+                              <span className="text-emerald-500 font-bold">✓</span>
                             ) : (
                               <span
                                 className="text-destructive font-bold cursor-help"
@@ -925,11 +875,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                             <Input
                               value={row.full_name}
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "full_name",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "full_name", e.target.value)
                               }
                               placeholder="Required full name (*)"
                               className={`h-7 text-xs px-2 ${
@@ -945,18 +891,12 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                             <Input
                               value={row.employee_id}
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "employee_id",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "employee_id", e.target.value)
                               }
                               placeholder="e.g. EMP-105 (*)"
                               className={`h-7 text-xs px-2 font-mono ${
                                 !row.employee_id.trim() ||
-                                row.errors.some((e) =>
-                                  e.includes("Employee ID"),
-                                )
+                                row.errors.some((e) => e.includes("Employee ID"))
                                   ? "border-destructive focus-visible:ring-destructive"
                                   : ""
                               }`}
@@ -969,18 +909,12 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                               type="email"
                               value={row.email}
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "email",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "email", e.target.value)
                               }
                               placeholder="teacher@college.edu (*)"
                               className={`h-7 text-xs px-2 ${
                                 !row.email.trim() ||
-                                row.errors.some((e) =>
-                                  e.toLowerCase().includes("email"),
-                                )
+                                row.errors.some((e) => e.toLowerCase().includes("email"))
                                   ? "border-destructive focus-visible:ring-destructive bg-destructive/5"
                                   : ""
                               }`}
@@ -992,11 +926,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                             <Input
                               value={row.designation}
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "designation",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "designation", e.target.value)
                               }
                               placeholder="Asst Professor"
                               className="h-7 text-xs px-2"
@@ -1008,11 +938,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                             <Input
                               value={row.qualification}
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "qualification",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "qualification", e.target.value)
                               }
                               placeholder="e.g. Ph.D, M.Tech"
                               className="h-7 text-xs px-2"
@@ -1024,11 +950,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                             <Input
                               value={row.experience_years}
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "experience_years",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "experience_years", e.target.value)
                               }
                               placeholder="e.g. 5 Years"
                               className="h-7 text-xs px-2"
@@ -1043,11 +965,7 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                               inputMode="numeric"
                               pattern="[0-9]*"
                               onChange={(e) =>
-                                handleCellChange(
-                                  originalIndex,
-                                  "mobile",
-                                  e.target.value,
-                                )
+                                handleCellChange(originalIndex, "mobile", e.target.value)
                               }
                               placeholder="10 Digits (Opt)"
                               className={`h-7 text-xs px-2 font-mono ${
@@ -1084,16 +1002,13 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
               {/* Status footer with row remarks */}
               <div className="flex flex-wrap items-center justify-between text-[11px] text-muted-foreground px-1">
                 <span>
-                  Tip: You can correct any cell directly in the table before
-                  completing the import.
+                  Tip: You can correct any cell directly in the table before completing the import.
                 </span>
                 {createAccounts && (
                   <span>
                     Default login password will be set to:{" "}
                     <span className="font-mono font-bold text-foreground">
-                      {passwordMode === "empid"
-                        ? "Faculty Employee ID"
-                        : customPassword}
+                      {passwordMode === "empid" ? "Faculty Employee ID" : customPassword}
                     </span>
                   </span>
                 )}
@@ -1117,7 +1032,9 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                 </Button>
               ) : null}
               {importResult ? (
-                <Button size="sm" onClick={closeImportModal}>Done</Button>
+                <Button size="sm" onClick={closeImportModal}>
+                  Done
+                </Button>
               ) : rows.length > 0 ? (
                 <Button
                   size="sm"
@@ -1126,9 +1043,15 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                   className="bg-primary font-medium text-primary-foreground shadow-xs disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                 >
                   {isImporting ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing {importProgress?.current || 0} of {validCount}...</>
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Importing {importProgress?.current || 0} of {validCount}...
+                    </>
                   ) : (
-                    <><UserPlus className="mr-2 h-4 w-4" />Confirm & Import {validCount} Teacher{validCount !== 1 ? "s" : ""}</>
+                    <>
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Confirm & Import {validCount} Teacher{validCount !== 1 ? "s" : ""}
+                    </>
                   )}
                 </Button>
               ) : null}

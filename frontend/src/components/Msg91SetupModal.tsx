@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Select } from "./ui/select";
 import { Badge } from "./ui/badge";
 import {
   MessageSquare,
@@ -47,15 +42,12 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
   onOpenChange,
   onTestSent,
 }) => {
-  const [activeTab, setActiveTab] = useState<"test" | "providers" | "guide">(
-    "test",
-  );
+  const [activeTab, setActiveTab] = useState<"test" | "providers" | "guide">("test");
   const [status, setStatus] = useState<SmsGatewayStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
 
   // Selected provider in settings tab
-  const [selectedProvider, setSelectedProvider] =
-    useState<SmsProviderType>("fast2sms");
+  const [selectedProvider, setSelectedProvider] = useState<SmsProviderType>("fast2sms");
 
   // Provider-specific input state
   // 1. Fast2SMS
@@ -81,9 +73,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
   // 5. Custom Gateway
   const [customUrl, setCustomUrl] = useState("");
   const [customMethod, setCustomMethod] = useState<"POST" | "GET">("POST");
-  const [customHeaders, setCustomHeaders] = useState(
-    '{\n  "Content-Type": "application/json"\n}',
-  );
+  const [customHeaders, setCustomHeaders] = useState('{\n  "Content-Type": "application/json"\n}');
   const [customBody, setCustomBody] = useState(
     '{\n  "to": "{clean10}",\n  "message": "{message}"\n}',
   );
@@ -98,11 +88,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
   const [testMessage, setTestMessage] = useState(
     "Dear Parent, Student Rohan Patil is absent for Mathematics today. Marked via PakkaPresent SMIT.",
   );
-  const [testPreset, setTestPreset] = useState<"en" | "mr" | "hi" | "custom">(
-    "en",
-  );
-  const [testProviderChoice, setTestProviderChoice] =
-    useState<string>("active");
+  const [testPreset, setTestPreset] = useState<"en" | "mr" | "hi" | "custom">("en");
+  const [testProviderChoice, setTestProviderChoice] = useState<string>("active");
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -154,8 +141,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
       if (data.textlocal?.sender) setTextlocalSender(data.textlocal.sender);
 
       if (data.custom?.url) setCustomUrl(data.custom.url);
-      if (data.custom?.method)
-        setCustomMethod(data.custom.method as "POST" | "GET");
+      if (data.custom?.method) setCustomMethod(data.custom.method as "POST" | "GET");
       if (data.custom?.headers) setCustomHeaders(data.custom.headers);
       if (data.custom?.bodyTemplate) setCustomBody(data.custom.bodyTemplate);
       if (data.custom?.apiKey) setCustomApiKey(data.custom.apiKey);
@@ -257,8 +243,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
     if (!cleanNumbers || cleanNumbers.length < 10) {
       setTestResult({
         success: false,
-        message:
-          "Kripya valid 10-digit mobile number dalein (e.g. 9876543210).",
+        message: "Kripya valid 10-digit mobile number dalein (e.g. 9876543210).",
         time: new Date().toLocaleTimeString(),
       });
       return;
@@ -269,16 +254,10 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
     try {
       const chosenProvider =
-        testProviderChoice === "active"
-          ? status?.activeProvider || "fast2sms"
-          : testProviderChoice;
-      const res = await sendTestSmsViaGateway(
-        testMobile.trim(),
-        testMessage.trim(),
-        {
-          provider: chosenProvider,
-        },
-      );
+        testProviderChoice === "active" ? status?.activeProvider || "fast2sms" : testProviderChoice;
+      const res = await sendTestSmsViaGateway(testMobile.trim(), testMessage.trim(), {
+        provider: chosenProvider,
+      });
 
       setTestResult({
         success: res.success,
@@ -327,16 +306,14 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                 </DialogTitle>
                 {status?.isConfigured ? (
                   <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs font-semibold">
-                    <CheckCircle className="h-3 w-3 mr-1 inline" />{" "}
-                    {activeProviderName} Live Active
+                    <CheckCircle className="h-3 w-3 mr-1 inline" /> {activeProviderName} Live Active
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
                     className="border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10 text-xs"
                   >
-                    <Radio className="h-3 w-3 mr-1 inline animate-pulse" />{" "}
-                    Simulation Mode
+                    <Radio className="h-3 w-3 mr-1 inline animate-pulse" /> Simulation Mode
                   </Badge>
                 )}
               </div>
@@ -352,9 +329,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
               disabled={loadingStatus}
               className="h-8 px-2 text-xs"
             >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${loadingStatus ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`h-3.5 w-3.5 ${loadingStatus ? "animate-spin" : ""}`} />
             </Button>
           </div>
 
@@ -410,11 +385,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       {activeProviderName}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
-                      (
-                      {status?.isConfigured
-                        ? "Real Carrier Mode"
-                        : "Simulation Mode"}
-                      )
+                      ({status?.isConfigured ? "Real Carrier Mode" : "Simulation Mode"})
                     </span>
                   </div>
                   <p className="text-muted-foreground">
@@ -504,9 +475,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                   />
                   <div className="flex items-center justify-between mt-1 text-[11px] text-muted-foreground">
                     <span>Characters: {testMessage.length}</span>
-                    <span>
-                      Standard cellular SMS: 1 credit per 160 characters
-                    </span>
+                    <span>Standard cellular SMS: 1 credit per 160 characters</span>
                   </div>
                 </div>
 
@@ -555,9 +524,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         ? "SMS Dispatched Successfully!"
                         : "Dispatch Rejected / Notice"}
                     </span>
-                    <span className="text-[10px] opacity-75 font-mono">
-                      {testResult.time}
-                    </span>
+                    <span className="text-[10px] opacity-75 font-mono">{testResult.time}</span>
                   </div>
 
                   <p className="leading-relaxed">{testResult.message}</p>
@@ -565,13 +532,11 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                   {testResult.error418 && (
                     <div className="rounded-lg bg-amber-500/15 border border-amber-500/30 p-2.5 text-[11px] text-amber-900 dark:text-amber-200 space-y-1">
                       <div className="font-bold flex items-center gap-1">
-                        <ShieldCheck className="h-3.5 w-3.5" /> MSG91 Error 418
-                        IP Restriction:
+                        <ShieldCheck className="h-3.5 w-3.5" /> MSG91 Error 418 IP Restriction:
                       </div>
                       <p>
-                        MSG91 account me IP Whitelist enabled hai. MSG91
-                        Dashboard me jakar AuthKey ki IP restriction DISABLE
-                        karein, ya server IP whitelist karein:
+                        MSG91 account me IP Whitelist enabled hai. MSG91 Dashboard me jakar AuthKey
+                        ki IP restriction DISABLE karein, ya server IP whitelist karein:
                       </p>
                       {testResult.serverIp && (
                         <div className="flex items-center gap-2 mt-1">
@@ -689,10 +654,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
               </div>
 
               {/* Provider Config Forms */}
-              <form
-                onSubmit={handleSaveActiveConfig}
-                className="space-y-4 pt-1"
-              >
+              <form onSubmit={handleSaveActiveConfig} className="space-y-4 pt-1">
                 {/* 1. Fast2SMS Form */}
                 {selectedProvider === "fast2sms" && (
                   <div className="space-y-4 rounded-xl border border-border/80 bg-card p-4 shadow-xs sm:p-5">
@@ -729,23 +691,29 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">
-                          SMS Route
-                        </label>
-                        <select
+                        <label className="text-xs font-semibold text-foreground">SMS Route</label>
+                        <Select
                           value={fast2smsRoute}
-                          onChange={(e) => setFast2smsRoute(e.target.value)}
-                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-xs"
-                        >
-                          <option value="q">
-                            Quick SMS (route=q, No DLT required)
-                          </option>
-                          <option value="otp">
-                            OTP / Fast Delivery (route=otp)
-                          </option>
-                          <option value="v3">V3 Route (route=v3)</option>
-                          <option value="dlt">DLT Approved (route=dlt)</option>
-                        </select>
+                          onValueChange={setFast2smsRoute}
+                          options={[
+                            {
+                              value: "q",
+                              label: "Quick SMS",
+                              description: "route=q, no DLT required",
+                            },
+                            {
+                              value: "otp",
+                              label: "OTP / Fast Delivery",
+                              description: "route=otp",
+                            },
+                            { value: "v3", label: "V3 Route", description: "route=v3" },
+                            {
+                              value: "dlt",
+                              label: "DLT Approved",
+                              description: "route=dlt",
+                            },
+                          ]}
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-foreground">
@@ -792,9 +760,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
 
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">
-                          Sender ID
-                        </label>
+                        <label className="text-xs font-semibold text-foreground">Sender ID</label>
                         <Input
                           placeholder="e.g. EDUTRK"
                           value={msg91SenderId}
@@ -804,9 +770,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-foreground">
-                          Route
-                        </label>
+                        <label className="text-xs font-semibold text-foreground">Route</label>
                         <Input
                           placeholder="e.g. 4"
                           value={msg91Route}
@@ -862,9 +826,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Account SID *
-                      </label>
+                      <label className="text-xs font-semibold text-foreground">Account SID *</label>
                       <Input
                         placeholder="e.g. ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                         value={twilioAccountSid}
@@ -874,9 +836,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Auth Token *
-                      </label>
+                      <label className="text-xs font-semibold text-foreground">Auth Token *</label>
                       <Input
                         type="password"
                         placeholder="Twilio Auth Token"
@@ -932,9 +892,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-foreground">
-                        Sender Name
-                      </label>
+                      <label className="text-xs font-semibold text-foreground">Sender Name</label>
                       <Input
                         placeholder="e.g. TXTLCL"
                         value={textlocalSender}
@@ -954,28 +912,25 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       Custom Gateway / Webhook / Any REST API
                     </div>
                     <p className="text-xs text-foreground/70">
-                      Connect any REST SMS gateway using{" "}
-                      <code>{"{clean10}"}</code>, <code>{"{with91}"}</code>,{" "}
-                      <code>{"{message}"}</code>, or <code>{"{apiKey}"}</code>.
+                      Connect any REST SMS gateway using <code>{"{clean10}"}</code>,{" "}
+                      <code>{"{with91}"}</code>, <code>{"{message}"}</code>, or{" "}
+                      <code>{"{apiKey}"}</code>.
                     </p>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <div className="space-y-1 sm:col-span-1">
-                        <label className="text-xs font-semibold text-foreground">
-                          Method
-                        </label>
-                        <select
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[9rem_minmax(0,1fr)]">
+                      <div className="min-w-0 space-y-1">
+                        <label className="text-xs font-semibold text-foreground">Method</label>
+                        <Select
                           value={customMethod}
-                          onChange={(e) =>
-                            setCustomMethod(e.target.value as any)
-                          }
-                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-xs"
-                        >
-                          <option value="POST">POST</option>
-                          <option value="GET">GET</option>
-                        </select>
+                          onValueChange={(value) => setCustomMethod(value as "POST" | "GET")}
+                          className="w-full min-w-0"
+                          options={[
+                            { value: "POST", label: "POST" },
+                            { value: "GET", label: "GET" },
+                          ]}
+                        />
                       </div>
-                      <div className="space-y-1 sm:col-span-1 lg:col-span-3">
+                      <div className="min-w-0 space-y-1">
                         <label className="text-xs font-semibold text-foreground">
                           Gateway Endpoint URL *
                         </label>
@@ -1003,9 +958,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-semibold text-foreground">
-                          {customMethod === "POST"
-                            ? "Payload Template (JSON)"
-                            : "Query Parameters"}
+                          {customMethod === "POST" ? "Payload Template (JSON)" : "Query Parameters"}
                         </label>
                         <textarea
                           rows={3}
@@ -1033,8 +986,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     ) : (
                       <>
                         <Check className="h-3.5 w-3.5 mr-1.5" />
-                        Save & Set {selectedProvider.toUpperCase()} as Active
-                        Gateway
+                        Save & Set {selectedProvider.toUpperCase()} as Active Gateway
                       </>
                     )}
                   </Button>
@@ -1065,8 +1017,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                   Server Public IP & Whitelisting
                 </div>
                 <p className="text-foreground/70 leading-relaxed">
-                  Use this server IP when a carrier requires whitelisting or
-                  reports Error 418:
+                  Use this server IP when a carrier requires whitelisting or reports Error 418:
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="rounded-lg border border-border bg-muted/30 px-3 py-1.5 font-mono text-sm font-bold text-foreground/70">
@@ -1076,9 +1027,7 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() =>
-                      status?.serverIp && handleCopyIp(status.serverIp)
-                    }
+                    onClick={() => status?.serverIp && handleCopyIp(status.serverIp)}
                     disabled={!status?.serverIp}
                     className="h-8 text-xs font-semibold"
                   >
@@ -1100,8 +1049,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     Which provider should I use for simple SMS?
                   </summary>
                   <p className="border-t border-border/60 px-3 py-2.5 text-muted-foreground">
-                    Use <strong>Fast2SMS</strong> with the Quick SMS route when
-                    DLT registration is not required.
+                    Use <strong>Fast2SMS</strong> with the Quick SMS route when DLT registration is
+                    not required.
                   </p>
                 </details>
 
@@ -1110,9 +1059,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     How do I fix MSG91 Error 418?
                   </summary>
                   <p className="border-t border-border/60 px-3 py-2.5 text-muted-foreground">
-                    Disable IP Restriction for the MSG91 AuthKey, or whitelist
-                    the server IP shown above (
-                    {status?.serverIp || "Unavailable"}).
+                    Disable IP Restriction for the MSG91 AuthKey, or whitelist the server IP shown
+                    above ({status?.serverIp || "Unavailable"}).
                   </p>
                 </details>
 
@@ -1121,8 +1069,8 @@ export const Msg91SetupModal: React.FC<Msg91SetupModalProps> = ({
                     Are attendance alerts sent automatically?
                   </summary>
                   <p className="border-t border-border/60 px-3 py-2.5 text-muted-foreground">
-                    Attendance alerts use the active provider and the parent
-                    mobile number registered for the student.
+                    Attendance alerts use the active provider and the parent mobile number
+                    registered for the student.
                   </p>
                 </details>
               </div>

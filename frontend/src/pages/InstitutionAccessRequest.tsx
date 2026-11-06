@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { Select } from "../components/ui/select";
 import { SearchableLocationSelect } from "../components/ui/searchable-location-select";
 import { PakkaPresentLogo } from "../components/PakkaPresentLogo";
 import {
@@ -89,18 +90,29 @@ export const InstitutionAccessRequest: React.FC = () => {
     setError(null);
     setSuccess(null);
     const nextErrors: InstitutionFieldErrors = {};
-    if (form.institutionName.trim().length < 2) nextErrors.institutionName = "Enter a valid institution name.";
+    if (form.institutionName.trim().length < 2)
+      nextErrors.institutionName = "Enter a valid institution name.";
     if (!form.institutionType) nextErrors.institutionType = "Select an institution type.";
-    if (form.institutionCode && !/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(form.institutionCode)) nextErrors.institutionCode = "Use 2-32 uppercase letters, numbers, hyphens, or underscores.";
-    if (form.dteCode && !/^\d{1,32}$/.test(form.dteCode)) nextErrors.dteCode = "DTE code can contain digits only.";
+    if (form.institutionCode && !/^[A-Z0-9][A-Z0-9_-]{1,31}$/.test(form.institutionCode))
+      nextErrors.institutionCode = "Use 2-32 uppercase letters, numbers, hyphens, or underscores.";
+    if (form.dteCode && !/^\d{1,32}$/.test(form.dteCode))
+      nextErrors.dteCode = "DTE code can contain digits only.";
     if (!form.state) nextErrors.state = "Select a state.";
     if (!form.city) nextErrors.city = "Select a city.";
-    if (form.studentCount && (!/^\d+$/.test(form.studentCount) || Number(form.studentCount) < 1 || Number(form.studentCount) > 10000000)) nextErrors.studentCount = "Enter a whole-number count from 1 to 10,000,000.";
+    if (
+      form.studentCount &&
+      (!/^\d+$/.test(form.studentCount) ||
+        Number(form.studentCount) < 1 ||
+        Number(form.studentCount) > 10000000)
+    )
+      nextErrors.studentCount = "Enter a whole-number count from 1 to 10,000,000.";
     if (!form.contactName.trim()) nextErrors.contactName = "Enter the authorized contact name.";
     if (!form.designation.trim()) nextErrors.designation = "Enter the official designation.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.officialEmail.trim())) nextErrors.officialEmail = "Enter a valid official email address.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.officialEmail.trim()))
+      nextErrors.officialEmail = "Enter a valid official email address.";
     if (!/^\d{10}$/.test(form.phone)) nextErrors.phone = "Enter a valid 10-digit phone number.";
-    if (form.message.trim().length < 10) nextErrors.message = "Enter at least 10 characters about the requirements.";
+    if (form.message.trim().length < 10)
+      nextErrors.message = "Enter at least 10 characters about the requirements.";
     if (!form.consent) nextErrors.consent = "Consent is required before submission.";
     setFieldErrors(nextErrors);
     const first = Object.keys(nextErrors)[0];
@@ -120,23 +132,18 @@ export const InstitutionAccessRequest: React.FC = () => {
       setSuccess(result.message);
       setForm(initial);
     } catch {
-      setError(
-        "The request could not be submitted. Please check your connection and try again.",
-      );
+      setError("The request could not be submitted. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
-  const field = (
-    label: string,
-    key: keyof typeof initial,
-    required = true,
-    type = "text",
-  ) => (
+  const field = (label: string, key: keyof typeof initial, required = true, type = "text") => (
     <label className="space-y-1.5 text-xs font-semibold text-foreground/80">
       {label}
       <Input
-        ref={(element) => { refs.current[key] = element; }}
+        ref={(element) => {
+          refs.current[key] = element;
+        }}
         required={required}
         type={type}
         value={String(form[key])}
@@ -174,14 +181,13 @@ export const InstitutionAccessRequest: React.FC = () => {
                 Request a verified onboarding invitation
               </h1>
               <p className="mt-4 text-sm leading-7 text-white/75">
-                The platform team reviews each institution before issuing a
-                private onboarding link and separate code.
+                The platform team reviews each institution before issuing a private onboarding link
+                and separate code.
               </p>
               <div className="mt-6 rounded-2xl border border-white/20 bg-white/5 p-4 text-xs leading-6 text-white/70">
                 <ShieldCheck className="mb-2 h-5 w-5 text-primary" />
-                No password is requested here. The approved institution
-                representative creates the first administrator password
-                privately during onboarding.
+                No password is requested here. The approved institution representative creates the
+                first administrator password privately during onboarding.
               </div>
 
               <div className="mt-6">
@@ -219,12 +225,8 @@ export const InstitutionAccessRequest: React.FC = () => {
                       </span>
 
                       <div>
-                        <p className="text-sm font-black text-white">
-                          {item.title}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-white/65">
-                          {item.description}
-                        </p>
+                        <p className="text-sm font-black text-white">{item.title}</p>
+                        <p className="mt-1 text-xs leading-5 text-white/65">{item.description}</p>
                       </div>
                     </div>
                   ))}
@@ -238,9 +240,8 @@ export const InstitutionAccessRequest: React.FC = () => {
                   Institution and contact details
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Submitting this form does not create an account. The platform
-                  team reviews each request before contacting the authorized
-                  representative.
+                  Submitting this form does not create an account. The platform team reviews each
+                  request before contacting the authorized representative.
                 </p>
               </div>
               {success && (
@@ -268,42 +269,83 @@ export const InstitutionAccessRequest: React.FC = () => {
                   {field("Institution name", "institutionName")}
                   <label className="space-y-1.5 text-xs font-semibold">
                     Institution type
-                    <select
-                      required
+                    <Select
                       value={form.institutionType}
-                      onChange={update("institutionType")}
+                      onValueChange={(value) => setValue("institutionType", value)}
                       disabled={loading}
-                      className="mt-1.5 h-10 w-full rounded-xl border bg-background px-3"
-                    >
-                      <option value="">Select type</option>
-                      <option>College</option>
-                      <option>University</option>
-                      <option>School</option>
-                      <option>Training institute</option>
-                      <option>Other</option>
-                    </select>
+                      className="mt-1.5"
+                      placeholder="Select type"
+                      options={[
+                        { value: "", label: "Select type" },
+                        { value: "College", label: "College" },
+                        { value: "University", label: "University" },
+                        { value: "School", label: "School" },
+                        { value: "Training institute", label: "Training institute" },
+                        { value: "Other", label: "Other" },
+                      ]}
+                    />
                   </label>
                   <label className="space-y-1.5 text-xs font-semibold">
                     Institution code (optional)
                     <Input
-                      ref={(element) => { refs.current.institutionCode = element; }}
+                      ref={(element) => {
+                        refs.current.institutionCode = element;
+                      }}
                       maxLength={32}
                       placeholder="Example: MITCORER"
                       value={form.institutionCode}
-                      onChange={(event) => setValue("institutionCode", event.target.value.toUpperCase().replace(/\s+/g, "_").replace(/[^A-Z0-9_-]/g, ""))}
+                      onChange={(event) =>
+                        setValue(
+                          "institutionCode",
+                          event.target.value
+                            .toUpperCase()
+                            .replace(/\s+/g, "_")
+                            .replace(/[^A-Z0-9_-]/g, ""),
+                        )
+                      }
                       aria-invalid={!!fieldErrors.institutionCode}
                       className="mt-1.5 h-10 rounded-xl"
                     />
-                    {fieldErrors.institutionCode && <span className="block text-xs font-semibold text-red-600">{fieldErrors.institutionCode}</span>}
+                    {fieldErrors.institutionCode && (
+                      <span className="block text-xs font-semibold text-red-600">
+                        {fieldErrors.institutionCode}
+                      </span>
+                    )}
                   </label>
                   <label className="space-y-1.5 text-xs font-semibold">
                     DTE code (optional)
-                    <Input ref={(element) => { refs.current.dteCode = element; }} inputMode="numeric" maxLength={32} value={form.dteCode} onChange={(event) => setValue("dteCode", event.target.value.replace(/\D/g, ""))} className="mt-1.5 h-10 rounded-xl" />
+                    <Input
+                      ref={(element) => {
+                        refs.current.dteCode = element;
+                      }}
+                      inputMode="numeric"
+                      maxLength={32}
+                      value={form.dteCode}
+                      onChange={(event) =>
+                        setValue("dteCode", event.target.value.replace(/\D/g, ""))
+                      }
+                      className="mt-1.5 h-10 rounded-xl"
+                    />
                   </label>
                   <label className="space-y-1.5 text-xs font-semibold">
                     Approximate students (optional)
-                    <Input ref={(element) => { refs.current.studentCount = element; }} inputMode="numeric" maxLength={8} value={form.studentCount} onChange={(event) => setValue("studentCount", event.target.value.replace(/\D/g, ""))} className="mt-1.5 h-10 rounded-xl" />
-                    {fieldErrors.studentCount && <span className="block text-xs font-semibold text-red-600">{fieldErrors.studentCount}</span>}
+                    <Input
+                      ref={(element) => {
+                        refs.current.studentCount = element;
+                      }}
+                      inputMode="numeric"
+                      maxLength={8}
+                      value={form.studentCount}
+                      onChange={(event) =>
+                        setValue("studentCount", event.target.value.replace(/\D/g, ""))
+                      }
+                      className="mt-1.5 h-10 rounded-xl"
+                    />
+                    {fieldErrors.studentCount && (
+                      <span className="block text-xs font-semibold text-red-600">
+                        {fieldErrors.studentCount}
+                      </span>
+                    )}
                   </label>
                   <label className="space-y-1.5 text-xs font-semibold">
                     Country
@@ -321,7 +363,9 @@ export const InstitutionAccessRequest: React.FC = () => {
                     }))}
                     onValueChange={(value) => void selectState(value)}
                     error={fieldErrors.state}
-                    inputRef={(element) => { refs.current.state = element; }}
+                    inputRef={(element) => {
+                      refs.current.state = element;
+                    }}
                     dataSelector="state"
                   />
                   <SearchableLocationSelect
@@ -334,7 +378,9 @@ export const InstitutionAccessRequest: React.FC = () => {
                     onValueChange={(value) => setValue("city", value)}
                     disabled={!form.state || locationsLoading}
                     error={fieldErrors.city}
-                    inputRef={(element) => { refs.current.city = element; }}
+                    inputRef={(element) => {
+                      refs.current.city = element;
+                    }}
                     dataSelector="city"
                   />
                 </div>
@@ -349,8 +395,26 @@ export const InstitutionAccessRequest: React.FC = () => {
                   {field("Official email", "officialEmail", true, "email")}
                   <label className="space-y-1.5 text-xs font-semibold">
                     Phone number
-                    <Input ref={(element) => { refs.current.phone = element; }} required type="tel" inputMode="numeric" maxLength={10} value={form.phone} onChange={(event) => setValue("phone", event.target.value.replace(/\D/g, "").slice(0, 10))} aria-invalid={!!fieldErrors.phone} className="mt-1.5 h-10 rounded-xl" />
-                    {fieldErrors.phone && <span className="block text-xs font-semibold text-red-600">{fieldErrors.phone}</span>}
+                    <Input
+                      ref={(element) => {
+                        refs.current.phone = element;
+                      }}
+                      required
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={form.phone}
+                      onChange={(event) =>
+                        setValue("phone", event.target.value.replace(/\D/g, "").slice(0, 10))
+                      }
+                      aria-invalid={!!fieldErrors.phone}
+                      className="mt-1.5 h-10 rounded-xl"
+                    />
+                    {fieldErrors.phone && (
+                      <span className="block text-xs font-semibold text-red-600">
+                        {fieldErrors.phone}
+                      </span>
+                    )}
                   </label>
                 </div>
               </section>
@@ -361,14 +425,20 @@ export const InstitutionAccessRequest: React.FC = () => {
                   minLength={10}
                   maxLength={2000}
                   value={form.message}
-                  ref={(element) => { refs.current.message = element; }}
+                  ref={(element) => {
+                    refs.current.message = element;
+                  }}
                   onChange={update("message")}
                   aria-invalid={!!fieldErrors.message}
                   disabled={loading}
                   rows={5}
                   className="mt-1.5 w-full rounded-xl border bg-background px-3 py-2"
                 />
-                {fieldErrors.message && <span className="block text-xs font-semibold text-red-600">{fieldErrors.message}</span>}
+                {fieldErrors.message && (
+                  <span className="block text-xs font-semibold text-red-600">
+                    {fieldErrors.message}
+                  </span>
+                )}
               </label>
               <label className="flex items-start gap-3 rounded-xl border p-4 text-xs">
                 <input
@@ -376,29 +446,27 @@ export const InstitutionAccessRequest: React.FC = () => {
                   type="checkbox"
                   checked={form.consent}
                   disabled={loading}
-                  ref={(element) => { refs.current.consent = element; }}
+                  ref={(element) => {
+                    refs.current.consent = element;
+                  }}
                   onChange={(e) => setValue("consent", e.target.checked)}
                 />
                 <span>
-                  I am authorized to submit these institution details and
-                  consent to being contacted about this request.
+                  I am authorized to submit these institution details and consent to being contacted
+                  about this request.
                 </span>
               </label>
-              {fieldErrors.consent && <p className="text-xs font-semibold text-red-600">{fieldErrors.consent}</p>}
+              {fieldErrors.consent && (
+                <p className="text-xs font-semibold text-red-600">{fieldErrors.consent}</p>
+              )}
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6">
                 <CheckCircle2 className="mb-2 h-5 w-5" />
-                <strong className="mb-1 block font-black">
-                  What happens next?
-                </strong>
-                After submission, the platform team will review the institution
-                details and contact the authorized representative. Submitting a
-                request does not create an account or guarantee approval.
+                <strong className="mb-1 block font-black">What happens next?</strong>
+                After submission, the platform team will review the institution details and contact
+                the authorized representative. Submitting a request does not create an account or
+                guarantee approval.
               </div>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-11 w-full rounded-xl font-bold"
-              >
+              <Button type="submit" disabled={loading} className="h-11 w-full rounded-xl font-bold">
                 {loading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
