@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Select } from "./ui/select";
+import { Checkbox } from "./ui/checkbox";
 import { localDb } from "../lib/supabase";
 import {
   ParsedSyllabusSubject,
@@ -24,10 +25,7 @@ import {
   parseSyllabusRawText,
   extractTextFromPdfFile,
 } from "../lib/syllabusParser";
-import {
-  ENGINEERING_YEARS,
-  getEngineeringYearCode,
-} from "../lib/engineeringUtils";
+import { ENGINEERING_YEARS, getEngineeringYearCode } from "../lib/engineeringUtils";
 
 interface SubjectImportProgress {
   current: number;
@@ -76,10 +74,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
 
   // If user changes year, make sure semester is valid
   useEffect(() => {
-    if (
-      selectedSemester !== "all" &&
-      !yearSemesters.includes(Number(selectedSemester))
-    ) {
+    if (selectedSemester !== "all" && !yearSemesters.includes(Number(selectedSemester))) {
       setSelectedSemester(String(yearSemesters[0]));
     }
   }, [yearSemesters, selectedSemester]);
@@ -87,10 +82,8 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
   // 2. Upload and Parsing State
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [importProgress, setImportProgress] =
-    useState<SubjectImportProgress | null>(null);
-  const [importResult, setImportResult] =
-    useState<SubjectImportResult | null>(null);
+  const [importProgress, setImportProgress] = useState<SubjectImportProgress | null>(null);
+  const [importResult, setImportResult] = useState<SubjectImportResult | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -105,14 +98,8 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
   useEffect(() => {
     if (rawUploadedText) {
       // If user had uploaded a PDF, re-parse for the newly chosen Year/Sem
-      const targetSem =
-        selectedSemester === "all" ? "all" : Number(selectedSemester);
-      const res = parseSyllabusRawText(
-        rawUploadedText,
-        selectedYear,
-        targetSem,
-        selectedDeptId,
-      );
+      const targetSem = selectedSemester === "all" ? "all" : Number(selectedSemester);
+      const res = parseSyllabusRawText(rawUploadedText, selectedYear, targetSem, selectedDeptId);
       setSubjectsList(
         res.subjects.map((s) => ({
           ...s,
@@ -136,14 +123,8 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
       const extractedText = await extractTextFromPdfFile(file);
       setRawUploadedText(extractedText);
 
-      const targetSem =
-        selectedSemester === "all" ? "all" : Number(selectedSemester);
-      const result = parseSyllabusRawText(
-        extractedText,
-        selectedYear,
-        targetSem,
-        selectedDeptId,
-      );
+      const targetSem = selectedSemester === "all" ? "all" : Number(selectedSemester);
+      const result = parseSyllabusRawText(extractedText, selectedYear, targetSem, selectedDeptId);
 
       setSubjectsList(
         result.subjects.map((s) => ({
@@ -153,10 +134,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
         })),
       );
     } catch (err: any) {
-      setError(
-        err.message ||
-          "Unable to parse syllabus file. Please verify the PDF format.",
-      );
+      setError(err.message || "Unable to parse syllabus file. Please verify the PDF format.");
     } finally {
       setIsProcessing(false);
     }
@@ -186,9 +164,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
   // Assign faculty inline
   const handleAssignTeacher = (index: number, teacherId: string) => {
     setSubjectsList((prev) =>
-      prev.map((s, i) =>
-        i === index ? { ...s, assigned_teacher_id: teacherId } : s,
-      ),
+      prev.map((s, i) => (i === index ? { ...s, assigned_teacher_id: teacherId } : s)),
     );
   };
 
@@ -376,8 +352,8 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
                   </Badge>
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Select your Engineering Year and Semester, upload your
-                  syllabus PDF, and import courses.
+                  Select your Engineering Year and Semester, upload your syllabus PDF, and import
+                  courses.
                 </p>
               </div>
             </div>
@@ -390,8 +366,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
           <div className="space-y-4 rounded-xl border border-border bg-muted/40 p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <School className="h-3.5 w-3.5 text-primary" /> Step 1: Select
-                Year & Semester
+                <School className="h-3.5 w-3.5 text-primary" /> Step 1: Select Year & Semester
               </span>
               <span className="text-[11px] text-muted-foreground">
                 Filtered strictly to target curriculum
@@ -461,8 +436,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
           <div className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-primary" /> Step 2:
-                Syllabus Document / PDF
+                <FileText className="h-3.5 w-3.5 text-primary" /> Step 2: Syllabus Document / PDF
               </span>
 
               {uploadedFileName ? (
@@ -494,17 +468,14 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
             >
               {isProcessing ? (
                 <div className="flex items-center gap-2 text-xs text-primary font-medium py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Extracting
-                  subjects for {yearLabel} ({semLabel})...
+                  <Loader2 className="h-4 w-4 animate-spin" /> Extracting subjects for {yearLabel} (
+                  {semLabel})...
                 </div>
               ) : uploadedFileName ? (
                 <div className="flex items-center gap-2 text-xs font-semibold text-foreground py-1">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                   <span>
-                    PDF Loaded:{" "}
-                    <span className="text-primary underline">
-                      {uploadedFileName}
-                    </span>
+                    PDF Loaded: <span className="text-primary underline">{uploadedFileName}</span>
                   </span>
                   <span className="text-xs text-muted-foreground font-normal">
                     (Click to change file)
@@ -578,11 +549,26 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center text-xs sm:grid-cols-5">
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.processed}</p><p>Processed</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.created}</p><p>Created</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.updated}</p><p>Updated</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.assignmentsCreated}</p><p>Assignments</p></div>
-                    <div className="rounded-lg border bg-card p-2"><p className="text-lg font-bold">{importResult.assignmentsSkipped}</p><p>Unchanged</p></div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.processed}</p>
+                      <p>Processed</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.created}</p>
+                      <p>Created</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.updated}</p>
+                      <p>Updated</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.assignmentsCreated}</p>
+                      <p>Assignments</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-2">
+                      <p className="text-lg font-bold">{importResult.assignmentsSkipped}</p>
+                      <p>Unchanged</p>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -590,161 +576,150 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
           ) : null}
 
           {/* STEP 3: Subjects List for the Selected Year & Semester */}
-          {!importResult && <div className="space-y-2">
-            <div className="flex flex-col gap-3 text-xs sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-1">
-                <span className="block font-bold text-foreground">
-                  Subjects for {yearLabel} • {semLabel}
-                </span>
-                <p className="text-[11px] text-muted-foreground">
-                  {subjectsList.length} subject
-                  {subjectsList.length === 1 ? "" : "s"} found
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleToggleSelectAll(true)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Select All
-                </button>
-                <span className="text-muted-foreground">•</span>
-                <button
-                  type="button"
-                  onClick={() => handleToggleSelectAll(false)}
-                  className="text-muted-foreground hover:underline"
-                >
-                  Deselect All
-                </button>
-              </div>
-            </div>
-
-            {/* Streamlined Subjects Cards / List */}
-            <div className="border border-border rounded-xl divide-y divide-border overflow-hidden bg-card">
-              {subjectsList.length === 0 ? (
-                <div className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-5 py-6 text-center text-xs text-muted-foreground">
-                  Upload a syllabus to view subjects for this semester.
+          {!importResult && (
+            <div className="space-y-2">
+              <div className="flex flex-col gap-3 text-xs sm:flex-row sm:items-end sm:justify-between">
+                <div className="space-y-1">
+                  <span className="block font-bold text-foreground">
+                    Subjects for {yearLabel} • {semLabel}
+                  </span>
+                  <p className="text-[11px] text-muted-foreground">
+                    {subjectsList.length} subject
+                    {subjectsList.length === 1 ? "" : "s"} found
+                  </p>
                 </div>
-              ) : (
-                subjectsList.map((subject, idx) => (
-                  <div
-                    key={`${subject.code}-${idx}`}
-                    className={`p-3 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
-                      subject.selected
-                        ? "bg-primary/5"
-                        : "opacity-65 hover:opacity-100"
-                    }`}
+
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSelectAll(true)}
+                    className="text-primary hover:underline font-medium"
                   >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={!!subject.selected}
-                        onChange={() => handleToggleSelect(idx)}
-                        className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-                      />
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded border border-border">
-                            {subject.code}
-                          </span>
-                          <span className="font-semibold text-xs text-foreground">
-                            {subject.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground flex-wrap">
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 px-1.5"
-                          >
-                            Sem {subject.semester}
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 px-1.5"
-                          >
-                            {subject.credits} Credits
-                          </Badge>
-                          <span className="capitalize">
-                            {subject.category} Course
-                          </span>
+                    Select All
+                  </button>
+                  <span className="text-muted-foreground">•</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSelectAll(false)}
+                    className="text-muted-foreground hover:underline"
+                  >
+                    Deselect All
+                  </button>
+                </div>
+              </div>
+
+              {/* Streamlined Subjects Cards / List */}
+              <div className="border border-border rounded-xl divide-y divide-border overflow-hidden bg-card">
+                {subjectsList.length === 0 ? (
+                  <div className="flex min-h-28 items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-5 py-6 text-center text-xs text-muted-foreground">
+                    Upload a syllabus to view subjects for this semester.
+                  </div>
+                ) : (
+                  subjectsList.map((subject, idx) => (
+                    <div
+                      key={`${subject.code}-${idx}`}
+                      className={`p-3 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
+                        subject.selected ? "bg-primary/5" : "opacity-65 hover:opacity-100"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={!!subject.selected}
+                          onCheckedChange={() => handleToggleSelect(idx)}
+                          aria-label={`Select ${subject.code} ${subject.name}`}
+                          className="mt-1"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded border border-border">
+                              {subject.code}
+                            </span>
+                            <span className="font-semibold text-xs text-foreground">
+                              {subject.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                              Sem {subject.semester}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                              {subject.credits} Credits
+                            </Badge>
+                            <span className="capitalize">{subject.category} Course</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Quick Faculty Assignment */}
-                    <div className="sm:w-56 shrink-0">
-                      <Select
-                        value={subject.assigned_teacher_id || ""}
-                        onChange={(e) =>
-                          handleAssignTeacher(idx, e.target.value)
-                        }
-                        options={[
-                          { value: "", label: "Assign Faculty (Optional)" },
-                          ...teachers.map((t) => ({
-                            value: t.id,
-                            label: `${t.full_name} (${t.designation || "Faculty"})`,
-                          })),
-                        ]}
-                      />
+                      {/* Quick Faculty Assignment */}
+                      <div className="sm:w-56 shrink-0">
+                        <Select
+                          value={subject.assigned_teacher_id || ""}
+                          onChange={(e) => handleAssignTeacher(idx, e.target.value)}
+                          options={[
+                            { value: "", label: "Assign Faculty (Optional)" },
+                            ...teachers.map((t) => ({
+                              value: t.id,
+                              label: `${t.full_name} (${t.designation || "Faculty"})`,
+                            })),
+                          ]}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>}
+          )}
         </div>
 
         {/* Footer with Summary & Big Import Action */}
         <div className="shrink-0 border-t border-border bg-background px-6 py-4 sm:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-<div className="space-y-0.5 text-xs">
-            <p className="font-bold text-foreground">
-              {selectedCount} of {subjectsList.length} subjects selected
-            </p>
-            <p className="text-muted-foreground">
-              {totalCredits} total credits • {getEngineeringYearCode(selectedYear)} •{" "}
-              {semLabel}
-            </p>
-          </div>
+            <div className="space-y-0.5 text-xs">
+              <p className="font-bold text-foreground">
+                {selectedCount} of {subjectsList.length} subjects selected
+              </p>
+              <p className="text-muted-foreground">
+                {totalCredits} total credits • {getEngineeringYearCode(selectedYear)} • {semLabel}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={isImporting}
-            >
-              Cancel
-            </Button>
-            {importResult ? (
+            <div className="flex items-center gap-2">
               <Button
+                variant="outline"
                 size="sm"
-                onClick={() => {
-                  resetImportSession();
-                  onOpenChange(false);
-                }}
+                onClick={() => onOpenChange(false)}
+                disabled={isImporting}
               >
-                Done
+                Cancel
               </Button>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handleExecuteImport}
-                disabled={selectedCount === 0 || isImporting}
-                className="font-semibold shadow-sm disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70"
-              >
-                {isImporting ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="mr-1.5 h-4 w-4" />
-                )}
-                {isImporting ? "Persisting subjects..." : `Import ${selectedCount} Subjects`}
-              </Button>
-            )}
+              {importResult ? (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    resetImportSession();
+                    onOpenChange(false);
+                  }}
+                >
+                  Done
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={handleExecuteImport}
+                  disabled={selectedCount === 0 || isImporting}
+                  className="font-semibold shadow-sm disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70"
+                >
+                  {isImporting ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-1.5 h-4 w-4" />
+                  )}
+                  {isImporting ? "Persisting subjects..." : `Import ${selectedCount} Subjects`}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
         </div>
       </DialogContent>
     </Dialog>

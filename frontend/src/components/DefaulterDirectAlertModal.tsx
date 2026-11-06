@@ -14,23 +14,14 @@ import {
   Search,
   XCircle,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
 import { Textarea } from "./ui/textarea";
 import { localDb } from "../lib/supabase";
 import { AlertChannel, Student, SmsLog } from "../lib/types";
-import {
-  generateEmailAlertContent,
-  generateSmsMessage,
-  cleanSmsMessage,
-} from "../lib/college";
+import { generateEmailAlertContent, generateSmsMessage, cleanSmsMessage } from "../lib/college";
 import { dispatchSmsViaGateway } from "../lib/smsService";
 import { apiFetch } from "../lib/api";
 
@@ -53,13 +44,13 @@ interface DefaulterDirectAlertModalProps {
   onAlertsSent?: (count: number) => void;
 }
 
-export const DefaulterDirectAlertModal: React.FC<
-  DefaulterDirectAlertModalProps
-> = ({ open, onOpenChange, onAlertsSent }) => {
+export const DefaulterDirectAlertModal: React.FC<DefaulterDirectAlertModalProps> = ({
+  open,
+  onOpenChange,
+  onAlertsSent,
+}) => {
   const [search, setSearch] = useState("");
-  const [selectedChannels, setSelectedChannels] = useState<AlertChannel[]>([
-    "email",
-  ]);
+  const [selectedChannels, setSelectedChannels] = useState<AlertChannel[]>(["email"]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [customNote, setCustomNote] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -78,9 +69,7 @@ export const DefaulterDirectAlertModal: React.FC<
   const defaulterList: DefaulterStudentItem[] = useMemo(() => {
     const allAttendance = localDb.attendance;
     const allStudents = localDb.students.filter((s) => s.status === "active");
-    const classesMap = new Map(
-      localDb.academic_classes.map((c) => [c.id, c.name]),
-    );
+    const classesMap = new Map(localDb.academic_classes.map((c) => [c.id, c.name]));
 
     const list: DefaulterStudentItem[] = [];
 
@@ -155,7 +144,6 @@ export const DefaulterDirectAlertModal: React.FC<
     });
   };
 
-
   // Sample student for live preview
   const sampleDefaulter = defaulterList[0] || {
     name: "Sample Student",
@@ -217,35 +205,26 @@ export const DefaulterDirectAlertModal: React.FC<
           };
           {
             try {
-              const response = await apiFetch(
-                "/api/parents/attendance/notify",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    studentId: t.student.id,
-                    kind: "low_attendance",
-                    date: todayStr,
-                  }),
-                },
-              );
+              const response = await apiFetch("/api/parents/attendance/notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  studentId: t.student.id,
+                  kind: "low_attendance",
+                  date: todayStr,
+                }),
+              });
               const result = await response.json().catch(() => ({}));
               const alreadyProcessed =
-                response.status === 409 &&
-                result.status === "already_processed";
+                response.status === 409 && result.status === "already_processed";
               emailResult = {
                 success:
-                  response.ok &&
-                  result.success === true &&
-                  result.status === "provider_accepted",
+                  response.ok && result.success === true && result.status === "provider_accepted",
                 alreadyProcessed,
                 isSimulated: false,
                 message: alreadyProcessed
                   ? "This student's alert was already processed for this date."
-                  : result.message ||
-                    result.reason ||
-                    result.status ||
-                    "Not accepted",
+                  : result.message || result.reason || result.status || "Not accepted",
               };
             } catch {
               emailResult.message = "Notification backend unavailable.";
@@ -271,9 +250,7 @@ export const DefaulterDirectAlertModal: React.FC<
             attendance_date: todayStr,
             sent_at: timestamp,
             language: "en",
-            gateway: isLive
-              ? "EmailJS Live Service"
-              : "Email Notification Service",
+            gateway: isLive ? "EmailJS Live Service" : "Email Notification Service",
             gateway_response: isLive
               ? `EmailJS accepted the email request for ${t.parentEmail}`
               : emailResult.message || "Email request failed.",
@@ -288,9 +265,7 @@ export const DefaulterDirectAlertModal: React.FC<
             smsMsg += ` Note: ${customNote.trim()}`;
           }
 
-          const hasMobile = Boolean(
-            t.parentMobile && t.parentMobile.length >= 10,
-          );
+          const hasMobile = Boolean(t.parentMobile && t.parentMobile.length >= 10);
           newLogs.push({
             id: `sms-defaulter-${Date.now()}-${t.student.id}-${Math.random().toString(36).substring(2, 6)}`,
             student_id: t.student.id,
@@ -328,9 +303,7 @@ export const DefaulterDirectAlertModal: React.FC<
         try {
           await localDb.insert("sms_logs", newLogs);
           logsRecorded = true;
-          window.dispatchEvent(
-            new CustomEvent("edutrack_sms_logs_updated", { detail: newLogs }),
-          );
+          window.dispatchEvent(new CustomEvent("edutrack_sms_logs_updated", { detail: newLogs }));
         } catch (error) {
           console.error(
             "Communication delivery completed, but Parent Log recording failed:",
@@ -372,9 +345,7 @@ export const DefaulterDirectAlertModal: React.FC<
   };
 
   const handleCopyPreview = () => {
-    navigator.clipboard.writeText(
-      `${sampleEmail.subject}\n\n${sampleEmail.body}`,
-    );
+    navigator.clipboard.writeText(`${sampleEmail.subject}\n\n${sampleEmail.body}`);
     setCopiedPreview(true);
     setTimeout(() => setCopiedPreview(false), 2000);
   };
@@ -459,8 +430,7 @@ export const DefaulterDirectAlertModal: React.FC<
                       )}
                       {sentSuccessDetails.alreadyProcessedCount > 0 && (
                         <>
-                          {sentSuccessDetails.alreadyProcessedCount} already
-                          processed
+                          {sentSuccessDetails.alreadyProcessedCount} already processed
                           {sentSuccessDetails.failedCount > 0 ? " · " : " via "}
                         </>
                       )}
@@ -474,10 +444,7 @@ export const DefaulterDirectAlertModal: React.FC<
                     {sentSuccessDetails.failureReasons.length > 0 && (
                       <div className="mt-2 space-y-1">
                         {sentSuccessDetails.failureReasons.map((reason) => (
-                          <p
-                            key={reason}
-                            className="text-xs text-rose-700 dark:text-rose-300"
-                          >
+                          <p key={reason} className="text-xs text-rose-700 dark:text-rose-300">
                             {reason}
                           </p>
                         ))}
@@ -486,8 +453,8 @@ export const DefaulterDirectAlertModal: React.FC<
                     {onlyAlreadyProcessed && (
                       <div className="mx-auto mt-5 max-w-md rounded-xl border border-sky-500/25 bg-sky-500/[0.08] px-4 py-3">
                         <p className="text-sm leading-5 text-sky-800 dark:text-sky-200">
-                          This student's alert was already processed for this
-                          date. No duplicate notification was sent.
+                          This student's alert was already processed for this date. No duplicate
+                          notification was sent.
                         </p>
                       </div>
                     )}
@@ -516,17 +483,13 @@ export const DefaulterDirectAlertModal: React.FC<
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 sm:px-7">
             <div className="space-y-5">
               <section className="space-y-3">
-                <h3 className="text-sm font-semibold text-foreground">
-                  Delivery channel
-                </h3>
+                <h3 className="text-sm font-semibold text-foreground">Delivery channel</h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="flex min-h-[4.5rem] items-center gap-3 rounded-xl border border-primary/40 bg-primary/[0.06] px-4 py-3">
                     <Mail className="h-4 w-4 shrink-0 text-primary" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-foreground">Email</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Recommended
-                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">Recommended</p>
                     </div>
                     <Check className="h-4 w-4 shrink-0 text-primary" />
                   </div>
@@ -537,22 +500,18 @@ export const DefaulterDirectAlertModal: React.FC<
                     <Smartphone className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-muted-foreground">SMS</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Coming soon
-                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">Coming soon</p>
                     </div>
                   </div>
                 </div>
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Parents receive an official attendance warning with the
-                  student&apos;s current attendance details.
+                  Parents receive an official attendance warning with the student&apos;s current
+                  attendance details.
                 </p>
               </section>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-foreground">
-                  Optional note
-                </label>
+                <label className="text-sm font-semibold text-foreground">Optional note</label>
                 <Input
                   placeholder="Add meeting instructions or an administrative note..."
                   value={customNote}
@@ -564,9 +523,7 @@ export const DefaulterDirectAlertModal: React.FC<
               <section className="space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Defaulter students
-                    </h3>
+                    <h3 className="text-sm font-semibold text-foreground">Defaulter students</h3>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {selectedIds.size} selected
                     </p>
@@ -576,9 +533,7 @@ export const DefaulterDirectAlertModal: React.FC<
                     onClick={toggleSelectAll}
                     className="shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
                   >
-                    {selectedIds.size === filteredDefaulters.length
-                      ? "Deselect all"
-                      : "Select all"}
+                    {selectedIds.size === filteredDefaulters.length ? "Deselect all" : "Select all"}
                   </button>
                 </div>
 
@@ -618,12 +573,12 @@ export const DefaulterDirectAlertModal: React.FC<
                               : "border-border/60 bg-card hover:bg-muted/30"
                           }`}
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
-                            onChange={() => toggleStudent(d.student.id)}
+                            onCheckedChange={() => toggleStudent(d.student.id)}
                             onClick={(event) => event.stopPropagation()}
-                            className="mt-1 h-4 w-4 shrink-0 rounded border-border text-primary focus:ring-primary"
+                            aria-label={`Select ${d.name}`}
+                            className="mt-1"
                           />
                           <div className="min-w-0">
                             <p className="truncate text-[15px] font-semibold leading-5 text-foreground">
@@ -643,9 +598,7 @@ export const DefaulterDirectAlertModal: React.FC<
                             <p className="text-[15px] font-bold leading-5 text-amber-700 dark:text-amber-300">
                               {Number(d.percentage.toFixed(1))}%
                             </p>
-                            <p className="mt-0.5 text-[11px] text-muted-foreground">
-                              Attendance
-                            </p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">Attendance</p>
                           </div>
                         </div>
                       );

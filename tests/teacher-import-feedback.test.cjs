@@ -11,7 +11,7 @@ test("teacher import shows persistent progress and completion feedback", () => {
   assert.match(modal, /Creating faculty portal account/);
   assert.match(modal, /Import completed/);
   assert.match(modal, /Retry failed rows/);
-  assert.match(modal, />Done</);
+  assert.match(modal, />\s*Done\s*</);
 });
 
 test("teacher modal uses a spacious responsive layout", () => {

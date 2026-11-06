@@ -13,16 +13,11 @@ import {
 } from "lucide-react";
 import { Student } from "../lib/types";
 import { localDb } from "../lib/supabase";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 interface StudentPasswordModalProps {
   open: boolean;
@@ -46,9 +41,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
 }) => {
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [batchOption, setBatchOption] = useState<"enrollment" | "custom">(
-    "enrollment",
-  );
+  const [batchOption, setBatchOption] = useState<"enrollment" | "custom">("enrollment");
   const [batchCustomPassword, setBatchCustomPassword] = useState("Student@123");
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -74,9 +67,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
         onOpenChange(false);
       }, 1200);
     } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "Password could not be reset.",
-      );
+      alert(error instanceof Error ? error.message : "Password could not be reset.");
     } finally {
       setIsSaving(false);
     }
@@ -102,9 +93,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
         onOpenChange(false);
       }, 1200);
     } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "Password could not be saved.",
-      );
+      alert(error instanceof Error ? error.message : "Password could not be saved.");
     } finally {
       setIsSaving(false);
     }
@@ -120,8 +109,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
     setIsSaving(true);
     try {
       for (const current of studentsList) {
-        const password =
-          batchOption === "enrollment" ? current.roll_number : custom;
+        const password = batchOption === "enrollment" ? current.roll_number : custom;
         const minimumLength = batchOption === "enrollment" ? 6 : 8;
         if (!password || password.length < minimumLength || /\s/.test(password))
           throw new Error(
@@ -137,11 +125,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
         onOpenChange(false);
       }, 1400);
     } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Batch password update failed.",
-      );
+      alert(error instanceof Error ? error.message : "Batch password update failed.");
     } finally {
       setIsSaving(false);
     }
@@ -157,9 +141,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
             </div>
             <div>
               <DialogTitle className="text-lg font-bold font-display">
-                {isBatch
-                  ? "Batch Student Password Manager"
-                  : "Set Student Password"}
+                {isBatch ? "Batch Student Password Manager" : "Set Student Password"}
               </DialogTitle>
               <p className="text-xs text-muted-foreground">
                 {isBatch
@@ -173,12 +155,8 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
         {successMsg ? (
           <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 animate-bounce" />
-            <p className="text-sm font-semibold text-foreground">
-              {successMsg}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Changes saved instantly.
-            </p>
+            <p className="text-sm font-semibold text-foreground">{successMsg}</p>
+            <p className="text-xs text-muted-foreground">Changes saved instantly.</p>
           </div>
         ) : isBatch ? (
           /* BATCH PASSWORD MODE */
@@ -189,13 +167,16 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
                 Target: {studentsList.length} Students
               </span>
               <p className="text-muted-foreground">
-                Choose whether each student should have their unique Enrollment
-                Number as their password, or if you want to set a specific
-                custom password for all students.
+                Choose whether each student should have their unique Enrollment Number as their
+                password, or if you want to set a specific custom password for all students.
               </p>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <RadioGroup
+              value={batchOption}
+              onValueChange={(value) => setBatchOption(value as "enrollment" | "custom")}
+              className="space-y-3 text-xs"
+            >
               <label
                 className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
                   batchOption === "enrollment"
@@ -203,22 +184,14 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
                     : "border-border hover:bg-muted/40 text-muted-foreground"
                 }`}
               >
-                <input
-                  type="radio"
-                  name="batchPwdOption"
-                  checked={batchOption === "enrollment"}
-                  onChange={() => setBatchOption("enrollment")}
-                  className="mt-0.5 text-primary focus:ring-primary"
-                />
+                <RadioGroupItem value="enrollment" className="mt-0.5" />
                 <div>
                   <p className="font-semibold text-foreground">
-                    Reset each student's password to their Enrollment Number
-                    (Roll No)
+                    Reset each student's password to their Enrollment Number (Roll No)
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     Example: Student with roll number{" "}
-                    <code className="font-mono font-bold">21CS101</code> will
-                    have password{" "}
+                    <code className="font-mono font-bold">21CS101</code> will have password{" "}
                     <code className="font-mono font-bold">21CS101</code>.
                   </p>
                 </div>
@@ -231,17 +204,10 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
                     : "border-border hover:bg-muted/40 text-muted-foreground"
                 }`}
               >
-                <input
-                  type="radio"
-                  name="batchPwdOption"
-                  checked={batchOption === "custom"}
-                  onChange={() => setBatchOption("custom")}
-                  className="mt-0.5 text-primary focus:ring-primary"
-                />
+                <RadioGroupItem value="custom" className="mt-0.5" />
                 <div className="flex-1">
                   <p className="font-semibold text-foreground">
-                    Set a uniform custom password for all {studentsList.length}{" "}
-                    students
+                    Set a uniform custom password for all {studentsList.length} students
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5 mb-2">
                     Enter the common password you want to assign to everyone:
@@ -257,7 +223,7 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
                   )}
                 </div>
               </label>
-            </div>
+            </RadioGroup>
 
             <DialogFooter className="pt-3 border-t border-border/60">
               <Button
@@ -271,14 +237,9 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
               <Button
                 size="sm"
                 onClick={handleExecuteBatchPassword}
-                disabled={
-                  isSaving ||
-                  (batchOption === "custom" && !batchCustomPassword.trim())
-                }
+                disabled={isSaving || (batchOption === "custom" && !batchCustomPassword.trim())}
               >
-                {isSaving
-                  ? "Updating Passwords..."
-                  : `Apply to ${studentsList.length} Students`}
+                {isSaving ? "Updating Passwords..." : `Apply to ${studentsList.length} Students`}
               </Button>
             </DialogFooter>
           </div>
@@ -289,26 +250,18 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
               {/* Student Summary Card */}
               <div className="rounded-xl border border-border bg-muted/20 p-3 text-xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">
-                    {student.full_name}
-                  </span>
+                  <span className="font-semibold text-foreground">{student.full_name}</span>
                   <Badge variant="outline" className="font-mono text-[10px]">
                     Sem {student.semester}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
                   <div>
-                    <span className="block text-foreground/70">
-                      Enrollment / Roll No:
-                    </span>
-                    <span className="font-mono font-bold text-primary">
-                      {student.roll_number}
-                    </span>
+                    <span className="block text-foreground/70">Enrollment / Roll No:</span>
+                    <span className="font-mono font-bold text-primary">{student.roll_number}</span>
                   </div>
                   <div>
-                    <span className="block text-foreground/70">
-                      Credential Status:
-                    </span>
+                    <span className="block text-foreground/70">Credential Status:</span>
                     <span className="font-mono font-bold text-foreground">
                       Managed securely in Supabase Auth
                     </span>
@@ -319,14 +272,10 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
               {/* Quick Reset Option */}
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-center justify-between gap-3">
                 <div className="text-xs">
-                  <p className="font-semibold text-foreground">
-                    Use Enrollment Number as Password
-                  </p>
+                  <p className="font-semibold text-foreground">Use Enrollment Number as Password</p>
                   <p className="text-[11px] text-muted-foreground">
                     Reset password to roll number:{" "}
-                    <span className="font-mono font-bold">
-                      {student.roll_number}
-                    </span>
+                    <span className="font-mono font-bold">{student.roll_number}</span>
                   </p>
                 </div>
                 <Button
@@ -358,17 +307,12 @@ export const StudentPasswordModal: React.FC<StudentPasswordModalProps> = ({
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
                   The student can log in with their Roll Number (
-                  <code className="font-bold">{student.roll_number}</code>) and
-                  this new password.
+                  <code className="font-bold">{student.roll_number}</code>) and this new password.
                 </p>
               </div>
 

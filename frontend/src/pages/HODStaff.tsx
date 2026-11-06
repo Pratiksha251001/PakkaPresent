@@ -60,6 +60,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Table,
   TableHeader,
@@ -1140,17 +1141,19 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                               : "bg-background hover:bg-muted/50 border-border text-muted-foreground"
                           }`}
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedClassIds((prev) => [...prev, cls.id]);
-                              } else {
-                                setSelectedClassIds((prev) => prev.filter((id) => id !== cls.id));
-                              }
-                            }}
-                            className="mt-0.5 h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
+                            onCheckedChange={(checked) =>
+                              setSelectedClassIds((prev) =>
+                                checked
+                                  ? prev.includes(cls.id)
+                                    ? prev
+                                    : [...prev, cls.id]
+                                  : prev.filter((id) => id !== cls.id),
+                              )
+                            }
+                            aria-label={`Assign ${cls.name}`}
+                            className="mt-0.5"
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1">
@@ -1349,30 +1352,21 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         {departmentClasses.map((c) => {
                           const isChecked = stagedClassNames.includes(c.name);
                           return (
-                            <label
+                            <button
                               key={c.id}
-                              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] cursor-pointer border transition-colors ${
-                                isChecked
-                                  ? "bg-primary text-primary-foreground border-primary font-semibold"
-                                  : "bg-muted/60 text-muted-foreground border-border hover:bg-muted"
-                              }`}
+                              type="button"
+                              aria-pressed={isChecked}
+                              onClick={() =>
+                                setStagedClassNames((prev) =>
+                                  isChecked
+                                    ? prev.filter((name) => name !== c.name)
+                                    : [...prev, c.name],
+                                )
+                              }
+                              className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] transition-colors ${isChecked ? "border-primary bg-primary font-semibold text-primary-foreground" : "border-border bg-muted/60 text-muted-foreground hover:bg-muted"}`}
                             >
-                              <input
-                                type="checkbox"
-                                className="hidden"
-                                checked={isChecked}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setStagedClassNames((prev) => [...prev, c.name]);
-                                  } else {
-                                    setStagedClassNames((prev) =>
-                                      prev.filter((name) => name !== c.name),
-                                    );
-                                  }
-                                }}
-                              />
-                              <span>{c.name}</span>
-                            </label>
+                              {c.name}
+                            </button>
                           );
                         })}
                         <button
