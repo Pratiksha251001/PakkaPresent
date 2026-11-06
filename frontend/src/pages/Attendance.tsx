@@ -139,10 +139,11 @@ export const Attendance: React.FC = () => {
 
   const [selectedYearFilter, setSelectedYearFilter] = useState<string>("all");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
-    if (urlSubjectId && subjects.some((s) => s.id === urlSubjectId)) {
+    if (urlSubjectId && subjects.some((subject) => subject.id === urlSubjectId)) {
       return urlSubjectId;
     }
-    return subjects[0]?.id || "";
+
+    return "";
   });
   const [selectedClassName, setSelectedClassName] = useState<string>(urlClassName || "all");
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
@@ -195,12 +196,31 @@ export const Attendance: React.FC = () => {
 
   // Keep selectedSubjectId valid if filteredSubjects changes
   React.useEffect(() => {
-    if (filteredSubjects.length > 0 && !filteredSubjects.some((s) => s.id === selectedSubjectId)) {
-      setSelectedSubjectId(filteredSubjects[0].id);
+    if (
+      selectedSubjectId &&
+      !filteredSubjects.some((subject) => subject.id === selectedSubjectId)
+    ) {
+      setSelectedSubjectId("");
+      setSelectedClassName("all");
     }
   }, [filteredSubjects, selectedSubjectId]);
 
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
+
+  const selectedSubjectAcademicYear = selectedSubject
+    ? selectedSubject.year || Math.ceil(selectedSubject.semester / 2)
+    : null;
+
+  React.useEffect(() => {
+    if (!selectedSubjectAcademicYear) {
+      setSelectedYearFilter("all");
+      return;
+    }
+
+    const nextYear = String(selectedSubjectAcademicYear);
+
+    setSelectedYearFilter((currentYear) => (currentYear === nextYear ? currentYear : nextYear));
+  }, [selectedSubjectAcademicYear]);
   const attendanceDepartmentId = selectedSubject?.department_id || user?.department_id || undefined;
 
   // Determine available classes / divisions for the selected subject
@@ -263,24 +283,32 @@ export const Attendance: React.FC = () => {
 
   // Cohort students filtered by Semester AND Target Class / Division
   const cohortStudents = useMemo(() => {
-    if (!selectedSubject) return [];
-
     let list = students.filter(
-      (st) =>
-        st.status === "active" &&
-        st.semester === selectedSubject.semester &&
-        (!attendanceDepartmentId || st.department_id === attendanceDepartmentId),
+      (student) =>
+        student.status === "active" &&
+        (!attendanceDepartmentId || student.department_id === attendanceDepartmentId),
     );
 
-    if (selectedClassName && selectedClassName !== "all") {
-      const matchedClass = academicClasses.find(
-        (c) => c.name === selectedClassName || c.id === selectedClassName,
-      );
-      list = list.filter((st) => {
-        if (matchedClass && st.class_id) return st.class_id === matchedClass.id;
-        if (st.class_name) return st.class_name === selectedClassName;
-        return st.section === selectedClassName;
+    if (selectedSubject) {
+      list = list.filter((student) => student.semester === selectedSubject.semester);
+    } else if (selectedYearFilter !== "all") {
+      const selectedYear = Number(selectedYearFilter);
+
+      list = list.filter((student) => {
+        const studentYear = student.year || Math.ceil(student.semester / 2);
+
+        return studentYear === selectedYear;
       });
+    }
+
+    if (selectedClassName && selectedClassName !== "all") {
+      list = list.filter(
+        (student) =>
+          student.class_name === selectedClassName ||
+          student.section === selectedClassName ||
+          student.class_id ===
+            academicClasses.find((academicClass) => academicClass.name === selectedClassName)?.id,
+      );
     }
 
     return list;
@@ -692,7 +720,13 @@ export const Attendance: React.FC = () => {
             </label>
             <Select
               value={selectedYearFilter}
-              onChange={(e) => setSelectedYearFilter(e.target.value)}
+              onChange={(event) => {
+                const nextYear = event.target.value;
+
+                setSelectedYearFilter(nextYear);
+                setSelectedSubjectId("");
+                setSelectedClassName("all");
+              }}
               options={[
                 { value: "all", label: "All Years (1st - 4th)" },
                 ...ENGINEERING_YEARS.map((y) => ({
@@ -711,7 +745,10 @@ export const Attendance: React.FC = () => {
             </label>
             <Select
               value={selectedSubjectId}
-              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              onChange={(event) => {
+                setSelectedSubjectId(event.target.value);
+                setSelectedClassName("all");
+              }}
               searchable
               contentWidth="wide"
               searchPlaceholder="Search by subject code, name, or semester..."
@@ -722,6 +759,7 @@ export const Attendance: React.FC = () => {
                 description: `Semester ${s.semester}`,
                 searchText: `${s.code} ${s.name} semester ${s.semester}`,
               }))}
+              placeholder="Select Subject"
             />
           </div>
 
@@ -747,11 +785,13 @@ export const Attendance: React.FC = () => {
               options={[
                 {
                   value: "all",
-                  label: availableClasses.length > 0 ? "All Divisions" : "All Students in Semester",
+                  label: "All Divisions",
                   description:
                     availableClasses.length > 0
                       ? "Whole Batch"
-                      : `Semester ${selectedSubject?.semester || ""}`,
+                      : selectedSubject
+                        ? `All students in Semester ${selectedSubject.semester}`
+                        : "All visible students",
                   searchText: "all divisions whole batch all students",
                 },
                 ...availableClasses.map((cn) => {
@@ -916,6 +956,7 @@ export const Attendance: React.FC = () => {
               variant="outline"
               onClick={() => markAll("present")}
               className="text-xs"
+              disabled={!selectedSubject}
             >
               <Check className="mr-1 h-3.5 w-3.5 text-emerald-600" />
               All Present
@@ -925,6 +966,7 @@ export const Attendance: React.FC = () => {
               variant="outline"
               onClick={() => markAll("absent")}
               className="text-xs"
+              disabled={!selectedSubject}
             >
               <X className="mr-1 h-3.5 w-3.5 text-rose-600" />
               All Absent
@@ -932,7 +974,7 @@ export const Attendance: React.FC = () => {
             <Button
               size="sm"
               onClick={() => setConfirmOpen(true)}
-              disabled={cohortStudents.length === 0}
+              disabled={!selectedSubject || cohortStudents.length === 0}
               className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-xs"
             >
               <Send className="mr-1.5 h-4 w-4" />
