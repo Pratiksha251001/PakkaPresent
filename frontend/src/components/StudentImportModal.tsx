@@ -35,6 +35,8 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Select } from "./ui/select";
+import { Switch } from "./ui/switch";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 interface StudentImportModalProps {
   open: boolean;
@@ -581,18 +583,17 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
           {/* Account Creation & Password Configuration Settings */}
           <div className="rounded-xl border border-border/70 bg-muted/10 p-3 sm:p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Switch
                   checked={createAccounts}
-                  onChange={(e) => setCreateAccounts(e.target.checked)}
-                  className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                  onCheckedChange={setCreateAccounts}
+                  aria-label="Create portal accounts automatically"
                 />
                 <span className="flex items-center gap-1.5">
                   <KeyRound className="h-3.5 w-3.5 text-primary" />
                   Create student portal accounts automatically
                 </span>
-              </label>
+              </div>
               {createAccounts && (
                 <span className="text-[11px] text-muted-foreground">
                   Students will use Enrollment Number or Email to sign in
@@ -607,15 +608,13 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                     <Lock className="h-3.5 w-3.5 text-primary" />
                     Initial password strategy
                   </p>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="studentPwdMode"
-                        checked={passwordMode === "enrollment"}
-                        onChange={() => setPasswordMode("enrollment")}
-                        className="text-primary focus:ring-primary"
-                      />
+                  <RadioGroup
+                    value={passwordMode}
+                    onValueChange={(value) => setPasswordMode(value as "enrollment" | "custom")}
+                    className="space-y-1.5"
+                  >
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
+                      <RadioGroupItem value="enrollment" />
                       <span className="font-medium">
                         Unique Enrollment / Roll Number{" "}
                         <span className="text-muted-foreground font-normal">
@@ -623,19 +622,13 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
                         </span>
                       </span>
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="studentPwdMode"
-                        checked={passwordMode === "custom"}
-                        onChange={() => setPasswordMode("custom")}
-                        className="text-primary focus:ring-primary"
-                      />
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
+                      <RadioGroupItem value="custom" />
                       <span className="font-medium">
                         Set Custom Initial Password for this import batch
                       </span>
                     </label>
-                  </div>
+                  </RadioGroup>
                 </div>
 
                 <div>

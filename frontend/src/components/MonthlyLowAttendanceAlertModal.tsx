@@ -20,18 +20,13 @@ import {
   Copy,
   Plus,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Select } from "./ui/select";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
 import {
   college,
   getMonthlyLowAttendanceMessage,
@@ -92,9 +87,7 @@ const PRESET_NOTES = [
   "Attend mandatory Saturday remedial class.",
 ];
 
-export const MonthlyLowAttendanceAlertModal: React.FC<
-  MonthlyLowAttendanceAlertModalProps
-> = ({
+export const MonthlyLowAttendanceAlertModal: React.FC<MonthlyLowAttendanceAlertModalProps> = ({
   open,
   onOpenChange,
   filteredStudents,
@@ -104,10 +97,8 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
   onAlertsSent,
 }) => {
   const currentDate = new Date();
-  const currentMonthIdx =
-    initialMonth !== undefined ? initialMonth : currentDate.getMonth();
-  const currentYearVal =
-    initialYear !== undefined ? initialYear : currentDate.getFullYear();
+  const currentMonthIdx = initialMonth !== undefined ? initialMonth : currentDate.getMonth();
+  const currentYearVal = initialYear !== undefined ? initialYear : currentDate.getFullYear();
 
   // Fixed English + Marathi format with common student name
   const selectedLang: SmsLanguage = "bilingual_mr";
@@ -116,9 +107,7 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
   const [selectedYear, setSelectedYear] = useState<number>(currentYearVal);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "alerted">("all");
-  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(
-    new Set()
-  );
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
   const [isSending, setIsSending] = useState(false);
   const [customRemark, setCustomRemark] = useState<string>("");
   const [previewStudentId, setPreviewStudentId] = useState<string | null>(null);
@@ -190,9 +179,10 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
     const m = selectedMonth;
     const startStr = `${yr}-${String(m + 1).padStart(2, "0")}-01`;
     const nextMonth = new Date(yr, m + 1, 0);
-    const endStr = `${yr}-${String(m + 1).padStart(2, "0")}-${String(
-      nextMonth.getDate()
-    ).padStart(2, "0")}`;
+    const endStr = `${yr}-${String(m + 1).padStart(2, "0")}-${String(nextMonth.getDate()).padStart(
+      2,
+      "0",
+    )}`;
 
     const monthLabel = `${MONTH_NAMES[m]} ${yr}`;
     return { startStr, endStr, monthLabel };
@@ -219,23 +209,19 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
       const monthRecords = attendanceRecords.filter((a) => {
         if (a.student_id !== st.id) return false;
         if (!subjectIds.has(a.subject_id)) return false;
-        return (
-          a.date >= monthDateRange.startStr && a.date <= monthDateRange.endStr
-        );
+        return a.date >= monthDateRange.startStr && a.date <= monthDateRange.endStr;
       });
 
       if (monthRecords.length > 0) {
         const totalSessions = monthRecords.length;
-        const attendedSessions = monthRecords.filter(
-          (a) => a.status === "present"
-        ).length;
+        const attendedSessions = monthRecords.filter((a) => a.status === "present").length;
         const absentSessions = totalSessions - attendedSessions;
         const percentage = (attendedSessions / totalSessions) * 100;
 
         if (percentage < minAttendance) {
           const shortfall = Math.max(
             1,
-            Math.ceil((minAttendance / 100) * totalSessions) - attendedSessions
+            Math.ceil((minAttendance / 100) * totalSessions) - attendedSessions,
           );
 
           const monthTag = monthDateRange.monthLabel;
@@ -244,7 +230,7 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
               (log.student_id === st.id ||
                 log.student_name.toLowerCase() === st.full_name.toLowerCase()) &&
               log.message.includes(monthTag) &&
-              log.status === "sent"
+              log.status === "sent",
           );
 
           const lastSentLog = smsLogs
@@ -252,12 +238,9 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
               (log) =>
                 (log.student_id === st.id ||
                   log.student_name.toLowerCase() === st.full_name.toLowerCase()) &&
-                log.message.includes(monthTag)
+                log.message.includes(monthTag),
             )
-            .sort(
-              (a, b) =>
-                new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
-            )[0];
+            .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0];
 
           const pMobile = (st.parent_mobile || "").trim();
           const cleanMobile = pMobile.replace(/\D/g, "");
@@ -315,7 +298,7 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
           d.name.toLowerCase().includes(q) ||
           d.roll.toLowerCase().includes(q) ||
           d.parentName.toLowerCase().includes(q) ||
-          d.parentMobile.includes(q)
+          d.parentMobile.includes(q),
       );
     }
 
@@ -359,9 +342,7 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
 
   const handleToggleSelectAll = () => {
     const selectable = visibleDefaulters.filter((d) => d.hasValidMobile);
-    const allSelected = selectable.every((d) =>
-      selectedStudentIds.has(d.student.id)
-    );
+    const allSelected = selectable.every((d) => selectedStudentIds.has(d.student.id));
 
     setSelectedStudentIds((prev) => {
       const next = new Set(prev);
@@ -416,7 +397,7 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
     }
 
     const targets = defaulterList.filter(
-      (d) => selectedStudentIds.has(d.student.id) && d.hasValidMobile
+      (d) => selectedStudentIds.has(d.student.id) && d.hasValidMobile,
     );
 
     if (targets.length === 0) {
@@ -464,14 +445,13 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
 
         // Dispatch Email warning automatically for <75% attendance
         const studentEmail =
-          t.student.email ||
-          `${t.name.toLowerCase().replace(/\s+/g, ".")}@engg.college.edu`;
+          t.student.email || `${t.name.toLowerCase().replace(/\s+/g, ".")}@engg.college.edu`;
         const emailContent = generateEmailAlertContent(
           t.name,
           monthDateRange.monthLabel,
           t.className || "All Subjects",
           "absent",
-          t.percentage
+          t.percentage,
         );
 
         logsToInsert.push({
@@ -527,13 +507,11 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
 
       if (gatewayBatch.length > 0) {
         dispatchSmsViaGateway(gatewayBatch).catch((err) =>
-          console.warn("MSG91 monthly dispatch notice:", err)
+          console.warn("MSG91 monthly dispatch notice:", err),
         );
       }
 
-      window.dispatchEvent(
-        new CustomEvent("edutrack_sms_logs_updated", { detail: logsToInsert })
-      );
+      window.dispatchEvent(new CustomEvent("edutrack_sms_logs_updated", { detail: logsToInsert }));
 
       const sentTargets = targets.map((t) => {
         let msg = getMonthlyLowAttendanceMessage({
@@ -698,18 +676,15 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-foreground">
-                        {target.roll}
-                      </span>
-                      <span className="font-medium text-foreground truncate">
-                        {target.name}
-                      </span>
+                      <span className="font-mono font-bold text-foreground">{target.roll}</span>
+                      <span className="font-medium text-foreground truncate">{target.name}</span>
                       <span className="text-muted-foreground text-[11px]">
                         ({target.className})
                       </span>
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      Attended: {target.attended}/{target.total} · Parent: {target.parentName} ({target.parentMobile})
+                      Attended: {target.attended}/{target.total} · Parent: {target.parentName} (
+                      {target.parentMobile})
                     </div>
                   </div>
 
@@ -866,18 +841,15 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
                     <div
                       key={d.student.id}
                       className={`p-2.5 px-3 flex items-center justify-between gap-3 text-xs transition-colors ${
-                        isSelected
-                          ? "bg-primary/5 hover:bg-primary/10"
-                          : "hover:bg-muted/30"
+                        isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"
                       } ${isPreviewed ? "border-l-2 border-l-primary" : ""}`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           disabled={!d.hasValidMobile}
                           checked={isSelected}
-                          onChange={() => handleToggleSelect(d.student.id)}
-                          className="h-3.5 w-3.5 rounded border-border text-primary cursor-pointer disabled:opacity-40"
+                          onCheckedChange={() => handleToggleSelect(d.student.id)}
+                          aria-label={`Select ${d.name}`}
                         />
 
                         <div
@@ -888,15 +860,9 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
                           }}
                         >
                           <div className="flex items-center gap-2 truncate">
-                            <span className="font-mono font-bold text-foreground">
-                              {d.roll}
-                            </span>
-                            <span className="font-medium text-foreground truncate">
-                              {d.name}
-                            </span>
-                            <span className="text-muted-foreground text-[10px]">
-                              {d.className}
-                            </span>
+                            <span className="font-mono font-bold text-foreground">{d.roll}</span>
+                            <span className="font-medium text-foreground truncate">{d.name}</span>
+                            <span className="text-muted-foreground text-[10px]">{d.className}</span>
                           </div>
 
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
@@ -904,9 +870,7 @@ export const MonthlyLowAttendanceAlertModal: React.FC<
                               {d.attendedSessions}/{d.totalSessions} sessions
                             </span>
                             <span>•</span>
-                            <span>
-                              Parent: {d.parentMobile || "No Phone"}
-                            </span>
+                            <span>Parent: {d.parentMobile || "No Phone"}</span>
                           </div>
                         </div>
                       </div>

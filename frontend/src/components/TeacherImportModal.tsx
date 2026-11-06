@@ -39,6 +39,8 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Select } from "./ui/select";
+import { Switch } from "./ui/switch";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 
 interface TeacherImportProgress {
   current: number;
@@ -598,18 +600,17 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
           {/* Account Creation & Password Configuration Settings */}
           <div className="rounded-xl border border-border p-4 bg-muted/20 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-xs font-semibold text-foreground cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                <Switch
                   checked={createAccounts}
-                  onChange={(e) => setCreateAccounts(e.target.checked)}
-                  className="rounded border-border text-primary focus:ring-primary h-4 w-4"
+                  onCheckedChange={setCreateAccounts}
+                  aria-label="Create portal accounts automatically"
                 />
                 <span className="flex items-center gap-1.5">
                   <KeyRound className="h-3.5 w-3.5 text-primary" />
                   Automatically generate faculty portal accounts upon import
                 </span>
-              </label>
+              </div>
               {createAccounts && (
                 <span className="text-[11px] text-muted-foreground">
                   Faculty will use College Employee ID or Email to sign in
@@ -624,15 +625,13 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                     <Lock className="h-3.5 w-3.5 text-primary" />
                     Default Faculty Initial Password Strategy:
                   </p>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="teacherPwdMode"
-                        checked={passwordMode === "empid"}
-                        onChange={() => setPasswordMode("empid")}
-                        className="text-primary focus:ring-primary"
-                      />
+                  <RadioGroup
+                    value={passwordMode}
+                    onValueChange={(value) => setPasswordMode(value as "empid" | "custom")}
+                    className="space-y-1.5"
+                  >
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
+                      <RadioGroupItem value="empid" />
                       <span className="font-medium">
                         Unique College Employee ID Ref No{" "}
                         <span className="text-muted-foreground font-normal">
@@ -640,19 +639,13 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                         </span>
                       </span>
                     </label>
-                    <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                      <input
-                        type="radio"
-                        name="teacherPwdMode"
-                        checked={passwordMode === "custom"}
-                        onChange={() => setPasswordMode("custom")}
-                        className="text-primary focus:ring-primary"
-                      />
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
+                      <RadioGroupItem value="custom" />
                       <span className="font-medium">
                         Set Custom Password for all imported faculty
                       </span>
                     </label>
-                  </div>
+                  </RadioGroup>
                 </div>
 
                 <div>
@@ -806,15 +799,14 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3 text-xs">
-                  <label className="flex items-center gap-1.5 cursor-pointer text-muted-foreground select-none">
-                    <input
-                      type="checkbox"
+                  <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <Switch
                       checked={createAccounts}
-                      onChange={(e) => setCreateAccounts(e.target.checked)}
-                      className="rounded border-border text-primary"
+                      onCheckedChange={setCreateAccounts}
+                      aria-label="Create portal accounts automatically"
                     />
-                    <span>Auto-create Login Accounts</span>
-                  </label>
+                    <span className="flex items-center gap-1.5">Auto-create Login Accounts</span>
+                  </div>
                 </div>
               </div>
 

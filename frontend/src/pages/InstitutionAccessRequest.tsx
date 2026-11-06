@@ -13,6 +13,7 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { Checkbox } from "../components/ui/checkbox";
 import { SearchableLocationSelect } from "../components/ui/searchable-location-select";
 import { PakkaPresentLogo } from "../components/PakkaPresentLogo";
 import {
@@ -441,15 +442,16 @@ export const InstitutionAccessRequest: React.FC = () => {
                 )}
               </label>
               <label className="flex items-start gap-3 rounded-xl border p-4 text-xs">
-                <input
-                  required
-                  type="checkbox"
-                  checked={form.consent}
-                  disabled={loading}
+                <Checkbox
                   ref={(element) => {
                     refs.current.consent = element;
                   }}
-                  onChange={(e) => setValue("consent", e.target.checked)}
+                  checked={form.consent}
+                  disabled={loading}
+                  invalid={!!fieldErrors.consent}
+                  aria-describedby="consent-error"
+                  aria-label="Consent to institution access request contact"
+                  onCheckedChange={(checked) => setValue("consent", checked)}
                 />
                 <span>
                   I am authorized to submit these institution details and consent to being contacted
@@ -457,7 +459,9 @@ export const InstitutionAccessRequest: React.FC = () => {
                 </span>
               </label>
               {fieldErrors.consent && (
-                <p className="text-xs font-semibold text-red-600">{fieldErrors.consent}</p>
+                <p id="consent-error" className="text-xs font-semibold text-red-600">
+                  {fieldErrors.consent}
+                </p>
               )}
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs leading-6">
                 <CheckCircle2 className="mb-2 h-5 w-5" />
