@@ -12,8 +12,7 @@ test("route and CTA", () => {
   assert.match(app, /institution\/request-access/);
   assert.match(hub, /Request institution access/);
 });
-test("no direct registration", () =>
-  assert.doesNotMatch(login, /Register institution/));
+test("no direct registration", () => assert.doesNotMatch(login, /Register institution/));
 test("secure submission states", () => {
   assert.match(service, /api\/institutions\/access-requests/);
   assert.match(page, /Submitting request/);
@@ -24,15 +23,21 @@ test("secure submission states", () => {
 });
 
 test("searchable location selector is accessible and polished", () => {
-  const select = read("frontend/src/components/ui/searchable-location-select.tsx");
-  assert.match(select, /type="search"/);
-  assert.match(select, /aria-haspopup="listbox"/);
-  assert.match(select, /role="listbox"/);
-  assert.match(select, /role="option"/);
-  assert.match(select, /whitespace-normal break-words/);
-  assert.match(select, /closeOnOutsideClick/);
-  assert.match(select, /event\.key === "Escape"/);
-  assert.match(select, /selected\?\.label \|\| placeholder/);
+  const locationSelect = read("frontend/src/components/ui/searchable-location-select.tsx");
+  const sharedSelect = read("frontend/src/components/ui/select.tsx");
+
+  assert.match(locationSelect, /<Select/);
+  assert.match(locationSelect, /searchable/);
+  assert.match(locationSelect, /searchLocale="en-IN"/);
+  assert.match(locationSelect, /"data-location-selector": dataSelector/);
+  assert.match(locationSelect, /"aria-invalid": !!error/);
+  assert.match(sharedSelect, /type="search"/);
+  assert.match(sharedSelect, /aria-haspopup="listbox"/);
+  assert.match(sharedSelect, /role="listbox"/);
+  assert.match(sharedSelect, /role="option"/);
+  assert.match(sharedSelect, /whitespace-normal break-words/);
+  assert.match(sharedSelect, /event\.key === "Escape"/);
+  assert.match(sharedSelect, /selectedOption\?\.label/);
 });
 
 test("access-request route opens at the top without disabling validation scrolling", () => {

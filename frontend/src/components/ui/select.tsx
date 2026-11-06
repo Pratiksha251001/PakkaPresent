@@ -33,7 +33,13 @@ export interface SelectProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
   valuePrefix?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
+  searchLocale?: string;
   emptyMessage?: string;
+  triggerRef?: React.Ref<HTMLButtonElement>;
+  triggerProps?: Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    "onClick" | "disabled" | "title"
+  >;
   contentWidth?: "trigger" | "wide";
   children?: React.ReactNode;
 }
@@ -107,7 +113,10 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
       valuePrefix = "",
       searchable = false,
       searchPlaceholder = "Search options...",
+      searchLocale,
       emptyMessage = "No options available",
+      triggerRef: externalTriggerRef,
+      triggerProps,
       contentWidth = "trigger",
       ...props
     },
@@ -124,15 +133,15 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     const selectedOption = options?.find((option) => option.value === stringValue);
     const filteredOptions = useMemo(() => {
       if (!options || !query.trim()) return options ?? [];
-      const normalized = query.toLowerCase().trim();
+      const normalize = (text: string) =>
+        searchLocale ? text.toLocaleLowerCase(searchLocale) : text.toLowerCase();
+      const normalized = normalize(query).trim();
       return options.filter((option) =>
-        [option.label, option.description, option.searchText]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(normalized),
+        normalize(
+          [option.label, option.description, option.searchText].filter(Boolean).join(" "),
+        ).includes(normalized),
       );
-    }, [options, query]);
+    }, [options, query, searchLocale]);
 
     const updatePosition = () => {
       if (triggerRef.current) {
@@ -235,6 +244,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
+                        type="search"
                         autoFocus
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
@@ -311,7 +321,12 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
         >
           {name && <input type="hidden" name={name} value={stringValue} required={required} />}
           <button
-            ref={triggerRef}
+            {...triggerProps}
+            ref={(node) => {
+              triggerRef.current = node;
+              if (typeof externalTriggerRef === "function") externalTriggerRef(node);
+              else if (externalTriggerRef) externalTriggerRef.current = node;
+            }}
             type="button"
             role="combobox"
             aria-controls={listboxId}
@@ -320,7 +335,10 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             disabled={disabled}
             title={title || selectedOption?.label}
             onClick={() => setOpen((current) => !current)}
-            className="flex h-10 w-full items-center justify-between gap-2 rounded-xl border-2 border-foreground/45 bg-card px-3 py-2 text-left text-sm font-medium shadow-none transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+              "flex h-10 w-full items-center justify-between gap-2 rounded-xl border-2 border-foreground/45 bg-card px-3 py-2 text-left text-sm font-medium shadow-none transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50",
+              triggerProps?.className,
+            )}
           >
             <span
               className={cn("min-w-0 flex-1 truncate", !selectedOption && "text-muted-foreground")}
