@@ -38,9 +38,13 @@ test("Class coordinator replaces both datalists with searchable shared Selects",
   assert.match(coordinator, /value=\{selectedClassForAssign\}[\s\S]*?placeholder="All Divisions"/);
 });
 
-test("Batch 2A preserves hidden native file inputs", () => {
-  assert.match(studentImport, /type="file"/);
-  assert.match(teacherImport, /type="file"/);
+test("upload workflows preserve the shared hidden native file input", () => {
+  const uploadSurface = read("frontend/src/components/ui/file-upload-surface.tsx");
+
+  assert.match(uploadSurface, /type="file"/);
+  assert.match(uploadSurface, /className="sr-only"/);
+  assert.match(studentImport, /FileUploadSurface/);
+  assert.match(teacherImport, /FileUploadSurface/);
 });
 
 test("Custom API method and endpoint use non-overlapping responsive columns", () => {

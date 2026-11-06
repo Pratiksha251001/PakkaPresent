@@ -18,6 +18,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Select } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
+import { FileUploadSurface } from "./ui/file-upload-surface";
 import { localDb } from "../lib/supabase";
 import {
   ParsedSyllabusSubject,
@@ -147,6 +148,7 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
     setRawUploadedText(null);
     setSubjectsList([]);
     setError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // Toggle single subject selection
@@ -450,50 +452,20 @@ export const SyllabusImportModal: React.FC<SyllabusImportModalProps> = ({
               ) : null}
             </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
+            <FileUploadSurface
+              inputRef={fileInputRef}
               accept=".pdf,.txt"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileUpload(file);
-              }}
+              formats={[".pdf", ".txt"]}
+              title="Upload or drag and drop a syllabus document"
+              description={`Extracts subjects for ${getEngineeringYearCode(selectedYear)} ${semLabel}`}
+              fileName={uploadedFileName}
+              busy={isProcessing}
+              disabled={isImporting}
+              error={null}
+              onFile={handleFileUpload}
+              onClear={resetImportSession}
+              compact
             />
-
-            {/* Clean, compact drag/drop or click zone */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-5 text-center transition-colors hover:border-primary/50 hover:bg-primary/5"
-            >
-              {isProcessing ? (
-                <div className="flex items-center gap-2 text-xs text-primary font-medium py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Extracting subjects for {yearLabel} (
-                  {semLabel})...
-                </div>
-              ) : uploadedFileName ? (
-                <div className="flex items-center gap-2 text-xs font-semibold text-foreground py-1">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  <span>
-                    PDF Loaded: <span className="text-primary underline">{uploadedFileName}</span>
-                  </span>
-                  <span className="text-xs text-muted-foreground font-normal">
-                    (Click to change file)
-                  </span>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground">
-                    <Upload className="h-4 w-4 text-primary" />
-                    <span>Upload Syllabus PDF (.pdf or .txt)</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Auto-extracts course codes, titles, and credits for{" "}
-                    {getEngineeringYearCode(selectedYear)} {semLabel}.
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Feedback Banners */}

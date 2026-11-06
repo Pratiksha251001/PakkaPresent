@@ -37,6 +37,7 @@ import { Input } from "./ui/input";
 import { Select } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { FileUploadSurface } from "./ui/file-upload-surface";
 
 interface StudentImportModalProps {
   open: boolean;
@@ -69,7 +70,6 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
   onImportComplete,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -129,22 +129,6 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
       setRows([]);
     } finally {
       setIsParsing(false);
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileProcess(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileProcess(file);
     }
   };
 
@@ -363,7 +347,7 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-3 px-4 py-4">
+        <div className="flex-1 overflow-y-auto space-y-3 px-4 pb-6 pt-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground">
               Import students in three simple steps:
@@ -527,58 +511,19 @@ export const StudentImportModal: React.FC<StudentImportModalProps> = ({
             </div>
           </div>
 
-          {/* Drag and Drop Zone */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl px-4 py-5 text-center cursor-pointer transition-all ${
-              dragOver
-                ? "border-primary bg-primary/5"
-                : "border-border hover:border-primary/50 hover:bg-muted/30"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv,.tsv"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="flex flex-col items-center justify-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                {isParsing ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Upload className="h-5 w-5" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {fileName ? (
-                    <span className="text-primary font-mono">{fileName}</span>
-                  ) : (
-                    "Click to upload or drag & drop student spreadsheet"
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Accepts Microsoft Excel (.xlsx, .xls) and CSV (.csv) files
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Parsing Errors */}
-          {parseError && (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{parseError}</span>
-            </div>
-          )}
+          <FileUploadSurface
+            inputRef={fileInputRef}
+            accept=".xlsx,.xls,.csv,.tsv"
+            formats={[".xlsx", ".xls", ".csv", ".tsv"]}
+            title="Click to upload or drag and drop student spreadsheet"
+            description="Microsoft Excel, CSV, and TSV files are supported"
+            fileName={fileName}
+            busy={isParsing}
+            disabled={isImporting}
+            error={parseError}
+            onFile={handleFileProcess}
+            onClear={resetState}
+          />
 
           {/* Account Creation & Password Configuration Settings */}
           <div className="rounded-xl border border-border/70 bg-muted/10 p-3 sm:p-4 space-y-3">

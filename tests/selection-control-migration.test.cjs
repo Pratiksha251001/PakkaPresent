@@ -29,10 +29,14 @@ test("shared controls expose accessible semantics", () => {
 });
 test("targeted files remove native checkbox and radio inputs", () =>
   targets.forEach((s) => assert.doesNotMatch(s, /<input[\s\S]{0,160}?type="(?:checkbox|radio)"/)));
-test("hidden upload inputs remain native", () => {
-  assert.match(targets[0], /type="file"/);
-  assert.match(targets[2], /type="file"/);
-  assert.match(targets[3], /type="file"/);
+test("hidden upload inputs remain native through the shared upload surface", () => {
+  const uploadSurface = read("frontend/src/components/ui/file-upload-surface.tsx");
+
+  assert.match(uploadSurface, /type="file"/);
+  assert.match(uploadSurface, /className="sr-only"/);
+  assert.match(targets[0], /FileUploadSurface/);
+  assert.match(targets[2], /FileUploadSurface/);
+  assert.match(targets[3], /FileUploadSurface/);
 });
 test("institution consent remains focusable and invalid-aware", () => {
   const s = targets[7];
