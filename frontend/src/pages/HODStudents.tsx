@@ -18,19 +18,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { localDb } from "../lib/supabase";
-import {
-  provisionManagedAccount,
-  resetManagedAccountPassword,
-} from "../lib/accountService";
+import { provisionManagedAccount, resetManagedAccountPassword } from "../lib/accountService";
 import { Button } from "../components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "../components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { DatePicker } from "../components/ui/date-picker";
 import { Badge } from "../components/ui/badge";
 import {
   Table,
@@ -57,18 +50,12 @@ import { Student } from "../lib/types";
 export const HODStudents: React.FC = () => {
   const { user } = useAuth();
   const teachers = localDb.teachers;
-  const linkedTeacher = teachers.find(
-    (teacher) => teacher.id === user?.teacher_id,
-  );
+  const linkedTeacher = teachers.find((teacher) => teacher.id === user?.teacher_id);
   const departmentId = user?.department_id || linkedTeacher?.department_id;
-  const department = localDb.departments.find(
-    (item) => item.id === departmentId,
-  );
+  const department = localDb.departments.find((item) => item.id === departmentId);
 
   const [students, setStudents] = useState<Student[]>(() =>
-    localDb.students.filter(
-      (item) => !departmentId || item.department_id === departmentId,
-    ),
+    localDb.students.filter((item) => !departmentId || item.department_id === departmentId),
   );
   const [search, setSearch] = useState("");
   const [selectedSemester, setSelectedSemester] = useState<string>("__all");
@@ -76,22 +63,17 @@ export const HODStudents: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [attendanceRecords, setAttendanceRecords] = useState(
-    () => localDb.attendance,
-  );
+  const [attendanceRecords, setAttendanceRecords] = useState(() => localDb.attendance);
   const [smsLogs, setSmsLogs] = useState(() => localDb.getSmsLogs());
 
   // Modals state
   const [alertModalOpen, setAlertModalOpen] = useState(false);
-  const [selectedStudentForAlert, setSelectedStudentForAlert] =
-    useState<Student | null>(null);
+  const [selectedStudentForAlert, setSelectedStudentForAlert] = useState<Student | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const refresh = () => {
     setStudents(
-      localDb.students.filter(
-        (item) => !departmentId || item.department_id === departmentId,
-      ),
+      localDb.students.filter((item) => !departmentId || item.department_id === departmentId),
     );
     setAttendanceRecords([...localDb.attendance]);
     setSmsLogs(localDb.getSmsLogs());
@@ -232,8 +214,7 @@ export const HODStudents: React.FC = () => {
     });
 
     map.forEach((value) => {
-      value.rate =
-        value.total > 0 ? Math.round((value.present / value.total) * 100) : 100;
+      value.rate = value.total > 0 ? Math.round((value.present / value.total) * 100) : 100;
     });
 
     return map;
@@ -257,8 +238,7 @@ export const HODStudents: React.FC = () => {
       }
     });
 
-    const avgRate =
-      totalClasses > 0 ? Math.round((totalPresent / totalClasses) * 100) : 100;
+    const avgRate = totalClasses > 0 ? Math.round((totalPresent / totalClasses) * 100) : 100;
     const deptSmsCount = smsLogs.filter((l) => {
       const st = students.find((s) => s.id === l.student_id);
       return Boolean(st);
@@ -268,13 +248,8 @@ export const HODStudents: React.FC = () => {
   }, [students, studentStatsMap, smsLogs]);
 
   const handleSemesterChange = (semester: string) => {
-    const nextEngineeringYear = Math.max(
-      1,
-      Math.min(4, Math.ceil(Number(semester || 1) / 2)),
-    );
-    const selectedClass = localDb.academic_classes.find(
-      (item) => item.id === form.class_id,
-    );
+    const nextEngineeringYear = Math.max(1, Math.min(4, Math.ceil(Number(semester || 1) / 2)));
+    const selectedClass = localDb.academic_classes.find((item) => item.id === form.class_id);
     const keepSelectedClass = Boolean(
       selectedClass &&
         selectedClass.department_id === departmentId &&
@@ -289,10 +264,7 @@ export const HODStudents: React.FC = () => {
     });
   };
 
-  const engineeringYear = Math.max(
-    1,
-    Math.min(4, Math.ceil(Number(form.semester || 1) / 2)),
-  );
+  const engineeringYear = Math.max(1, Math.min(4, Math.ceil(Number(form.semester || 1) / 2)));
   const availableClasses = localDb.academic_classes.filter(
     (item) =>
       item.department_id === departmentId &&
@@ -307,10 +279,8 @@ export const HODStudents: React.FC = () => {
       return (
         student.full_name.toLowerCase().includes(query) ||
         student.roll_number.toLowerCase().includes(query) ||
-        (student.prn_number &&
-          student.prn_number.toLowerCase().includes(query)) ||
-        (student.parent_name &&
-          student.parent_name.toLowerCase().includes(query)) ||
+        (student.prn_number && student.prn_number.toLowerCase().includes(query)) ||
+        (student.parent_name && student.parent_name.toLowerCase().includes(query)) ||
         (student.parent_mobile && student.parent_mobile.includes(query)) ||
         (student.class_name && student.class_name.toLowerCase().includes(query))
       );
@@ -424,9 +394,7 @@ export const HODStudents: React.FC = () => {
         editingStudent ? "Student updated successfully." : "Student created successfully.",
       );
     } catch (error) {
-      setStudentSaveError(
-        error instanceof Error ? error.message : "Student save failed.",
-      );
+      setStudentSaveError(error instanceof Error ? error.message : "Student save failed.");
       window.requestAnimationFrame(() =>
         document.getElementById("hod-student-save-error")?.focus(),
       );
@@ -436,10 +404,7 @@ export const HODStudents: React.FC = () => {
   };
 
   const remove = async (student: Student) => {
-    if (
-      !confirm(`Delete student ${student.full_name} (${student.roll_number})?`)
-    )
-      return;
+    if (!confirm(`Delete student ${student.full_name} (${student.roll_number})?`)) return;
     await localDb.delete("students", student.id);
     refresh();
   };
@@ -545,11 +510,7 @@ export const HODStudents: React.FC = () => {
             <span>Export CSV</span>
           </Button>
 
-          <Button
-            size="sm"
-            onClick={openAddModal}
-            className="gap-1.5 text-xs h-9"
-          >
+          <Button size="sm" onClick={openAddModal} className="gap-1.5 text-xs h-9">
             <Plus className="h-4 w-4" />
             <span>Add Student</span>
           </Button>
@@ -580,9 +541,7 @@ export const HODStudents: React.FC = () => {
             <Percent className="h-4 w-4 text-primary" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-foreground">
-              {departmentMetrics.avgRate}%
-            </span>
+            <span className="text-2xl font-bold text-foreground">{departmentMetrics.avgRate}%</span>
           </div>
         </Card>
 
@@ -596,9 +555,7 @@ export const HODStudents: React.FC = () => {
           <div className="mt-2 flex items-baseline gap-2">
             <span
               className={`text-2xl font-bold ${
-                departmentMetrics.defaulterCount > 0
-                  ? "text-destructive"
-                  : "text-foreground"
+                departmentMetrics.defaulterCount > 0 ? "text-destructive" : "text-foreground"
               }`}
             >
               {departmentMetrics.defaulterCount}
@@ -680,13 +637,103 @@ export const HODStudents: React.FC = () => {
               Academic and essential details
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Roll Number *</label><Input placeholder="e.g. 21CS101" value={form.roll_number} onChange={(event) => setForm({ ...form, roll_number: event.target.value })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Full Name *</label><Input placeholder="Student Full Name" value={form.full_name} onChange={(event) => setForm({ ...form, full_name: event.target.value })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Semester *</label><Select value={form.semester} onChange={(event) => handleSemesterChange(event.target.value)} options={[1,2,3,4,5,6,7,8].map((value) => ({ value: String(value), label: `Semester ${value}` }))} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Class / Division *</label><Select value={form.class_id} onChange={(event) => { const selected = availableClasses.find((item) => item.id === event.target.value); setForm({ ...form, class_id: event.target.value, class_name: selected?.name || "" }); }} options={[{ value: "", label: availableClasses.length ? "Select class / division" : "No persisted classes for this year" }, ...availableClasses.map((item) => ({ value: item.id, label: item.name }))]} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Status</label><Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Parent Mobile (10 Digits) *</label><Input maxLength={10} inputMode="numeric" value={form.parent_mobile} onChange={(event) => setForm({ ...form, parent_mobile: sanitizeMobileInput(event.target.value) })} /></div>
-              <div className="sm:col-span-2"><label className="mb-1 block text-xs font-semibold text-muted-foreground">Student Email</label><Input type="email" placeholder="student@college.edu" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Roll Number *
+                </label>
+                <Input
+                  placeholder="e.g. 21CS101"
+                  value={form.roll_number}
+                  onChange={(event) => setForm({ ...form, roll_number: event.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Full Name *
+                </label>
+                <Input
+                  placeholder="Student Full Name"
+                  value={form.full_name}
+                  onChange={(event) => setForm({ ...form, full_name: event.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Semester *
+                </label>
+                <Select
+                  value={form.semester}
+                  onChange={(event) => handleSemesterChange(event.target.value)}
+                  options={[1, 2, 3, 4, 5, 6, 7, 8].map((value) => ({
+                    value: String(value),
+                    label: `Semester ${value}`,
+                  }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Class / Division *
+                </label>
+                <Select
+                  value={form.class_id}
+                  onChange={(event) => {
+                    const selected = availableClasses.find(
+                      (item) => item.id === event.target.value,
+                    );
+                    setForm({
+                      ...form,
+                      class_id: event.target.value,
+                      class_name: selected?.name || "",
+                    });
+                  }}
+                  options={[
+                    {
+                      value: "",
+                      label: availableClasses.length
+                        ? "Select class / division"
+                        : "No persisted classes for this year",
+                    },
+                    ...availableClasses.map((item) => ({ value: item.id, label: item.name })),
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Status
+                </label>
+                <Select
+                  value={form.status}
+                  onChange={(event) => setForm({ ...form, status: event.target.value })}
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                  ]}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Parent Mobile (10 Digits) *
+                </label>
+                <Input
+                  maxLength={10}
+                  inputMode="numeric"
+                  value={form.parent_mobile}
+                  onChange={(event) =>
+                    setForm({ ...form, parent_mobile: sanitizeMobileInput(event.target.value) })
+                  }
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Student Email
+                </label>
+                <Input
+                  type="email"
+                  placeholder="student@college.edu"
+                  value={form.email}
+                  onChange={(event) => setForm({ ...form, email: event.target.value })}
+                />
+              </div>
             </div>
           </section>
 
@@ -698,13 +745,77 @@ export const HODStudents: React.FC = () => {
               </span>
             </summary>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">PRN Number</label><Input value={form.prn_number} onChange={(event) => setForm({ ...form, prn_number: event.target.value })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Registration Number</label><Input value={form.reg_number} onChange={(event) => setForm({ ...form, reg_number: event.target.value })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Student Mobile</label><Input maxLength={10} inputMode="numeric" value={form.student_mobile} onChange={(event) => setForm({ ...form, student_mobile: sanitizeMobileInput(event.target.value) })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Date of Birth</label><Input type="date" value={form.date_of_birth} onChange={(event) => setForm({ ...form, date_of_birth: event.target.value })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Parent / Guardian Name</label><Input placeholder="Father / Mother Name" value={form.parent_name} onChange={(event) => setForm({ ...form, parent_name: event.target.value })} /></div>
-              <div><label className="mb-1 block text-xs font-semibold text-muted-foreground">Parent Email</label><Input type="email" placeholder="parent@example.com" value={form.parent_email} onChange={(event) => setForm({ ...form, parent_email: event.target.value })} /></div>
-              <div className="sm:col-span-2"><label className="mb-1 block text-xs font-semibold text-muted-foreground">Address</label><Input value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} /></div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  PRN Number
+                </label>
+                <Input
+                  value={form.prn_number}
+                  onChange={(event) => setForm({ ...form, prn_number: event.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Registration Number
+                </label>
+                <Input
+                  value={form.reg_number}
+                  onChange={(event) => setForm({ ...form, reg_number: event.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Student Mobile
+                </label>
+                <Input
+                  maxLength={10}
+                  inputMode="numeric"
+                  value={form.student_mobile}
+                  onChange={(event) =>
+                    setForm({ ...form, student_mobile: sanitizeMobileInput(event.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Date of Birth
+                </label>
+                <DatePicker
+                  value={form.date_of_birth}
+                  onChange={(value) => setForm({ ...form, date_of_birth: value })}
+                  placeholder="Select date of birth"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Parent / Guardian Name
+                </label>
+                <Input
+                  placeholder="Father / Mother Name"
+                  value={form.parent_name}
+                  onChange={(event) => setForm({ ...form, parent_name: event.target.value })}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Parent Email
+                </label>
+                <Input
+                  type="email"
+                  placeholder="parent@example.com"
+                  value={form.parent_email}
+                  onChange={(event) => setForm({ ...form, parent_email: event.target.value })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                  Address
+                </label>
+                <Input
+                  value={form.address}
+                  onChange={(event) => setForm({ ...form, address: event.target.value })}
+                />
+              </div>
             </div>
           </details>
 
@@ -716,15 +827,41 @@ export const HODStudents: React.FC = () => {
               </span>
             </summary>
             <div className="mt-4">
-              <label className="mb-1 block text-xs font-semibold text-muted-foreground">New Login Password</label>
-              <Input type="password" placeholder={editingStudent ? "Leave blank to keep current password" : "Default: Student's Roll Number"} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} />
+              <label className="mb-1 block text-xs font-semibold text-muted-foreground">
+                New Login Password
+              </label>
+              <Input
+                type="password"
+                placeholder={
+                  editingStudent
+                    ? "Leave blank to keep current password"
+                    : "Default: Student's Roll Number"
+                }
+                value={form.password}
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
+              />
             </div>
           </details>
 
           <div className="mt-5 flex justify-end gap-2 border-t border-border/60 pt-4">
-            <Button variant="outline" disabled={isSavingStudent} onClick={() => { setOpen(false); setEditingStudent(null); }}>Cancel</Button>
+            <Button
+              variant="outline"
+              disabled={isSavingStudent}
+              onClick={() => {
+                setOpen(false);
+                setEditingStudent(null);
+              }}
+            >
+              Cancel
+            </Button>
             <Button onClick={save} disabled={isSavingStudent}>
-              {isSavingStudent ? (editingStudent ? "Updating student..." : "Creating student...") : editingStudent ? "Update Student" : "Save Student"}
+              {isSavingStudent
+                ? editingStudent
+                  ? "Updating student..."
+                  : "Creating student..."
+                : editingStudent
+                  ? "Update Student"
+                  : "Save Student"}
             </Button>
           </div>
         </Card>
@@ -759,39 +896,20 @@ export const HODStudents: React.FC = () => {
             <TableHeader className="bg-muted/70 border-b border-border">
               <TableRow>
                 <TableHead className="w-12 text-center font-bold">#</TableHead>
-                <TableHead className="min-w-[120px] font-bold">
-                  Roll Number
-                </TableHead>
-                <TableHead className="min-w-[200px] font-bold">
-                  Student Name
-                </TableHead>
-                <TableHead className="min-w-[110px] font-bold">
-                  Semester / Class
-                </TableHead>
-                <TableHead className="min-w-[180px] font-bold">
-                  Guardian Contact
-                </TableHead>
-                <TableHead className="min-w-[160px] font-bold">
-                  Email / Login
-                </TableHead>
-                <TableHead className="min-w-[160px] font-bold">
-                  Attendance Record
-                </TableHead>
-                <TableHead className="min-w-[90px] text-center font-bold">
-                  SMS Sent
-                </TableHead>
-                <TableHead className="min-w-[130px] text-right font-bold pr-4">
-                  Actions
-                </TableHead>
+                <TableHead className="min-w-[120px] font-bold">Roll Number</TableHead>
+                <TableHead className="min-w-[200px] font-bold">Student Name</TableHead>
+                <TableHead className="min-w-[110px] font-bold">Semester / Class</TableHead>
+                <TableHead className="min-w-[180px] font-bold">Guardian Contact</TableHead>
+                <TableHead className="min-w-[160px] font-bold">Email / Login</TableHead>
+                <TableHead className="min-w-[160px] font-bold">Attendance Record</TableHead>
+                <TableHead className="min-w-[90px] text-center font-bold">SMS Sent</TableHead>
+                <TableHead className="min-w-[130px] text-right font-bold pr-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="py-14 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={9} className="py-14 text-center text-muted-foreground">
                     <div className="max-w-md mx-auto space-y-3">
                       <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
                         <GraduationCap className="h-6 w-6" />
@@ -800,8 +918,8 @@ export const HODStudents: React.FC = () => {
                         No students found matching your criteria
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Add students manually or import via Excel (.xlsx) / CSV
-                        file to populate the department directory.
+                        Add students manually or import via Excel (.xlsx) / CSV file to populate the
+                        department directory.
                       </p>
                       <div className="flex items-center justify-center gap-2 pt-2">
                         <Button
@@ -813,11 +931,7 @@ export const HODStudents: React.FC = () => {
                           <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
                           Import Students
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={openAddModal}
-                          className="gap-1.5"
-                        >
+                        <Button size="sm" onClick={openAddModal} className="gap-1.5">
                           <Plus className="h-4 w-4" />
                           Add Student Manually
                         </Button>
@@ -836,10 +950,7 @@ export const HODStudents: React.FC = () => {
                   const isDefaulter = stat.total > 0 && stat.rate < 75;
 
                   return (
-                    <TableRow
-                      key={student.id}
-                      className="hover:bg-muted/40 transition-colors"
-                    >
+                    <TableRow key={student.id} className="hover:bg-muted/40 transition-colors">
                       {/* # Index */}
                       <TableCell className="text-center font-mono text-muted-foreground">
                         {idx + 1}
@@ -869,10 +980,7 @@ export const HODStudents: React.FC = () => {
                       {/* Semester & Class */}
                       <TableCell>
                         <div className="flex flex-col gap-1 items-start">
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] font-semibold"
-                          >
+                          <Badge variant="outline" className="text-[10px] font-semibold">
                             Sem {student.semester}
                           </Badge>
                           {student.class_name && (
@@ -891,9 +999,7 @@ export const HODStudents: React.FC = () => {
                           </p>
                           <p className="font-mono text-[11px] text-muted-foreground">
                             {student.parent_mobile || (
-                              <span className="text-destructive font-bold">
-                                Missing
-                              </span>
+                              <span className="text-destructive font-bold">Missing</span>
                             )}
                           </p>
                         </div>

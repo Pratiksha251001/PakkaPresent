@@ -31,10 +31,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { localDb } from "../lib/supabase";
-import {
-  provisionManagedAccount,
-  updateManagedAccount,
-} from "../lib/accountService";
+import { provisionManagedAccount, updateManagedAccount } from "../lib/accountService";
 import {
   Teacher,
   AcademicClass,
@@ -115,42 +112,31 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
   const academicClasses = (localDb.academic_classes || []) as AcademicClass[];
   const teacherSubjects = (localDb.teacher_subjects || []) as TeacherSubject[];
 
-  const linkedTeacher = teachers.find(
-    (teacher) => teacher.id === user?.teacher_id,
-  );
-  const departmentId =
-    user?.department_id || linkedTeacher?.department_id || "dept-1";
+  const linkedTeacher = teachers.find((teacher) => teacher.id === user?.teacher_id);
+  const departmentId = user?.department_id || linkedTeacher?.department_id || "dept-1";
   const department = departments.find((item) => item.id === departmentId);
 
   const departmentClasses = useMemo(
-    () =>
-      academicClasses.filter(
-        (c) => !departmentId || c.department_id === departmentId,
-      ),
+    () => academicClasses.filter((c) => !departmentId || c.department_id === departmentId),
     [academicClasses, departmentId, version],
   );
 
   const departmentSubjects = useMemo(
     () =>
       (localDb.subjects || []).filter(
-        (s: any) =>
-          !departmentId || !s.department_id || s.department_id === departmentId,
+        (s: any) => !departmentId || !s.department_id || s.department_id === departmentId,
       ) as Subject[],
     [departmentId, version],
   );
 
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "empid" | "role" | "exp">(
-    "name",
-  );
+  const [sortBy, setSortBy] = useState<"name" | "empid" | "role" | "exp">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [editing, setEditing] = useState<Teacher | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [profileModalTeacher, setProfileModalTeacher] =
-    useState<Teacher | null>(null);
-  const [passwordModalTeacher, setPasswordModalTeacher] =
-    useState<Teacher | null>(null);
+  const [profileModalTeacher, setProfileModalTeacher] = useState<Teacher | null>(null);
+  const [passwordModalTeacher, setPasswordModalTeacher] = useState<Teacher | null>(null);
   const [alertSuccess, setAlertSuccess] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -188,9 +174,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
     mobile: "",
     photo_url: "",
     password: "",
-    role: (mode === "coordinators"
-      ? "class_coordinator"
-      : "lecturer") as Teacher["role"],
+    role: (mode === "coordinators" ? "class_coordinator" : "lecturer") as Teacher["role"],
     assigned_year: "2",
     assigned_semester: "3",
     teaching_year: "2",
@@ -227,12 +211,9 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
     const teacherCcas = assignments.filter((a) => a.teacher_id === teacher.id);
     const teacherCoordinatedClasses = departmentClasses.filter(
       (c) =>
-        c.coordinator_teacher_id === teacher.id ||
-        teacherCcas.some((a) => a.class_id === c.id),
+        c.coordinator_teacher_id === teacher.id || teacherCcas.some((a) => a.class_id === c.id),
     );
-    const teacherTs = teacherSubjects.filter(
-      (ts) => ts.teacher_id === teacher.id,
-    );
+    const teacherTs = teacherSubjects.filter((ts) => ts.teacher_id === teacher.id);
 
     const allYears = Array.from(
       new Set(
@@ -367,8 +348,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
         return match ? parseInt(match[match.length - 1], 10) : 0;
       })
       .filter((n) => !isNaN(n) && n > 0);
-    const nextNum =
-      existingNums.length > 0 ? Math.max(...existingNums) + 1 : 101;
+    const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 101;
     return `EMP-${deptPrefix}-${nextNum}`;
   };
 
@@ -407,9 +387,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
     const yr =
       teacher.assigned_year ||
       teacher.year ||
-      (teacher.assigned_semester
-        ? getEngineeringYearFromSemester(teacher.assigned_semester)
-        : 2);
+      (teacher.assigned_semester ? getEngineeringYearFromSemester(teacher.assigned_semester) : 2);
     const sem =
       teacher.assigned_semester ||
       teacher.semester ||
@@ -417,9 +395,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
     // Populate coordinator class assignments
     const teacherCcas = assignments.filter((a) => a.teacher_id === teacher.id);
-    const classIdsFromCca = teacherCcas
-      .map((a) => a.class_id)
-      .filter(Boolean) as string[];
+    const classIdsFromCca = teacherCcas.map((a) => a.class_id).filter(Boolean) as string[];
     const classesFromAcademic = departmentClasses
       .filter((c) => c.coordinator_teacher_id === teacher.id)
       .map((c) => c.id);
@@ -442,16 +418,11 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
     setSelectedClassIds(initialSelectedClasses);
 
     // Populate teaching assignments grouped by subject
-    const teacherTs = teacherSubjects.filter(
-      (ts) => ts.teacher_id === teacher.id,
-    );
+    const teacherTs = teacherSubjects.filter((ts) => ts.teacher_id === teacher.id);
     const groupedTeaching: Record<string, string[]> = {};
     for (const ts of teacherTs) {
       if (!groupedTeaching[ts.subject_id]) groupedTeaching[ts.subject_id] = [];
-      if (
-        ts.class_name &&
-        !groupedTeaching[ts.subject_id].includes(ts.class_name)
-      ) {
+      if (ts.class_name && !groupedTeaching[ts.subject_id].includes(ts.class_name)) {
         groupedTeaching[ts.subject_id].push(ts.class_name);
       }
     }
@@ -469,9 +440,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
       designation: teacher.designation || "Assistant Professor",
       department_id: teacher.department_id || departmentId,
       qualification: teacher.qualification || "",
-      experience_years: teacher.experience_years
-        ? String(teacher.experience_years)
-        : "",
+      experience_years: teacher.experience_years ? String(teacher.experience_years) : "",
       email: teacher.email || "",
       mobile: teacher.mobile || "",
       photo_url: teacher.photo_url || "",
@@ -504,9 +473,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
     setFormError(null);
     const trimmedName = form.full_name.trim();
     if (!trimmedName) {
-      setFormError(
-        "Teacher Full Name is strictly required. Please enter the teacher's name.",
-      );
+      setFormError("Teacher Full Name is strictly required. Please enter the teacher's name.");
       return;
     }
 
@@ -518,9 +485,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
     // Check for duplicate employee ID among other teachers
     const dupEmp = (localDb.teachers || []).find(
-      (t) =>
-        t.id !== editing?.id &&
-        t.employee_id?.toLowerCase() === finalEmpId.toLowerCase(),
+      (t) => t.id !== editing?.id && t.employee_id?.toLowerCase() === finalEmpId.toLowerCase(),
     );
     if (dupEmp) {
       setFormError(
@@ -545,9 +510,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
     // Check for duplicate email among other teachers
     const dupEmail = (localDb.teachers || []).find(
-      (t) =>
-        t.id !== editing?.id &&
-        t.email?.toLowerCase() === finalEmail.toLowerCase(),
+      (t) => t.id !== editing?.id && t.email?.toLowerCase() === finalEmail.toLowerCase(),
     );
     if (dupEmail) {
       setFormError(
@@ -557,11 +520,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
     }
 
     if (form.mobile && form.mobile.trim()) {
-      const mobErr = getMobileValidationError(
-        form.mobile,
-        "Faculty Mobile",
-        false,
-      );
+      const mobErr = getMobileValidationError(form.mobile, "Faculty Mobile", false);
       if (mobErr) {
         setFormError(mobErr);
         return;
@@ -577,32 +536,20 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
         : Number(form.teaching_year) || null;
       const selectedSem = isCoordinator
         ? Number(form.assigned_semester) ||
-          (selectedYear === 1
-            ? 1
-            : selectedYear === 2
-              ? 3
-              : selectedYear === 3
-                ? 5
-                : 7)
+          (selectedYear === 1 ? 1 : selectedYear === 2 ? 3 : selectedYear === 3 ? 5 : 7)
         : Number(form.teaching_semester) || null;
 
-      const selectedClasses = departmentClasses.filter((c) =>
-        selectedClassIds.includes(c.id),
-      );
+      const selectedClasses = departmentClasses.filter((c) => selectedClassIds.includes(c.id));
       const assignedYears = Array.from(
         new Set(
           selectedClasses.length > 0
-            ? selectedClasses.map(
-                (c) => c.year || getEngineeringYearFromSemester(c.semester),
-              )
+            ? selectedClasses.map((c) => c.year || getEngineeringYearFromSemester(c.semester))
             : [selectedYear || 2],
         ),
       );
       const assignedSemesters = Array.from(
         new Set(
-          selectedClasses.length > 0
-            ? selectedClasses.map((c) => c.semester)
-            : [selectedSem || 3],
+          selectedClasses.length > 0 ? selectedClasses.map((c) => c.semester) : [selectedSem || 3],
         ),
       );
       const assignedClassNames = selectedClasses.map((c) => c.name);
@@ -633,11 +580,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
       };
 
       const userRole =
-        form.role === "hod"
-          ? "hod"
-          : isCoordinator
-            ? "class_coordinator"
-            : "teacher";
+        form.role === "hod" ? "hod" : isCoordinator ? "class_coordinator" : "teacher";
       const defaultPwd = isCoordinator ? "CC@123" : "Teacher@123";
       const effectivePwd = form.password.trim() || finalEmpId || defaultPwd;
 
@@ -645,9 +588,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
       if (editing) {
         await localDb.update("teachers", editing.id, data);
-        const account = localDb.users.find(
-          (u: any) => u.teacher_id === editing.id,
-        );
+        const account = localDb.users.find((u: any) => u.teacher_id === editing.id);
         if (account) {
           await localDb.update("users", account.id, {
             full_name: data.full_name,
@@ -668,9 +609,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
             teacherId: editing.id,
           });
           if (!provisioned.userId) {
-            throw new Error(
-              "Account provisioning did not return a Supabase Auth user ID.",
-            );
+            throw new Error("Account provisioning did not return a Supabase Auth user ID.");
           }
         } else {
           await updateManagedAccount({
@@ -691,9 +630,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
           targetTeacherId = teacher.id;
           if (!teacher.email) {
             await localDb.delete("teachers", teacher.id);
-            throw new Error(
-              "A valid staff email is required for a persistent login account.",
-            );
+            throw new Error("A valid staff email is required for a persistent login account.");
           }
           try {
             const provisioned = await provisionManagedAccount({
@@ -705,9 +642,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
               teacherId: teacher.id,
             });
             if (!provisioned.userId) {
-              throw new Error(
-                "Account provisioning did not return a Supabase Auth user ID.",
-              );
+              throw new Error("Account provisioning did not return a Supabase Auth user ID.");
             }
           } catch (error) {
             await localDb.delete("teachers", teacher.id);
@@ -715,17 +650,14 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
           }
           // The provisioning API links teachers.user_id to the real Supabase Auth user.
         }
-        setAlertSuccess(
-          `Added teacher ${data.full_name} (${data.employee_id}) successfully.`,
-        );
+        setAlertSuccess(`Added teacher ${data.full_name} (${data.employee_id}) successfully.`);
       }
 
       // Sync coordinator assignments across multiple classes and semesters
       if (targetTeacherId) {
-        const existingAssignments =
-          localDb.class_coordinator_assignments.filter(
-            (a: any) => a.teacher_id === targetTeacherId,
-          );
+        const existingAssignments = localDb.class_coordinator_assignments.filter(
+          (a: any) => a.teacher_id === targetTeacherId,
+        );
         for (const a of existingAssignments) {
           await localDb.delete("class_coordinator_assignments", a.id);
         }
@@ -733,8 +665,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
         if (isCoordinator) {
           if (selectedClasses.length > 0) {
             for (const cls of selectedClasses) {
-              const cYear =
-                cls.year || getEngineeringYearFromSemester(cls.semester);
+              const cYear = cls.year || getEngineeringYearFromSemester(cls.semester);
               await localDb.insert("class_coordinator_assignments", [
                 {
                   teacher_id: targetTeacherId,
@@ -785,10 +716,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
         }
 
         // Sync teaching assignments (teacher_subjects) across multiple classes and subjects concurrently
-        if (
-          teachingAssignments.length > 0 ||
-          (editing && form.role === "lecturer")
-        ) {
+        if (teachingAssignments.length > 0 || (editing && form.role === "lecturer")) {
           const existingTs = localDb.teacher_subjects.filter(
             (ts: any) => ts.teacher_id === targetTeacherId,
           );
@@ -798,8 +726,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
           for (const ta of teachingAssignments) {
             const sub = departmentSubjects.find((s) => s.id === ta.subject_id);
-            const subYear =
-              sub?.year || (sub?.semester ? Math.ceil(sub.semester / 2) : 1);
+            const subYear = sub?.year || (sub?.semester ? Math.ceil(sub.semester / 2) : 1);
             const subSem = sub?.semester || 1;
 
             if (ta.class_names.length === 0) {
@@ -843,25 +770,20 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
       setVersion((v) => v + 1);
     } catch (err: any) {
       console.error("Save teacher exception:", err);
-      setFormError(
-        `Failed to save teacher: ${err?.message || "An unexpected error occurred."}`,
-      );
+      setFormError(`Failed to save teacher: ${err?.message || "An unexpected error occurred."}`);
     } finally {
       setIsSaving(false);
     }
   };
 
   const remove = async (teacher: Teacher) => {
-    if (!confirm(`Delete ${teacher.full_name}? This action cannot be undone.`))
-      return;
+    if (!confirm(`Delete ${teacher.full_name}? This action cannot be undone.`)) return;
     await localDb.delete("teachers", teacher.id);
     setVersion((v) => v + 1);
   };
 
   const handleImportSuccess = (count: number) => {
-    setAlertSuccess(
-      `Successfully imported ${count} teachers from spreadsheet!`,
-    );
+    setAlertSuccess(`Successfully imported ${count} teachers from spreadsheet!`);
     setVersion((v) => v + 1);
   };
 
@@ -908,10 +830,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
             <Check className="h-4 w-4" />
             <span>{alertSuccess}</span>
           </div>
-          <button
-            onClick={() => setAlertSuccess(null)}
-            className="text-xs hover:underline"
-          >
+          <button onClick={() => setAlertSuccess(null)} className="text-xs hover:underline">
             Dismiss
           </button>
         </div>
@@ -939,8 +858,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
           </Button>
 
           <Button onClick={openAdd} className="shadow-xs">
-            <Plus className="mr-2 h-4 w-4" /> Add{" "}
-            {mode === "teachers" ? "Teacher" : "Coordinator"}
+            <Plus className="mr-2 h-4 w-4" /> Add {mode === "teachers" ? "Teacher" : "Coordinator"}
           </Button>
         </div>
       </div>
@@ -958,15 +876,11 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
               <p className="text-xs text-muted-foreground mt-0.5">
                 Fill in the faculty details below.{" "}
                 <strong className="text-foreground">Employee ID</strong> and{" "}
-                <strong className="text-foreground">Email Address</strong> are
-                automatically prepared for you.
+                <strong className="text-foreground">Email Address</strong> are automatically
+                prepared for you.
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFormOpen(false)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setFormOpen(false)}>
               Cancel
             </Button>
           </div>
@@ -977,9 +891,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
               <label className="text-xs font-semibold text-foreground flex items-center gap-1">
                 <span>Teacher Full Name</span>
                 <span className="text-destructive font-bold text-sm">*</span>
-                <span className="text-[10px] text-destructive font-normal">
-                  (Required)
-                </span>
+                <span className="text-[10px] text-destructive font-normal">(Required)</span>
               </label>
               <Input
                 placeholder="e.g. Dr. Arthur Pendelton (*)"
@@ -994,10 +906,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         .toLowerCase()
                         .replace(/[^a-z0-9]/g, ".")
                         .replace(/\.+/g, ".");
-                      if (
-                        safe &&
-                        (!prev.email || prev.email.includes("@college.edu"))
-                      ) {
+                      if (safe && (!prev.email || prev.email.includes("@college.edu"))) {
                         updated.email = `${safe}@college.edu`;
                       }
                     }
@@ -1058,9 +967,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                     {form.mobile.length}/10 digits
                   </span>
                 ) : (
-                  <span className="text-[10px] text-muted-foreground font-normal">
-                    (Optional)
-                  </span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(Optional)</span>
                 )}
               </label>
               <Input
@@ -1111,9 +1018,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
             {/* 9. Role Assignment */}
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-foreground">
-                System Role
-              </label>
+              <label className="text-xs font-semibold text-foreground">System Role</label>
               <Select
                 value={form.role}
                 onChange={(event) =>
@@ -1133,14 +1038,10 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
             {/* Engineering Academic Year & Semester Assignment */}
             {form.role === "class_coordinator" && (
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  Academic Session
-                </label>
+                <label className="text-xs font-semibold text-foreground">Academic Session</label>
                 <Select
                   value={form.academic_year}
-                  onChange={(event) =>
-                    setForm({ ...form, academic_year: event.target.value })
-                  }
+                  onChange={(event) => setForm({ ...form, academic_year: event.target.value })}
                   options={ACADEMIC_YEARS.map((year) => ({
                     value: year,
                     label: year,
@@ -1154,9 +1055,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold text-xs">
                     <Layers className="h-4 w-4" />
-                    <span>
-                      Class Coordinator (CC) Year & Division Assignment
-                    </span>
+                    <span>Class Coordinator (CC) Year & Division Assignment</span>
                   </div>
                   <Badge
                     variant="secondary"
@@ -1166,9 +1065,9 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Assign coordinator to a particular year and class/division
-                  (e.g. SY A, TY B, FY A, BE B). Coordinators manage their
-                  assigned year and classes across the full academic year.
+                  Assign coordinator to a particular year and class/division (e.g. SY A, TY B, FY A,
+                  BE B). Coordinators manage their assigned year and classes across the full
+                  academic year.
                 </p>
 
                 {/* Quick Selection Buttons */}
@@ -1187,9 +1086,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         const yearClassIds = departmentClasses
                           .filter(
                             (c) =>
-                              (c.year ||
-                                getEngineeringYearFromSemester(c.semester)) ===
-                              y.year,
+                              (c.year || getEngineeringYearFromSemester(c.semester)) === y.year,
                           )
                           .map((c) => c.id);
                         setSelectedClassIds((prev) =>
@@ -1205,9 +1102,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                     variant="outline"
                     size="sm"
                     className="h-7 text-[11px] px-2 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                    onClick={() =>
-                      setSelectedClassIds(departmentClasses.map((c) => c.id))
-                    }
+                    onClick={() => setSelectedClassIds(departmentClasses.map((c) => c.id))}
                   >
                     Select All Classes
                   </Button>
@@ -1227,24 +1122,13 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 pt-1">
                     {departmentClasses.map((cls) => {
                       const isSelected = selectedClassIds.includes(cls.id);
-                      const clsYear =
-                        cls.year ||
-                        getEngineeringYearFromSemester(cls.semester);
+                      const clsYear = cls.year || getEngineeringYearFromSemester(cls.semester);
                       const yrCode =
-                        clsYear === 1
-                          ? "FY"
-                          : clsYear === 2
-                            ? "SY"
-                            : clsYear === 3
-                              ? "TY"
-                              : "BE";
+                        clsYear === 1 ? "FY" : clsYear === 2 ? "SY" : clsYear === 3 ? "TY" : "BE";
                       const isOtherCoordinator =
-                        cls.coordinator_teacher_id &&
-                        cls.coordinator_teacher_id !== editing?.id;
+                        cls.coordinator_teacher_id && cls.coordinator_teacher_id !== editing?.id;
                       const otherTeacher = isOtherCoordinator
-                        ? teachers.find(
-                            (t) => t.id === cls.coordinator_teacher_id,
-                          )
+                        ? teachers.find((t) => t.id === cls.coordinator_teacher_id)
                         : null;
 
                       return (
@@ -1261,14 +1145,9 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                             checked={isSelected}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedClassIds((prev) => [
-                                  ...prev,
-                                  cls.id,
-                                ]);
+                                setSelectedClassIds((prev) => [...prev, cls.id]);
                               } else {
-                                setSelectedClassIds((prev) =>
-                                  prev.filter((id) => id !== cls.id),
-                                );
+                                setSelectedClassIds((prev) => prev.filter((id) => id !== cls.id));
                               }
                             }}
                             className="mt-0.5 h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
@@ -1292,11 +1171,9 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                               </Badge>
                             </div>
                             <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                              {ENGINEERING_YEARS.find((y) => y.year === clsYear)
-                                ?.name || `Year ${clsYear}`}
-                              {otherTeacher
-                                ? ` • Current: ${otherTeacher.full_name}`
-                                : ""}
+                              {ENGINEERING_YEARS.find((y) => y.year === clsYear)?.name ||
+                                `Year ${clsYear}`}
+                              {otherTeacher ? ` • Current: ${otherTeacher.full_name}` : ""}
                             </p>
                           </div>
                         </label>
@@ -1305,8 +1182,8 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">
-                    No classes found for this department yet. You can specify
-                    the general cohort below.
+                    No classes found for this department yet. You can specify the general cohort
+                    below.
                   </p>
                 )}
 
@@ -1320,8 +1197,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                       value={form.assigned_year}
                       onChange={(e) => {
                         const y = Number(e.target.value) || 1;
-                        const defaultSem =
-                          y === 1 ? "1" : y === 2 ? "3" : y === 3 ? "5" : "7";
+                        const defaultSem = y === 1 ? "1" : y === 2 ? "3" : y === 3 ? "5" : "7";
                         setForm({
                           ...form,
                           assigned_year: e.target.value,
@@ -1334,8 +1210,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                       }))}
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Covers both odd and even semester tracks for this academic
-                      year.
+                      Covers both odd and even semester tracks for this academic year.
                     </p>
                   </div>
                 </div>
@@ -1343,8 +1218,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                 {selectedClassIds.length > 0 && (
                   <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
                     <span className="font-bold">
-                      Active multi-class mapping ({selectedClassIds.length}{" "}
-                      classes):{" "}
+                      Active multi-class mapping ({selectedClassIds.length} classes):{" "}
                     </span>
                     {departmentClasses
                       .filter((c) => selectedClassIds.includes(c.id))
@@ -1361,8 +1235,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   <div className="flex items-center gap-2 text-foreground font-semibold text-xs">
                     <BookOpen className="h-4 w-4 text-primary" />
                     <span>
-                      Faculty Teaching Assignment (Multiple Subjects & Classes
-                      Concurrently)
+                      Faculty Teaching Assignment (Multiple Subjects & Classes Concurrently)
                     </span>
                   </div>
                   <Badge variant="outline" className="text-[10px] w-fit">
@@ -1370,23 +1243,19 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Map this faculty member to multiple subjects and class
-                  divisions concurrently (e.g. SY CSE-A and SY CSE-B for Data
-                  Structures, TY CSE-A for DBMS).
+                  Map this faculty member to multiple subjects and class divisions concurrently
+                  (e.g. SY CSE-A and SY CSE-B for Data Structures, TY CSE-A for DBMS).
                 </p>
 
                 {/* Existing Staged Teaching Assignments */}
                 {teachingAssignments.length > 0 && (
                   <div className="space-y-2 pt-1">
                     <p className="text-[11px] font-semibold text-foreground">
-                      Assigned Subjects & Divisions (
-                      {teachingAssignments.length}):
+                      Assigned Subjects & Divisions ({teachingAssignments.length}):
                     </p>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {teachingAssignments.map((ta, idx) => {
-                        const sub = departmentSubjects.find(
-                          (s) => s.id === ta.subject_id,
-                        );
+                        const sub = departmentSubjects.find((s) => s.id === ta.subject_id);
                         return (
                           <div
                             key={idx}
@@ -1427,9 +1296,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-destructive"
                               onClick={() =>
-                                setTeachingAssignments((prev) =>
-                                  prev.filter((_, i) => i !== idx),
-                                )
+                                setTeachingAssignments((prev) => prev.filter((_, i) => i !== idx))
                               }
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -1456,9 +1323,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         onChange={(e) => {
                           const newSubId = e.target.value;
                           setStagedSubjectId(newSubId);
-                          const sub = departmentSubjects.find(
-                            (s) => s.id === newSubId,
-                          );
+                          const sub = departmentSubjects.find((s) => s.id === newSubId);
                           if (sub) {
                             const matchingClassNames = departmentClasses
                               .filter((c) => c.semester === sub.semester)
@@ -1498,10 +1363,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                                 checked={isChecked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setStagedClassNames((prev) => [
-                                      ...prev,
-                                      c.name,
-                                    ]);
+                                    setStagedClassNames((prev) => [...prev, c.name]);
                                   } else {
                                     setStagedClassNames((prev) =>
                                       prev.filter((name) => name !== c.name),
@@ -1532,9 +1394,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                       onClick={() => {
                         if (!stagedSubjectId) return;
                         setTeachingAssignments((prev) => [
-                          ...prev.filter(
-                            (ta) => ta.subject_id !== stagedSubjectId,
-                          ),
+                          ...prev.filter((ta) => ta.subject_id !== stagedSubjectId),
                           {
                             subject_id: stagedSubjectId,
                             class_names: stagedClassNames,
@@ -1559,8 +1419,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                       value={form.teaching_year}
                       onChange={(e) => {
                         const y = Number(e.target.value) || 1;
-                        const defaultSem =
-                          y === 1 ? "1" : y === 2 ? "3" : y === 3 ? "5" : "7";
+                        const defaultSem = y === 1 ? "1" : y === 2 ? "3" : y === 3 ? "5" : "7";
                         setForm({
                           ...form,
                           teaching_year: e.target.value,
@@ -1579,13 +1438,10 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                     </label>
                     <Select
                       value={form.teaching_semester}
-                      onChange={(e) =>
-                        setForm({ ...form, teaching_semester: e.target.value })
-                      }
+                      onChange={(e) => setForm({ ...form, teaching_semester: e.target.value })}
                       options={(
-                        ENGINEERING_YEARS.find(
-                          (y) => y.year === Number(form.teaching_year),
-                        )?.semesters || [1, 2]
+                        ENGINEERING_YEARS.find((y) => y.year === Number(form.teaching_year))
+                          ?.semesters || [1, 2]
                       ).map((sem) => ({
                         value: String(sem),
                         label: `Semester ${sem} (${getSemesterEngineeringLabel(sem)})`,
@@ -1598,9 +1454,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
 
             {/* 11. Password */}
             <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-              <label className="text-xs font-semibold text-foreground">
-                Login Password
-              </label>
+              <label className="text-xs font-semibold text-foreground">Login Password</label>
               <Input
                 type="password"
                 placeholder={
@@ -1611,9 +1465,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                       : "Default: Teacher@123 or Emp ID"
                 }
                 value={form.password}
-                onChange={(event) =>
-                  setForm({ ...form, password: event.target.value })
-                }
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
               />
               <p className="text-[11px] text-muted-foreground">
                 Staff sign in using Employee ID or Email.
@@ -1632,11 +1484,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
           )}
 
           <div className="mt-5 flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setFormOpen(false)}
-              disabled={isSaving}
-            >
+            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={isSaving}>
               Cancel
             </Button>
             <Button
@@ -1646,8 +1494,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving
-                  Teacher...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving Teacher...
                 </>
               ) : (
                 <>
@@ -1690,13 +1537,14 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
               <div className="flex items-center gap-1">
                 <Select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="h-9 text-xs w-[130px]"
+                  onValueChange={(value) => setSortBy(value as "name" | "empid" | "role" | "exp")}
+                  valuePrefix="Sort: "
+                  className="h-9 w-[150px] text-xs"
                   options={[
-                    { value: "name", label: "Sort: Name" },
-                    { value: "empid", label: "Sort: Emp ID" },
-                    { value: "role", label: "Sort: Role" },
-                    { value: "exp", label: "Sort: Experience" },
+                    { value: "name", label: "Name" },
+                    { value: "empid", label: "Employee ID" },
+                    { value: "role", label: "Role" },
+                    { value: "exp", label: "Experience" },
                   ]}
                 />
                 <Button
@@ -1704,9 +1552,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   size="icon"
                   className="h-9 w-9 text-xs"
                   title={`Sort ${sortOrder === "asc" ? "Ascending" : "Descending"}`}
-                  onClick={() =>
-                    setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
-                  }
+                  onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
                 >
                   <ArrowUpDown className="h-3.5 w-3.5" />
                 </Button>
@@ -1731,66 +1577,37 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
         {/* TABULAR FORM VIEW (PERMANENT) */}
         {/* ========================================================================= */}
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-          <div
-            className={
-              sortedTeachers.length === 0
-                ? "overflow-hidden"
-                : "overflow-x-auto"
-            }
-          >
+          <div className={sortedTeachers.length === 0 ? "overflow-hidden" : "overflow-x-auto"}>
             <Table className="w-full text-xs [&_th]:px-2 [&_td]:px-2">
               <TableHeader
                 className={
-                  sortedTeachers.length === 0
-                    ? "hidden"
-                    : "border-b border-border bg-muted/70"
+                  sortedTeachers.length === 0 ? "hidden" : "border-b border-border bg-muted/70"
                 }
               >
                 <TableRow>
-                  <TableHead className="w-12 text-center font-bold">
-                    #
-                  </TableHead>
-                  <TableHead className="min-w-[170px] font-bold">
-                    Faculty Member
-                  </TableHead>
+                  <TableHead className="w-12 text-center font-bold">#</TableHead>
+                  <TableHead className="min-w-[170px] font-bold">Faculty Member</TableHead>
                   <TableHead className="min-w-[130px] whitespace-nowrap pl-3 font-bold">
                     Employee ID
                   </TableHead>
-                  <TableHead className="min-w-[120px] font-bold">
-                    Academic Role
-                  </TableHead>
-                  <TableHead className="min-w-[125px] font-bold">
-                    Coordinated Classes
-                  </TableHead>
-                  <TableHead className="min-w-[160px] font-bold">
-                    Teaching Subjects
-                  </TableHead>
-                  <TableHead className="min-w-[135px] font-bold">
-                    Contact Details
-                  </TableHead>
-                  <TableHead className="min-w-[100px] font-bold">
-                    Portal Access
-                  </TableHead>
-                  <TableHead className="min-w-[105px] text-center font-bold">
-                    Actions
-                  </TableHead>
+                  <TableHead className="min-w-[120px] font-bold">Academic Role</TableHead>
+                  <TableHead className="min-w-[125px] font-bold">Coordinated Classes</TableHead>
+                  <TableHead className="min-w-[160px] font-bold">Teaching Subjects</TableHead>
+                  <TableHead className="min-w-[135px] font-bold">Contact Details</TableHead>
+                  <TableHead className="min-w-[100px] font-bold">Portal Access</TableHead>
+                  <TableHead className="min-w-[105px] text-center font-bold">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-border">
                 {sortedTeachers.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-9 text-center text-muted-foreground"
-                    >
+                    <TableCell colSpan={9} className="py-9 text-center text-muted-foreground">
                       <div className="max-w-md mx-auto space-y-3">
                         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground">
                           <Users className="h-6 w-6" />
                         </div>
                         <p className="text-sm font-semibold text-foreground">
-                          {search.trim()
-                            ? `No ${mode} match your search`
-                            : `No ${mode} added yet`}
+                          {search.trim() ? `No ${mode} match your search` : `No ${mode} added yet`}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {search.trim()
@@ -1816,15 +1633,11 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                   </TableRow>
                 ) : (
                   sortedTeachers.map((teacher, idx) => {
-                    const teacherCcas = assignments.filter(
-                      (a) => a.teacher_id === teacher.id,
-                    );
+                    const teacherCcas = assignments.filter((a) => a.teacher_id === teacher.id);
                     const teacherCoordinatedClasses = departmentClasses.filter(
                       (c) =>
                         c.coordinator_teacher_id === teacher.id ||
-                        teacherCcas.some(
-                          (a) => a.class_id === c.id || a.class_name === c.name,
-                        ) ||
+                        teacherCcas.some((a) => a.class_id === c.id || a.class_name === c.name) ||
                         (teacher.assigned_classes || []).includes(c.name),
                     );
                     const isCC =
@@ -1833,17 +1646,11 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                       teacherCoordinatedClasses.length > 0 ||
                       teacherCcas.length > 0;
 
-                    const teacherTs = teacherSubjects.filter(
-                      (ts) => ts.teacher_id === teacher.id,
-                    );
+                    const teacherTs = teacherSubjects.filter((ts) => ts.teacher_id === teacher.id);
                     const groupedTs: Record<string, string[]> = {};
                     for (const ts of teacherTs) {
-                      if (!groupedTs[ts.subject_id])
-                        groupedTs[ts.subject_id] = [];
-                      if (
-                        ts.class_name &&
-                        !groupedTs[ts.subject_id].includes(ts.class_name)
-                      ) {
+                      if (!groupedTs[ts.subject_id]) groupedTs[ts.subject_id] = [];
+                      if (ts.class_name && !groupedTs[ts.subject_id].includes(ts.class_name)) {
                         groupedTs[ts.subject_id].push(ts.class_name);
                       }
                     }
@@ -1959,9 +1766,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-muted-foreground/50 text-xs">
-                              —
-                            </span>
+                            <span className="text-muted-foreground/50 text-xs">—</span>
                           )}
                         </TableCell>
 
@@ -1969,26 +1774,20 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                         <TableCell>
                           {teacherTs.length > 0 ? (
                             <div className="flex flex-col items-start gap-1 max-w-[180px]">
-                              {Object.entries(groupedTs).map(
-                                ([sId, cNames]) => {
-                                  const sub = departmentSubjects.find(
-                                    (s) => s.id === sId,
-                                  );
-                                  return (
-                                    <Badge
-                                      key={sId}
-                                      variant="outline"
-                                      className="max-w-[175px] whitespace-normal break-words text-left leading-4 text-[10px] font-mono bg-muted/60 text-foreground border-border/80"
-                                      title={sub?.name || ""}
-                                    >
-                                      {sub?.code || "SUB"}
-                                      {cNames.length > 0
-                                        ? ` (${cNames.join(", ")})`
-                                        : ""}
-                                    </Badge>
-                                  );
-                                },
-                              )}
+                              {Object.entries(groupedTs).map(([sId, cNames]) => {
+                                const sub = departmentSubjects.find((s) => s.id === sId);
+                                return (
+                                  <Badge
+                                    key={sId}
+                                    variant="outline"
+                                    className="max-w-[175px] whitespace-normal break-words text-left leading-4 text-[10px] font-mono bg-muted/60 text-foreground border-border/80"
+                                    title={sub?.name || ""}
+                                  >
+                                    {sub?.code || "SUB"}
+                                    {cNames.length > 0 ? ` (${cNames.join(", ")})` : ""}
+                                  </Badge>
+                                );
+                              })}
                             </div>
                           ) : (
                             <Badge
@@ -2030,9 +1829,7 @@ export const HODStaff: React.FC<HODStaffProps> = ({ mode }) => {
                                 title={teacher.email}
                               >
                                 <Mail className="h-3 w-3 shrink-0" />
-                                <span className="truncate">
-                                  {teacher.email}
-                                </span>
+                                <span className="truncate">{teacher.email}</span>
                               </span>
                             )}
                           </div>

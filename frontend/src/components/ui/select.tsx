@@ -30,6 +30,7 @@ export interface SelectProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
   required?: boolean;
   title?: string;
   placeholder?: string;
+  valuePrefix?: string;
   searchable?: boolean;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -103,6 +104,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
       required,
       title,
       placeholder = "Select an option",
+      valuePrefix = "",
       searchable = false,
       searchPlaceholder = "Search options...",
       emptyMessage = "No options available",
@@ -323,7 +325,7 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
             <span
               className={cn("min-w-0 flex-1 truncate", !selectedOption && "text-muted-foreground")}
             >
-              {selectedOption?.label || placeholder}
+              {selectedOption ? `${valuePrefix}${selectedOption.label}` : placeholder}
             </span>
             <ChevronDown
               className={cn(
