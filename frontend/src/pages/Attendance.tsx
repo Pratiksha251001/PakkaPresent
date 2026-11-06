@@ -24,20 +24,9 @@ import {
 } from "lucide-react";
 import { localDb } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
-import {
-  college,
-  generateSmsMessage,
-  SMS_LANGUAGES,
-  ENGINEERING_YEARS,
-} from "../lib/college";
+import { college, generateSmsMessage, SMS_LANGUAGES, ENGINEERING_YEARS } from "../lib/college";
 import { apiFetch } from "../lib/api";
-import {
-  SmsLanguage,
-  Student,
-  Subject,
-  AcademicClass,
-  AlertChannel,
-} from "../lib/types";
+import { SmsLanguage, Student, Subject, AcademicClass, AlertChannel } from "../lib/types";
 import { Button } from "../components/ui/button";
 import { Select } from "../components/ui/select";
 import { Input } from "../components/ui/input";
@@ -77,30 +66,24 @@ export const Attendance: React.FC = () => {
     return localDb.subjects.filter((subject) => {
       if (role === "admin") return true;
       if (role === "hod") {
-        return (
-          !user?.department_id || subject.department_id === user.department_id
-        );
+        return !user?.department_id || subject.department_id === user.department_id;
       }
       if (role === "class_coordinator") {
         const teacherRec = localDb.teachers.find(
           (t) =>
             t.id === user?.teacher_id ||
-            (user?.email &&
-              t.email?.toLowerCase() === user.email.toLowerCase()) ||
+            (user?.email && t.email?.toLowerCase() === user.email.toLowerCase()) ||
             (user?.employee_id && t.employee_id === user.employee_id) ||
             (t.is_class_coordinator && t.department_id === user?.department_id),
         );
-        const coordSem =
-          teacherRec?.assigned_semester || user?.assigned_semester || 5;
+        const coordSem = teacherRec?.assigned_semester || user?.assigned_semester || 5;
         const deptId = user?.department_id || teacherRec?.department_id;
         const isClassSubject =
-          (!deptId || subject.department_id === deptId) &&
-          subject.semester === coordSem;
+          (!deptId || subject.department_id === deptId) && subject.semester === coordSem;
         const isMyTeachingSubject =
           localDb.teacher_subjects.some(
             (ts) =>
-              (ts.teacher_id === user?.teacher_id ||
-                ts.teacher_id === user?.id) &&
+              (ts.teacher_id === user?.teacher_id || ts.teacher_id === user?.id) &&
               ts.subject_id === subject.id,
           ) ||
           (subject as any).teacher_id === user?.teacher_id ||
@@ -117,13 +100,9 @@ export const Attendance: React.FC = () => {
           localDb.teacher_subjects.some((ts) => ts.teacher_id === teacherId) ||
           localDb.subjects.some((s) => (s as any).teacher_id === teacherId);
         if (anyAssigned) return isAssigned;
-        return (
-          !user?.department_id || subject.department_id === user.department_id
-        );
+        return !user?.department_id || subject.department_id === user.department_id;
       }
-      return (
-        !user?.department_id || subject.department_id === user.department_id
-      );
+      return !user?.department_id || subject.department_id === user.department_id;
     });
   }, [role, user, teacherId, attendanceDataVersion]);
 
@@ -139,13 +118,9 @@ export const Attendance: React.FC = () => {
       }
       if (
         !table ||
-        [
-          "subjects",
-          "teacher_subjects",
-          "students",
-          "academic_classes",
-          "attendance",
-        ].includes(table)
+        ["subjects", "teacher_subjects", "students", "academic_classes", "attendance"].includes(
+          table,
+        )
       ) {
         setAttendanceDataVersion((version) => version + 1);
       }
@@ -154,10 +129,7 @@ export const Attendance: React.FC = () => {
     window.addEventListener("localDbUpdate", refreshAttendanceData);
     window.addEventListener("storage", refreshAttendanceData);
     return () => {
-      window.removeEventListener(
-        "edutrack_data_updated",
-        refreshAttendanceData,
-      );
+      window.removeEventListener("edutrack_data_updated", refreshAttendanceData);
       window.removeEventListener("localDbUpdate", refreshAttendanceData);
       window.removeEventListener("storage", refreshAttendanceData);
     };
@@ -172,15 +144,11 @@ export const Attendance: React.FC = () => {
     }
     return subjects[0]?.id || "";
   });
-  const [selectedClassName, setSelectedClassName] = useState<string>(
-    urlClassName || "all",
-  );
+  const [selectedClassName, setSelectedClassName] = useState<string>(urlClassName || "all");
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [searchQuery, setSearchQuery] = useState("");
   const [smsLanguage, setSmsLanguage] = useState<SmsLanguage>("en");
-  const [attendanceState, setAttendanceState] = useState<
-    Record<string, "present" | "absent">
-  >({});
+  const [attendanceState, setAttendanceState] = useState<Record<string, "present" | "absent">>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -227,17 +195,13 @@ export const Attendance: React.FC = () => {
 
   // Keep selectedSubjectId valid if filteredSubjects changes
   React.useEffect(() => {
-    if (
-      filteredSubjects.length > 0 &&
-      !filteredSubjects.some((s) => s.id === selectedSubjectId)
-    ) {
+    if (filteredSubjects.length > 0 && !filteredSubjects.some((s) => s.id === selectedSubjectId)) {
       setSelectedSubjectId(filteredSubjects[0].id);
     }
   }, [filteredSubjects, selectedSubjectId]);
 
   const selectedSubject = subjects.find((s) => s.id === selectedSubjectId);
-  const attendanceDepartmentId =
-    selectedSubject?.department_id || user?.department_id || undefined;
+  const attendanceDepartmentId = selectedSubject?.department_id || user?.department_id || undefined;
 
   // Determine available classes / divisions for the selected subject
   const availableClasses = useMemo(() => {
@@ -247,8 +211,7 @@ export const Attendance: React.FC = () => {
     const deptClasses = academicClasses.filter(
       (c) =>
         c.semester === selectedSubject.semester &&
-        (!selectedSubject.department_id ||
-          c.department_id === selectedSubject.department_id),
+        (!selectedSubject.department_id || c.department_id === selectedSubject.department_id),
     );
 
     // Also classes assigned in teacher_subjects for this subject
@@ -293,10 +256,7 @@ export const Attendance: React.FC = () => {
       availableClasses.includes(myAssignedClassesForSubject[0])
     ) {
       setSelectedClassName(myAssignedClassesForSubject[0]);
-    } else if (
-      selectedClassName !== "all" &&
-      !availableClasses.includes(selectedClassName)
-    ) {
+    } else if (selectedClassName !== "all" && !availableClasses.includes(selectedClassName)) {
       setSelectedClassName("all");
     }
   }, [urlClassName, availableClasses, myAssignedClassesForSubject]);
@@ -309,8 +269,7 @@ export const Attendance: React.FC = () => {
       (st) =>
         st.status === "active" &&
         st.semester === selectedSubject.semester &&
-        (!attendanceDepartmentId ||
-          st.department_id === attendanceDepartmentId),
+        (!attendanceDepartmentId || st.department_id === attendanceDepartmentId),
     );
 
     if (selectedClassName && selectedClassName !== "all") {
@@ -325,13 +284,7 @@ export const Attendance: React.FC = () => {
     }
 
     return list;
-  }, [
-    students,
-    selectedSubject,
-    selectedClassName,
-    academicClasses,
-    attendanceDepartmentId,
-  ]);
+  }, [students, selectedSubject, selectedClassName, academicClasses, attendanceDepartmentId]);
 
   const displayedStudents = useMemo(() => {
     if (!searchQuery.trim()) return cohortStudents;
@@ -347,13 +300,8 @@ export const Attendance: React.FC = () => {
 
   React.useEffect(() => {
     const existing = localDb.attendance.filter((a) => {
-      if (a.subject_id !== selectedSubjectId || a.date !== selectedDate)
-        return false;
-      if (
-        selectedClassName !== "all" &&
-        a.class_name &&
-        a.class_name !== selectedClassName
-      ) {
+      if (a.subject_id !== selectedSubjectId || a.date !== selectedDate) return false;
+      if (selectedClassName !== "all" && a.class_name && a.class_name !== selectedClassName) {
         return false;
       }
       return true;
@@ -365,13 +313,7 @@ export const Attendance: React.FC = () => {
       map[st.id] = rec ? rec.status : "present";
     });
     setAttendanceState(map);
-  }, [
-    selectedSubjectId,
-    selectedDate,
-    selectedClassName,
-    cohortStudents,
-    attendanceDataVersion,
-  ]);
+  }, [selectedSubjectId, selectedDate, selectedClassName, cohortStudents, attendanceDataVersion]);
 
   const markAll = (status: "present" | "absent") => {
     const next: Record<string, "present" | "absent"> = {};
@@ -427,14 +369,10 @@ export const Attendance: React.FC = () => {
         status: "absent" | "present";
       }> = [];
       if (targetMode === "absent_only" || targetMode === "both") {
-        currentAbsentees.forEach((st) =>
-          targetList.push({ student: st, status: "absent" }),
-        );
+        currentAbsentees.forEach((st) => targetList.push({ student: st, status: "absent" }));
       }
       if (targetMode === "present_only" || targetMode === "both") {
-        currentPresents.forEach((st) =>
-          targetList.push({ student: st, status: "present" }),
-        );
+        currentPresents.forEach((st) => targetList.push({ student: st, status: "present" }));
       }
 
       const notificationResults: Array<{
@@ -454,20 +392,13 @@ export const Attendance: React.FC = () => {
       for (const { student: st, status } of targetList) {
         const past = allAttendance.filter((a) => a.student_id === st.id);
         const totalLectures = past.length;
-        const presentLectures = past.filter(
-          (a) => a.status === "present",
-        ).length;
-        const rate =
-          totalLectures > 0
-            ? Math.round((presentLectures / totalLectures) * 100)
-            : 100;
+        const presentLectures = past.filter((a) => a.status === "present").length;
+        const rate = totalLectures > 0 ? Math.round((presentLectures / totalLectures) * 100) : 100;
         const isDefaulter = rate < 75 && status === "absent";
 
         const cleanPhone = (st.parent_mobile || "").replace(/[^0-9]/g, "");
         const hasMobile = cleanPhone.length >= 10;
-        const studentEmail =
-          st.email ||
-          `${st.roll_number.toLowerCase()}@student.pakkapresent.edu`;
+        const studentEmail = st.email || `${st.roll_number.toLowerCase()}@student.pakkapresent.edu`;
 
         // 1. Channel: SMS
         if (channels.includes("sms")) {
@@ -528,14 +459,9 @@ export const Attendance: React.FC = () => {
               20_000,
             );
             const result = await response.json().catch(() => ({}));
-            if (
-              response.ok &&
-              result.success === true &&
-              result.status === "provider_accepted"
-            ) {
+            if (response.ok && result.success === true && result.status === "provider_accepted") {
               responseStatus = "provider_accepted";
-              responseMessage =
-                "Email provider accepted the request; delivery is not confirmed.";
+              responseMessage = "Email provider accepted the request; delivery is not confirmed.";
               if (isDefaulter) defaulterEmailCount++;
             } else {
               responseMessage =
@@ -544,8 +470,7 @@ export const Attendance: React.FC = () => {
                 `Notification not accepted (HTTP ${response.status}).`;
             }
           } catch {
-            responseMessage =
-              "Notification backend unavailable; delivery not confirmed.";
+            responseMessage = "Notification backend unavailable; delivery not confirmed.";
           }
           newLogEntries.push({
             student_id: st.id,
@@ -556,13 +481,9 @@ export const Attendance: React.FC = () => {
             channel: "email" as const,
             is_defaulter_alert: isDefaulter,
             attendance_rate: rate,
-            email_subject: isDefaulter
-              ? "Low attendance warning"
-              : "Attendance update",
+            email_subject: isDefaulter ? "Low attendance warning" : "Attendance update",
             message: responseMessage,
-            status: (responseStatus === "provider_accepted"
-              ? "sent"
-              : "failed") as const,
+            status: (responseStatus === "provider_accepted" ? "sent" : "failed") as const,
             attendance_date: selectedDate,
             sent_at: new Date().toISOString(),
             language: chosenLang,
@@ -572,8 +493,7 @@ export const Attendance: React.FC = () => {
           notificationResults.push({
             student: st,
             channel: "email",
-            status:
-              responseStatus === "provider_accepted" ? "accepted" : "failed",
+            status: responseStatus === "provider_accepted" ? "accepted" : "failed",
             message: responseMessage,
             attendanceStatus: status,
           });
@@ -641,9 +561,7 @@ export const Attendance: React.FC = () => {
           `Attendance was saved, but notification processing did not finish. ${reason}`,
         );
       } else {
-        setSubmissionError(
-          `Attendance could not be saved. ${reason} Please retry.`,
-        );
+        setSubmissionError(`Attendance could not be saved. ${reason} Please retry.`);
       }
     } finally {
       setSaving(false);
@@ -655,9 +573,7 @@ export const Attendance: React.FC = () => {
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold">
-            Mark Subject Attendance
-          </h2>
+          <h2 className="font-display text-2xl font-bold">Mark Subject Attendance</h2>
         </div>
       </div>
 
@@ -668,17 +584,14 @@ export const Attendance: React.FC = () => {
             <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold">
               <Layers className="h-4 w-4" />
             </div>
-            <span className="font-semibold text-foreground">
-              Assigned Classes & Subjects:
-            </span>
+            <span className="font-semibold text-foreground">Assigned Classes & Subjects:</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {myTeachingAssignments.slice(0, 4).map((ts) => {
               const sub = localDb.subjects.find((s) => s.id === ts.subject_id);
               const isActive =
                 ts.subject_id === selectedSubjectId &&
-                (ts.class_name === selectedClassName ||
-                  selectedClassName === "all");
+                (ts.class_name === selectedClassName || selectedClassName === "all");
               return (
                 <button
                   key={ts.id}
@@ -730,9 +643,7 @@ export const Attendance: React.FC = () => {
               <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
                 Attendance Saved; Notification Status Recorded
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {successMsg}
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{successMsg}</p>
             </div>
           </div>
 
@@ -782,9 +693,15 @@ export const Attendance: React.FC = () => {
             <Select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
+              searchable
+              contentWidth="wide"
+              searchPlaceholder="Search by subject code, name, or semester..."
+              emptyMessage="No matching subjects available"
               options={filteredSubjects.map((s) => ({
                 value: s.id,
-                label: `${s.code} · ${s.name} (Sem ${s.semester})`,
+                label: `${s.code} · ${s.name}`,
+                description: `Semester ${s.semester}`,
+                searchText: `${s.code} ${s.name} semester ${s.semester}`,
               }))}
             />
           </div>
@@ -805,19 +722,26 @@ export const Attendance: React.FC = () => {
             <Select
               value={selectedClassName}
               onChange={(e) => setSelectedClassName(e.target.value)}
+              searchable={availableClasses.length > 10}
+              searchPlaceholder="Search classes or divisions..."
+              emptyMessage="No compatible classes available"
               options={[
                 {
                   value: "all",
-                  label:
+                  label: availableClasses.length > 0 ? "All Divisions" : "All Students in Semester",
+                  description:
                     availableClasses.length > 0
-                      ? "All Divisions (Whole Batch)"
-                      : "All Students in Semester",
+                      ? "Whole Batch"
+                      : `Semester ${selectedSubject?.semester || ""}`,
+                  searchText: "all divisions whole batch all students",
                 },
                 ...availableClasses.map((cn) => {
                   const isAssigned = myAssignedClassesForSubject.includes(cn);
                   return {
                     value: cn,
-                    label: isAssigned ? `${cn} (Your Assigned Class)` : cn,
+                    label: cn,
+                    description: isAssigned ? "Your Assigned Class" : undefined,
+                    searchText: `${cn} ${isAssigned ? "assigned class" : ""}`,
                   };
                 }),
               ]}
@@ -893,11 +817,9 @@ export const Attendance: React.FC = () => {
                   (st) =>
                     st.status === "active" &&
                     st.semester === selectedSubject?.semester &&
-                    (!attendanceDepartmentId ||
-                      st.department_id === attendanceDepartmentId) &&
+                    (!attendanceDepartmentId || st.department_id === attendanceDepartmentId) &&
                     (st.class_name === cn ||
-                      st.class_id ===
-                        academicClasses.find((c) => c.name === cn)?.id ||
+                      st.class_id === academicClasses.find((c) => c.name === cn)?.id ||
                       st.section === cn),
                 ).length;
                 const isSelected = selectedClassName === cn;
@@ -950,8 +872,7 @@ export const Attendance: React.FC = () => {
             <div className="flex items-center gap-2">
               <h3 className="font-display text-lg font-bold">Student Roster</h3>
               <Badge variant="outline" className="text-xs font-semibold">
-                {displayedStudents.length}{" "}
-                {displayedStudents.length === 1 ? "Student" : "Students"}
+                {displayedStudents.length} {displayedStudents.length === 1 ? "Student" : "Students"}
               </Badge>
               {selectedClassName !== "all" && (
                 <Badge
@@ -1018,24 +939,14 @@ export const Attendance: React.FC = () => {
               <Table className="w-full text-xs">
                 <TableHeader className="bg-muted/70 border-b border-border">
                   <TableRow>
-                    <TableHead className="w-12 text-center font-bold">
-                      #
-                    </TableHead>
-                    <TableHead className="min-w-[110px] font-bold">
-                      Roll No
-                    </TableHead>
-                    <TableHead className="min-w-[210px] font-bold">
-                      Student Name
-                    </TableHead>
-                    <TableHead className="min-w-[90px] text-center font-bold">
-                      Semester
-                    </TableHead>
+                    <TableHead className="w-12 text-center font-bold">#</TableHead>
+                    <TableHead className="min-w-[110px] font-bold">Roll No</TableHead>
+                    <TableHead className="min-w-[210px] font-bold">Student Name</TableHead>
+                    <TableHead className="min-w-[90px] text-center font-bold">Semester</TableHead>
                     <TableHead className="min-w-[140px] text-center font-bold">
                       Class / Division
                     </TableHead>
-                    <TableHead className="min-w-[210px] font-bold">
-                      Guardian Email
-                    </TableHead>
+                    <TableHead className="min-w-[210px] font-bold">Guardian Email</TableHead>
 
                     <TableHead className="min-w-[220px] text-center font-bold">
                       Attendance Action
@@ -1047,12 +958,9 @@ export const Attendance: React.FC = () => {
                     const status = attendanceState[st.id] || "present";
                     const isAbsent = status === "absent";
                     const assignedClass = st.class_id
-                      ? academicClasses.find(
-                          (academicClass) => academicClass.id === st.class_id,
-                        )
+                      ? academicClasses.find((academicClass) => academicClass.id === st.class_id)
                       : undefined;
-                    const classDisplayName =
-                      assignedClass?.name || st.class_name || "—";
+                    const classDisplayName = assignedClass?.name || st.class_name || "—";
                     const guardianEmail = st.parent_email?.trim() || "";
                     return (
                       <TableRow
@@ -1071,29 +979,19 @@ export const Attendance: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-semibold text-foreground text-sm">
-                              {st.full_name}
-                            </p>
+                            <p className="font-semibold text-foreground text-sm">{st.full_name}</p>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-[10px] font-bold"
-                          >
+                          <Badge variant="outline" className="font-mono text-[10px] font-bold">
                             Sem {st.semester}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           {classDisplayName === "—" ? (
-                            <span className="text-muted-foreground text-[11px]">
-                              —
-                            </span>
+                            <span className="text-muted-foreground text-[11px]">—</span>
                           ) : (
-                            <Badge
-                              variant="outline"
-                              className="font-mono text-[10px] font-bold"
-                            >
+                            <Badge variant="outline" className="font-mono text-[10px] font-bold">
                               {classDisplayName}
                             </Badge>
                           )}
@@ -1108,9 +1006,7 @@ export const Attendance: React.FC = () => {
                               {guardianEmail}
                             </a>
                           ) : (
-                            <span className="text-muted-foreground text-[11px]">
-                              —
-                            </span>
+                            <span className="text-muted-foreground text-[11px]">—</span>
                           )}
                         </TableCell>
 
