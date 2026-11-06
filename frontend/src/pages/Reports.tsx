@@ -67,8 +67,7 @@ export const Reports: React.FC = () => {
       localDb.teachers.find(
         (t) =>
           t.id === user?.teacher_id ||
-          (user?.email &&
-            t.email?.toLowerCase() === user.email.toLowerCase()) ||
+          (user?.email && t.email?.toLowerCase() === user.email.toLowerCase()) ||
           (user?.employee_id && t.employee_id === user.employee_id) ||
           t.user_id === user?.id,
       ) || null
@@ -82,9 +81,7 @@ export const Reports: React.FC = () => {
     if (role !== "class_coordinator") return null;
     return (
       localDb.class_coordinator_assignments.find(
-        (a) =>
-          a.teacher_id === linkedTeacher?.id ||
-          a.teacher_id === user?.teacher_id,
+        (a) => a.teacher_id === linkedTeacher?.id || a.teacher_id === user?.teacher_id,
       ) || null
     );
   }, [role, linkedTeacher, user]);
@@ -99,10 +96,7 @@ export const Reports: React.FC = () => {
         : 2);
 
   const coordSem =
-    coordAssignment?.semester ||
-    linkedTeacher?.assigned_semester ||
-    user?.assigned_semester ||
-    3;
+    coordAssignment?.semester || linkedTeacher?.assigned_semester || user?.assigned_semester || 3;
 
   // Teacher assigned subject IDs & teaching classes
   const teacherAssignedSubjectIds = useMemo(() => {
@@ -111,10 +105,7 @@ export const Reports: React.FC = () => {
       .filter((ts) => ts.teacher_id === teacherId || ts.teacher_id === user?.id)
       .forEach((ts) => ids.add(ts.subject_id));
     allSubjects.forEach((s) => {
-      if (
-        (s as any).teacher_id === teacherId ||
-        (s as any).teacher_id === user?.id
-      ) {
+      if ((s as any).teacher_id === teacherId || (s as any).teacher_id === user?.id) {
         ids.add(s.id);
       }
     });
@@ -138,12 +129,9 @@ export const Reports: React.FC = () => {
 
   // Filter states
   const initialDept =
-    role === "admin"
-      ? "__all"
-      : user?.department_id || linkedTeacher?.department_id || "dept-1";
+    role === "admin" ? "__all" : user?.department_id || linkedTeacher?.department_id || "dept-1";
 
-  const initialYear =
-    role === "class_coordinator" ? String(coordYear) : "__all";
+  const initialYear = role === "class_coordinator" ? String(coordYear) : "__all";
 
   const initialClass =
     role === "class_coordinator" && coordAssignment?.class_name
@@ -154,13 +142,10 @@ export const Reports: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<string>(initialYear);
   const [selectedClass, setSelectedClass] = useState<string>(initialClass);
   const [selectedSubject, setSelectedSubject] = useState<string>("__all");
-  const [studentCategory, setStudentCategory] =
-    useState<StudentCategoryFilter>("all");
-  const [reportViewType, setReportViewType] =
-    useState<ReportViewType>("subject");
+  const [studentCategory, setStudentCategory] = useState<StudentCategoryFilter>("all");
+  const [reportViewType, setReportViewType] = useState<ReportViewType>("subject");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [monthlyAlertModalOpen, setMonthlyAlertModalOpen] =
-    useState<boolean>(false);
+  const [monthlyAlertModalOpen, setMonthlyAlertModalOpen] = useState<boolean>(false);
   const [alertToast, setAlertToast] = useState<string | null>(null);
 
   // Keep department synced for department-bound roles
@@ -189,9 +174,7 @@ export const Reports: React.FC = () => {
       list = allSubjects;
     } else if (role === "hod") {
       const boundDept = user?.department_id || linkedTeacher?.department_id;
-      list = allSubjects.filter(
-        (s) => !boundDept || s.department_id === boundDept,
-      );
+      list = allSubjects.filter((s) => !boundDept || s.department_id === boundDept);
     } else if (role === "class_coordinator") {
       const boundDept = user?.department_id || linkedTeacher?.department_id;
       list = allSubjects.filter((s) => {
@@ -204,16 +187,12 @@ export const Reports: React.FC = () => {
         list = allSubjects.filter((s) => teacherAssignedSubjectIds.has(s.id));
       } else {
         const boundDept = user?.department_id || linkedTeacher?.department_id;
-        list = allSubjects.filter(
-          (s) => !boundDept || s.department_id === boundDept,
-        );
+        list = allSubjects.filter((s) => !boundDept || s.department_id === boundDept);
       }
     } else if (role === "student") {
       const ownStudentId = user?.student_id;
       const ownSubjectIds = new Set(
-        attendance
-          .filter((a) => a.student_id === ownStudentId)
-          .map((a) => a.subject_id),
+        attendance.filter((a) => a.student_id === ownStudentId).map((a) => a.subject_id),
       );
       list = allSubjects.filter((s) => ownSubjectIds.has(s.id));
     }
@@ -221,14 +200,9 @@ export const Reports: React.FC = () => {
     // Apply Year and Department filter if selected
     return list.filter((s) => {
       const sYear = s.year || getEngineeringYearFromSemester(s.semester);
-      if (
-        selectedDept !== "__all" &&
-        s.department_id &&
-        s.department_id !== selectedDept
-      )
+      if (selectedDept !== "__all" && s.department_id && s.department_id !== selectedDept)
         return false;
-      if (selectedYear !== "__all" && String(sYear) !== selectedYear)
-        return false;
+      if (selectedYear !== "__all" && String(sYear) !== selectedYear) return false;
       return true;
     });
   }, [
@@ -256,9 +230,7 @@ export const Reports: React.FC = () => {
       }));
       // Also include academic classes matching teacher subjects
       const matchAcademic = allAcademicClasses.filter(
-        (c) =>
-          teacherAssignedClassNames.includes(c.name) ||
-          c.department_id === selectedDept,
+        (c) => teacherAssignedClassNames.includes(c.name) || c.department_id === selectedDept,
       );
       const combined = [...teacherClassItems];
       matchAcademic.forEach((c) => {
@@ -268,11 +240,9 @@ export const Reports: React.FC = () => {
     }
 
     const filtered = allAcademicClasses.filter((c) => {
-      if (selectedDept !== "__all" && c.department_id !== selectedDept)
-        return false;
+      if (selectedDept !== "__all" && c.department_id !== selectedDept) return false;
       const classYear = c.year || getEngineeringYearFromSemester(c.semester);
-      if (selectedYear !== "__all" && String(classYear) !== selectedYear)
-        return false;
+      if (selectedYear !== "__all" && String(classYear) !== selectedYear) return false;
       return true;
     });
 
@@ -353,8 +323,7 @@ export const Reports: React.FC = () => {
       const own = allStudents.find(
         (st) =>
           st.id === user?.student_id ||
-          (user?.email &&
-            st.email?.toLowerCase() === user.email.toLowerCase()) ||
+          (user?.email && st.email?.toLowerCase() === user.email.toLowerCase()) ||
           (user?.roll_number && st.roll_number === user.roll_number),
       );
       return own ? [own] : [];
@@ -379,9 +348,7 @@ export const Reports: React.FC = () => {
         return matchesYear || matchesSem;
       });
     } else if (role === "teacher") {
-      const teacherSemesters = new Set(
-        permittedSubjects.map((s) => s.semester),
-      );
+      const teacherSemesters = new Set(permittedSubjects.map((s) => s.semester));
       list = list.filter((st) => {
         const matchesSem = teacherSemesters.has(st.semester);
         const matchesClass =
@@ -403,12 +370,9 @@ export const Reports: React.FC = () => {
     if (selectedClass !== "__all") {
       list = list.filter((st) => {
         if (st.class_id === selectedClass) return true;
-        if (st.class_name?.toLowerCase() === selectedClass.toLowerCase())
-          return true;
-        if (selectedClass.includes("Div-A") && st.class_name?.includes("A"))
-          return true;
-        if (selectedClass.includes("Div-B") && st.class_name?.includes("B"))
-          return true;
+        if (st.class_name?.toLowerCase() === selectedClass.toLowerCase()) return true;
+        if (selectedClass.includes("Div-A") && st.class_name?.includes("A")) return true;
+        if (selectedClass.includes("Div-B") && st.class_name?.includes("B")) return true;
         return false;
       });
     }
@@ -430,10 +394,7 @@ export const Reports: React.FC = () => {
 
   // Keep selection valid when filters change
   useEffect(() => {
-    if (
-      selectedSubject !== "__all" &&
-      !permittedSubjects.some((s) => s.id === selectedSubject)
-    ) {
+    if (selectedSubject !== "__all" && !permittedSubjects.some((s) => s.id === selectedSubject)) {
       setSelectedSubject("__all");
     }
   }, [permittedSubjects, selectedSubject]);
@@ -441,9 +402,7 @@ export const Reports: React.FC = () => {
   useEffect(() => {
     if (
       selectedClass !== "__all" &&
-      !permittedClasses.some(
-        (c) => c.id === selectedClass || c.name === selectedClass,
-      )
+      !permittedClasses.some((c) => c.id === selectedClass || c.name === selectedClass)
     ) {
       setSelectedClass("__all");
     }
@@ -464,12 +423,7 @@ export const Reports: React.FC = () => {
       activeSubjects.forEach((sub) => {
         // Only evaluate if student and subject share semester or department
         if (st.semester && sub.semester && st.semester !== sub.semester) return;
-        if (
-          sub.department_id &&
-          st.department_id &&
-          sub.department_id !== st.department_id
-        )
-          return;
+        if (sub.department_id && st.department_id && sub.department_id !== st.department_id) return;
 
         const records = attendance.filter((a) => {
           if (a.student_id !== st.id || a.subject_id !== sub.id) return false;
@@ -502,14 +456,7 @@ export const Reports: React.FC = () => {
     });
 
     return list;
-  }, [
-    permittedStudents,
-    permittedSubjects,
-    selectedSubject,
-    attendance,
-    startDate,
-    endDate,
-  ]);
+  }, [permittedStudents, permittedSubjects, selectedSubject, attendance, startDate, endDate]);
 
   // Student Consolidated Summary: 1 row per student aggregating all subjects
   const studentSummaryRows: AttendanceReportRow[] = useMemo(() => {
@@ -572,9 +519,7 @@ export const Reports: React.FC = () => {
 
   // Base dataset according to selected report format
   const baseDataset = useMemo(() => {
-    return reportViewType === "student_summary"
-      ? studentSummaryRows
-      : reportRows;
+    return reportViewType === "student_summary" ? studentSummaryRows : reportRows;
   }, [reportViewType, studentSummaryRows, reportRows]);
 
   // Categorize students by attendance status (All / Defaulters / Eligible)
@@ -610,9 +555,7 @@ export const Reports: React.FC = () => {
     const eligibleCount = Math.max(0, uniqueStudents - defaultersCount);
     const avgAttendance =
       totalRecords > 0
-        ? Math.round(
-            reportRows.reduce((acc, r) => acc + r.percentage, 0) / totalRecords,
-          )
+        ? Math.round(reportRows.reduce((acc, r) => acc + r.percentage, 0) / totalRecords)
         : 0;
 
     return {
@@ -638,15 +581,13 @@ export const Reports: React.FC = () => {
   const currentClassLabel =
     selectedClass === "__all"
       ? "All Classes / Divisions"
-      : permittedClasses.find(
-          (c) => c.id === selectedClass || c.name === selectedClass,
-        )?.name || selectedClass;
+      : permittedClasses.find((c) => c.id === selectedClass || c.name === selectedClass)?.name ||
+        selectedClass;
 
   const currentSubjectLabel =
     selectedSubject === "__all"
       ? "All Curriculum Subjects"
-      : permittedSubjects.find((s) => s.id === selectedSubject)?.name ||
-        selectedSubject;
+      : permittedSubjects.find((s) => s.id === selectedSubject)?.name || selectedSubject;
 
   const roleScopeLabel =
     role === "admin"
@@ -738,10 +679,8 @@ export const Reports: React.FC = () => {
             >
               {role === "admin" && "Admin (College-Wide)"}
               {role === "hod" && `HOD · ${currentDeptLabel}`}
-              {role === "class_coordinator" &&
-                `Coordinator · ${currentClassLabel}`}
-              {role === "teacher" &&
-                `Faculty · ${linkedTeacher?.full_name || user?.full_name}`}
+              {role === "class_coordinator" && `Coordinator · ${currentClassLabel}`}
+              {role === "teacher" && `Faculty · ${linkedTeacher?.full_name || user?.full_name}`}
               {role === "student" && "My Record"}
             </Badge>
           </div>
@@ -793,9 +732,7 @@ export const Reports: React.FC = () => {
             }`}
           >
             <FileText className="mr-1.5 h-3.5 w-3.5" />
-            {studentCategory === "defaulters"
-              ? "Download Defaulters PDF"
-              : "Download PDF"}
+            {studentCategory === "defaulters" ? "Download Defaulters PDF" : "Download PDF"}
           </Button>
         </div>
       </div>
@@ -807,16 +744,12 @@ export const Reports: React.FC = () => {
             <span className="text-xs font-medium">Students</span>
             <Users className="h-4 w-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-foreground">
-            {stats.uniqueStudents}
-          </div>
+          <div className="text-2xl font-black text-foreground">{stats.uniqueStudents}</div>
         </div>
 
         <div className="p-3.5 rounded-xl border border-rose-500/25 bg-rose-500/5 shadow-xs">
           <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 mb-1">
-            <span className="text-xs font-medium">
-              Defaulters (&lt; {college.minAttendance}%)
-            </span>
+            <span className="text-xs font-medium">Defaulters (&lt; {college.minAttendance}%)</span>
             <ShieldAlert className="h-4 w-4 text-rose-500" />
           </div>
           <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
@@ -841,9 +774,7 @@ export const Reports: React.FC = () => {
             <span className="text-xs font-medium">Average Attendance</span>
             <Percent className="h-4 w-4 text-primary" />
           </div>
-          <div className="text-2xl font-black text-foreground">
-            {stats.avgAttendance}%
-          </div>
+          <div className="text-2xl font-black text-foreground">{stats.avgAttendance}%</div>
         </div>
       </div>
 
@@ -860,9 +791,7 @@ export const Reports: React.FC = () => {
               </span>
               {role === "admin" ? (
                 selectedDept !== "__all" && (
-                  <span className="text-[10px] text-primary font-bold">
-                    Filtered
-                  </span>
+                  <span className="text-[10px] text-primary font-bold">Filtered</span>
                 )
               ) : (
                 <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
@@ -931,15 +860,22 @@ export const Reports: React.FC = () => {
             <Select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
+              searchable
+              contentWidth="wide"
+              searchPlaceholder="Search by subject code, name, or semester..."
+              emptyMessage="No matching subjects"
               options={[
                 {
                   value: "__all",
-                  label:
-                    role === "teacher" ? "All My Subjects" : "All Subjects",
+                  label: role === "teacher" ? "All My Subjects" : "All Subjects",
+                  description: "Complete subject scope",
+                  searchText: "all subjects complete subject scope",
                 },
                 ...permittedSubjects.map((s) => ({
                   value: s.id,
                   label: `${s.code} - ${s.name}`,
+                  description: `Semester ${s.semester}`,
+                  searchText: `${s.code} ${s.name} semester ${s.semester}`,
                 })),
               ]}
             />
@@ -953,9 +889,7 @@ export const Reports: React.FC = () => {
             </label>
             <Select
               value={reportViewType}
-              onChange={(e) =>
-                setReportViewType(e.target.value as ReportViewType)
-              }
+              onChange={(e) => setReportViewType(e.target.value as ReportViewType)}
               options={[
                 { value: "subject", label: "Subject-wise" },
                 {
@@ -1003,11 +937,7 @@ export const Reports: React.FC = () => {
                 <span>Quick Search</span>
               </span>
               <span className="text-[11px] text-muted-foreground">
-                Showing{" "}
-                <strong className="text-foreground">
-                  {displayedRows.length}
-                </strong>{" "}
-                records
+                Showing <strong className="text-foreground">{displayedRows.length}</strong> records
               </span>
             </label>
             <div className="flex items-center gap-2">
@@ -1057,65 +987,48 @@ export const Reports: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40 [&_th]:px-2 [&_th]:text-[11px] xl:[&_th]:text-xs">
-                <TableHead className="w-20 whitespace-nowrap font-bold">
-                  Roll No
-                </TableHead>
-                <TableHead className="min-w-44 font-bold">
-                  Student Name
-                </TableHead>
-                <TableHead className="w-28 whitespace-nowrap">
-                  Class / Div
-                </TableHead>
+                <TableHead className="w-20 whitespace-nowrap font-bold">Roll No</TableHead>
+                <TableHead className="min-w-44 font-bold">Student Name</TableHead>
+                <TableHead className="w-28 whitespace-nowrap">Class / Div</TableHead>
                 <TableHead className="min-w-44">Subject</TableHead>
                 <TableHead className="text-right w-16">Total</TableHead>
                 <TableHead className="text-right w-16 text-emerald-600 font-bold">
                   Present
                 </TableHead>
-                <TableHead className="text-right w-16 text-rose-600 font-bold">
-                  Absent
-                </TableHead>
+                <TableHead className="text-right w-16 text-rose-600 font-bold">Absent</TableHead>
                 <TableHead className="w-24 whitespace-nowrap text-right font-bold">
                   Attendance %
                 </TableHead>
                 <TableHead className="w-24 text-center">Status</TableHead>
-                <TableHead className="min-w-32 text-right">
-                  Parent Contact / Alert
-                </TableHead>
+                <TableHead className="min-w-32 text-right">Parent Contact / Alert</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!startDate && !endDate ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={10}
-                    className="py-7 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={10} className="py-7 text-center text-muted-foreground">
                     <div className="max-w-sm mx-auto space-y-2.5">
                       <Calendar className="h-9 w-9 mx-auto dashboard-accent-text" />
                       <p className="font-semibold text-foreground text-sm">
                         Select Date to View Attendance Report
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Please choose a date from the date pickers above to view
-                        attendance records and filter defaulters.
+                        Please choose a date from the date pickers above to view attendance records
+                        and filter defaulters.
                       </p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : displayedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={10}
-                    className="py-7 text-center text-muted-foreground"
-                  >
+                  <TableCell colSpan={10} className="py-7 text-center text-muted-foreground">
                     <div className="max-w-sm mx-auto space-y-2">
                       <AlertTriangle className="h-7 w-7 mx-auto text-muted-foreground/60" />
                       <p className="font-semibold text-foreground text-sm">
                         No attendance records for this period
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        No sessions found between {startDate || "start"} and{" "}
-                        {endDate || "today"}.
+                        No sessions found between {startDate || "start"} and {endDate || "today"}.
                       </p>
                     </div>
                   </TableCell>
@@ -1126,17 +1039,13 @@ export const Reports: React.FC = () => {
                   return (
                     <TableRow
                       key={`${r.roll}-${r.subject}-${idx}`}
-                      className={
-                        isDefaulter ? "bg-rose-500/5 hover:bg-rose-500/10" : ""
-                      }
+                      className={isDefaulter ? "bg-rose-500/5 hover:bg-rose-500/10" : ""}
                     >
                       <TableCell className="font-mono text-xs font-bold text-foreground">
                         {r.roll}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-foreground text-xs">
-                          {r.name}
-                        </div>
+                        <div className="font-semibold text-foreground text-xs">{r.name}</div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {r.className || "—"}
@@ -1144,9 +1053,7 @@ export const Reports: React.FC = () => {
                       <TableCell className="text-xs font-medium text-foreground">
                         {r.subject}
                       </TableCell>
-                      <TableCell className="text-right text-xs font-semibold">
-                        {r.total}
-                      </TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{r.total}</TableCell>
                       <TableCell className="text-right text-xs text-emerald-600 font-semibold">
                         {r.present}
                       </TableCell>
@@ -1212,10 +1119,7 @@ export const Reports: React.FC = () => {
         {displayedRows.length > 0 && (
           <div className="p-3 bg-muted/40 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-muted-foreground">
             <div>
-              Showing{" "}
-              <span className="font-semibold text-foreground">
-                {displayedRows.length}
-              </span>{" "}
+              Showing <span className="font-semibold text-foreground">{displayedRows.length}</span>{" "}
               records ({startDate} to {endDate})
             </div>
             <div className="flex items-center gap-3">
@@ -1225,8 +1129,7 @@ export const Reports: React.FC = () => {
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-rose-500 inline-block" />
-                Defaulters (&lt; {college.minAttendance}%):{" "}
-                {stats.defaultersCount}
+                Defaulters (&lt; {college.minAttendance}%): {stats.defaultersCount}
               </span>
             </div>
           </div>
@@ -1241,9 +1144,7 @@ export const Reports: React.FC = () => {
         filteredSubjects={permittedSubjects}
         roleScopeLabel={roleScopeLabel}
         onAlertsSent={(count) => {
-          setAlertToast(
-            `Monthly alert requests recorded for ${count} parent(s)!`,
-          );
+          setAlertToast(`Monthly alert requests recorded for ${count} parent(s)!`);
           setTimeout(() => setAlertToast(null), 5000);
         }}
       />

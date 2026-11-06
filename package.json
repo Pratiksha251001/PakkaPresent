@@ -13,7 +13,9 @@
     "start": "node dist/server.cjs",
     "lint": "npm run lint:frontend",
     "lint:frontend": "npm --prefix frontend run lint",
-    "preview": "npm --prefix frontend run preview"
+    "preview": "npm --prefix frontend run preview",
+    "format:controls": "prettier --write .prettierrc.json package.json frontend/src/components/ui/select.tsx frontend/src/components/ui/date-picker.tsx frontend/src/lib/local-date.ts frontend/src/pages/Attendance.tsx frontend/src/pages/Reports.tsx tests/custom-form-controls.test.cjs",
+    "format:check:controls": "prettier --check .prettierrc.json package.json frontend/src/components/ui/select.tsx frontend/src/components/ui/date-picker.tsx frontend/src/lib/local-date.ts frontend/src/pages/Attendance.tsx frontend/src/pages/Reports.tsx tests/custom-form-controls.test.cjs"
   },
   "dependencies": {
     "@countrystatecity/countries": "1.0.9",
@@ -48,6 +50,7 @@
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.28.2",
     "postcss": "^8.5.2",
+    "prettier": "^3.6.2",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.23.13",
     "typescript": "~5.7.2",
