@@ -41,6 +41,7 @@ import { Input } from "./ui/input";
 import { Select } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { FileUploadSurface } from "./ui/file-upload-surface";
 
 interface TeacherImportProgress {
   current: number;
@@ -75,7 +76,6 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
   const [selectedDeptId, setSelectedDeptId] = useState<string>(
     department?.id || departments[0]?.id || "dept-1",
   );
-  const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -118,22 +118,6 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
       setRows([]);
     } finally {
       setIsParsing(false);
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileProcess(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileProcess(file);
     }
   };
 
@@ -479,63 +463,18 @@ export const TeacherImportModal: React.FC<TeacherImportModalProps> = ({
             </div>
           )}
 
-          {/* Prominent Upload Dropzone - Immediately Visible */}
           {rows.length === 0 ? (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all ${
-                dragOver
-                  ? "border-primary bg-primary/10 scale-[0.99]"
-                  : "border-border hover:border-primary/50 hover:bg-muted/30"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv,.tsv,.txt"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-
-              <div className="flex flex-col items-center justify-center space-y-2.5">
-                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-xs">
-                  {isParsing ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <Upload className="h-6 w-6" />
-                  )}
-                </div>
-
-                <div>
-                  <p className="font-semibold text-sm text-foreground">
-                    {isParsing
-                      ? "Analyzing spreadsheet and validating rows..."
-                      : "Drag & drop your Excel or CSV file here, or click to browse"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Supports Microsoft Excel (.xlsx, .xls) and CSV (.csv)
-                  </p>
-                </div>
-
-                <div className="flex gap-1.5 pt-1">
-                  <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                    .xlsx
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                    .xls
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                    .csv
-                  </Badge>
-                </div>
-              </div>
-            </div>
+            <FileUploadSurface
+              inputRef={fileInputRef}
+              accept=".xlsx,.xls,.csv,.tsv,.txt"
+              formats={[".xlsx", ".xls", ".csv", ".tsv", ".txt"]}
+              title="Drag and drop a faculty spreadsheet or select a file"
+              description="Microsoft Excel, CSV, TSV, and text files are supported"
+              busy={isParsing}
+              disabled={isImporting}
+              error={parseError}
+              onFile={handleFileProcess}
+            />
           ) : (
             /* File loaded bar */
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border border-border bg-muted/20 gap-3">
