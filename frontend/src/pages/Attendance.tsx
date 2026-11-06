@@ -165,7 +165,7 @@ export const Attendance: React.FC = () => {
     notificationResults: Array<{
       student: Student;
       channel: AlertChannel;
-      status: "accepted" | "failed";
+      status: "accepted" | "failed" | "skipped";
       message: string;
       attendanceStatus: "absent" | "present";
     }>;
@@ -378,13 +378,14 @@ export const Attendance: React.FC = () => {
       const notificationResults: Array<{
         student: Student;
         channel: AlertChannel;
-        status: "accepted" | "failed";
+        status: "accepted" | "failed" | "skipped";
         message: string;
         attendanceStatus: "absent" | "present";
       }> = [];
 
       const newLogEntries: any[] = [];
-      let defaulterEmailCount = 0;
+      let dailyEmailAcceptedCount = 0;
+      let duplicateEmailCount = 0;
 
       // Calculate attendance percentage for each targeted student
       const allAttendance = localDb.attendance;
@@ -417,7 +418,7 @@ export const Attendance: React.FC = () => {
             recipient_email: studentEmail,
             channel: "sms" as const,
             message: smsMsg,
-            status: hasMobile ? ("sent" as const) : ("failed" as const),
+            status: hasMobile ? "sent" : "failed",
             attendance_date: selectedDate,
             sent_at: new Date().toISOString(),
             language: chosenLang,
@@ -441,7 +442,7 @@ export const Attendance: React.FC = () => {
         // 2. Parent email: use the authenticated, server-verified dispatch endpoint.
         // The backend decides recipient eligibility and the actual attendance rate.
         if (channels.includes("email") || isDefaulter) {
-          const kind = isDefaulter ? "low_attendance" : "daily_attendance";
+          const kind = "daily_attendance";
           let responseStatus = "not_sent";
           let responseMessage = "Parent notification was not accepted.";
           try {
@@ -462,7 +463,11 @@ export const Attendance: React.FC = () => {
             if (response.ok && result.success === true && result.status === "provider_accepted") {
               responseStatus = "provider_accepted";
               responseMessage = "Email provider accepted the request; delivery is not confirmed.";
-              if (isDefaulter) defaulterEmailCount++;
+              dailyEmailAcceptedCount++;
+            } else if (response.status === 409 && result.status === "already_processed") {
+              responseStatus = "already_processed";
+              responseMessage = "Daily attendance email skipped because it was already processed.";
+              duplicateEmailCount++;
             } else {
               responseMessage =
                 result.message ||
@@ -479,11 +484,16 @@ export const Attendance: React.FC = () => {
             parent_mobile: st.parent_mobile,
             recipient_email: st.parent_email || "",
             channel: "email" as const,
-            is_defaulter_alert: isDefaulter,
+            is_defaulter_alert: false,
             attendance_rate: rate,
-            email_subject: isDefaulter ? "Low attendance warning" : "Attendance update",
+            email_subject: "Daily attendance update",
             message: responseMessage,
-            status: (responseStatus === "provider_accepted" ? "sent" : "failed") as const,
+            status:
+              responseStatus === "provider_accepted"
+                ? "sent"
+                : responseStatus === "already_processed"
+                  ? "skipped"
+                  : "failed",
             attendance_date: selectedDate,
             sent_at: new Date().toISOString(),
             language: chosenLang,
@@ -493,7 +503,12 @@ export const Attendance: React.FC = () => {
           notificationResults.push({
             student: st,
             channel: "email",
-            status: responseStatus === "provider_accepted" ? "accepted" : "failed",
+            status:
+              responseStatus === "provider_accepted"
+                ? "accepted"
+                : responseStatus === "already_processed"
+                  ? "skipped"
+                  : "failed",
             message: responseMessage,
             attendanceStatus: status,
           });
@@ -540,13 +555,17 @@ export const Attendance: React.FC = () => {
 
       const targetClassText = classLabel ? `for ${classLabel}` : "";
       const channelNames = channels.map((c) => c.toUpperCase()).join(", ");
-      const defaulterNoticeText =
-        defaulterEmailCount > 0
-          ? ` • ⚠️ ${defaulterEmailCount} Defaulter (<75%) Email Requests Accepted`
+      const dailyNoticeText =
+        dailyEmailAcceptedCount > 0
+          ? ` • ${dailyEmailAcceptedCount} Daily Attendance Email ${dailyEmailAcceptedCount === 1 ? "Request" : "Requests"} Accepted`
+          : "";
+      const duplicateNoticeText =
+        duplicateEmailCount > 0
+          ? ` • ${duplicateEmailCount} Duplicate ${duplicateEmailCount === 1 ? "Request" : "Requests"} Skipped`
           : "";
 
       setSuccessMsg(
-        `Attendance saved ${targetClassText}! Notification requests processed via [${channelNames}]${defaulterNoticeText}. View in SMS & Alert History anytime.`,
+        `Attendance saved ${targetClassText}! Notification requests processed via [${channelNames}]${dailyNoticeText}${duplicateNoticeText}. View in SMS & Alert History anytime.`,
       );
       setTimeout(() => setSuccessMsg(""), 12000);
     } catch (error) {

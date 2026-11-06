@@ -31,9 +31,7 @@ import { getSmsGatewayStatus, SmsGatewayStatus } from "../lib/smsService";
 export const SmsLogs: React.FC = () => {
   const { user, role } = useAuth();
   const [logs, setLogs] = useState<any[]>(() => localDb.getSmsLogs());
-  const [activeLogTab, setActiveLogTab] = useState<"daily" | "defaulter">(
-    "daily",
-  );
+  const [activeLogTab, setActiveLogTab] = useState<"daily" | "defaulter">("daily");
   const [search, setSearch] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,9 +41,7 @@ export const SmsLogs: React.FC = () => {
   const [alertModalOpen, setAlertModalOpen] = useState(false);
   const [defaulterModalOpen, setDefaulterModalOpen] = useState(false);
   const [msg91ModalOpen, setMsg91ModalOpen] = useState(false);
-  const [gatewayStatus, setGatewayStatus] = useState<SmsGatewayStatus | null>(
-    null,
-  );
+  const [gatewayStatus, setGatewayStatus] = useState<SmsGatewayStatus | null>(null);
   const [modalStudentName, setModalStudentName] = useState("");
   const [modalParentMobile, setModalParentMobile] = useState("");
   const [modalParentName, setModalParentName] = useState("");
@@ -92,9 +88,7 @@ export const SmsLogs: React.FC = () => {
       return logs.filter((log) => {
         const student = studentsMap.get(log.student_id);
         const subject = subjectsMap.get(log.subject_id);
-        return (
-          student?.department_id === deptId || subject?.department_id === deptId
-        );
+        return student?.department_id === deptId || subject?.department_id === deptId;
       });
     }
 
@@ -102,26 +96,20 @@ export const SmsLogs: React.FC = () => {
       const teacherRec = localDb.teachers.find(
         (t) =>
           t.id === user?.teacher_id ||
-          (user?.email &&
-            t.email?.toLowerCase() === user.email.toLowerCase()) ||
+          (user?.email && t.email?.toLowerCase() === user.email.toLowerCase()) ||
           (user?.employee_id && t.employee_id === user.employee_id) ||
           (t.is_class_coordinator && t.department_id === user?.department_id),
       );
-      const coordSem =
-        teacherRec?.assigned_semester || user?.assigned_semester || 5;
+      const coordSem = teacherRec?.assigned_semester || user?.assigned_semester || 5;
       const deptId = user?.department_id || teacherRec?.department_id;
 
       return logs.filter((log) => {
         const student = studentsMap.get(log.student_id);
         const subject = subjectsMap.get(log.subject_id);
         const isClassStudent =
-          student &&
-          (!deptId || student.department_id === deptId) &&
-          student.semester === coordSem;
+          student && (!deptId || student.department_id === deptId) && student.semester === coordSem;
         const isClassSubject =
-          subject &&
-          (!deptId || subject.department_id === deptId) &&
-          subject.semester === coordSem;
+          subject && (!deptId || subject.department_id === deptId) && subject.semester === coordSem;
         return isClassStudent || isClassSubject;
       });
     }
@@ -141,9 +129,7 @@ export const SmsLogs: React.FC = () => {
 
       // If teacher has assigned subjects, restrict strictly to logs of those subjects/classes
       if (mySubjectIds.size > 0) {
-        return logs.filter(
-          (log) => log.subject_id && mySubjectIds.has(log.subject_id),
-        );
+        return logs.filter((log) => log.subject_id && mySubjectIds.has(log.subject_id));
       }
       // Fallback to department if none assigned
       if (user?.department_id) {
@@ -165,20 +151,12 @@ export const SmsLogs: React.FC = () => {
 
   // 1. Daily attendance alert logs (normal attendance notifications)
   const dailyLogs = useMemo(() => {
-    return scopedLogs.filter(
-      (l) =>
-        !l.is_defaulter_alert &&
-        !(typeof l.attendance_rate === "number" && l.attendance_rate < 75),
-    );
+    return scopedLogs.filter((l) => l.is_defaulter_alert !== true);
   }, [scopedLogs]);
 
   // 2. <75% Low attendance defaulter alert logs (monthly / deficit warnings)
   const defaulterLogs = useMemo(() => {
-    return scopedLogs.filter(
-      (l) =>
-        l.is_defaulter_alert ||
-        (typeof l.attendance_rate === "number" && l.attendance_rate < 75),
-    );
+    return scopedLogs.filter((l) => l.is_defaulter_alert === true);
   }, [scopedLogs]);
 
   // Current active students with <75% attendance with rich details
@@ -243,9 +221,7 @@ export const SmsLogs: React.FC = () => {
       (s) => s.id === log.student_id || s.full_name === log.student_name,
     );
     setModalStudentName(log.student_name);
-    setModalParentMobile(
-      log.parent_mobile || matchedStudent?.parent_mobile || "",
-    );
+    setModalParentMobile(log.parent_mobile || matchedStudent?.parent_mobile || "");
     setModalParentName(matchedStudent?.parent_name || "Parent");
     setModalDate(log.attendance_date);
     setModalMessage(cleanSmsMessage(log.message || ""));
@@ -281,12 +257,9 @@ export const SmsLogs: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold">
-            Parent Alert &amp; Communication Logs
-          </h2>
+          <h2 className="font-display text-2xl font-bold">Parent Alert &amp; Communication Logs</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            SMS and Email notification logs with direct &lt;75% Defaulter Notice
-            dispatch
+            SMS and Email notification logs with direct &lt;75% Defaulter Notice dispatch
           </p>
         </div>
 
@@ -398,15 +371,9 @@ export const SmsLogs: React.FC = () => {
           <TableBody>
             {filteredLogs.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="py-12 text-center text-muted-foreground"
-                >
-                  No{" "}
-                  {activeLogTab === "daily"
-                    ? "daily attendance"
-                    : "<75% defaulter"}{" "}
-                  alert logs found.
+                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                  No {activeLogTab === "daily" ? "daily attendance" : "<75% defaulter"} alert logs
+                  found.
                 </TableCell>
               </TableRow>
             ) : (
@@ -417,39 +384,27 @@ export const SmsLogs: React.FC = () => {
                   log.attendance_date === todayStr ||
                   (log.sent_at && log.sent_at.startsWith(todayStr));
 
-                const sentTime = formatSentTime(
-                  log.attendance_date,
-                  log.sent_at,
-                );
+                const sentTime = formatSentTime(log.attendance_date, log.sent_at);
                 const isExpanded = expandedIds.has(log.id);
 
                 const matchedStudent = localDb.students.find(
-                  (s) =>
-                    s.id === log.student_id || s.full_name === log.student_name,
+                  (s) => s.id === log.student_id || s.full_name === log.student_name,
                 );
                 const studentRecords = localDb.attendance.filter(
-                  (a) =>
-                    a.student_id === (matchedStudent?.id || log.student_id),
+                  (a) => a.student_id === (matchedStudent?.id || log.student_id),
                 );
                 const totalRecs = studentRecords.length;
-                const presentRecs = studentRecords.filter(
-                  (a) => a.status === "present",
-                ).length;
+                const presentRecs = studentRecords.filter((a) => a.status === "present").length;
                 const realRate =
                   totalRecs > 0
                     ? Math.round((presentRecs / totalRecs) * 100)
                     : typeof log.attendance_rate === "number"
                       ? log.attendance_rate
                       : null;
-                const isDefaulter =
-                  log.is_defaulter_alert ||
-                  (realRate !== null && realRate < 75);
+                const isDefaulter = log.is_defaulter_alert === true;
 
                 return (
-                  <TableRow
-                    key={log.id}
-                    className={isToday ? "bg-primary/[0.02]" : ""}
-                  >
+                  <TableRow key={log.id} className={isToday ? "bg-primary/[0.02]" : ""}>
                     <TableCell className="font-semibold text-foreground whitespace-nowrap align-top py-3">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{log.student_name}</span>
@@ -463,17 +418,13 @@ export const SmsLogs: React.FC = () => {
 
                     <TableCell className="font-mono text-xs whitespace-nowrap align-top py-3">
                       {log.parent_mobile || (
-                        <span className="text-rose-500 font-bold">
-                          No Number
-                        </span>
+                        <span className="text-rose-500 font-bold">No Number</span>
                       )}
                     </TableCell>
 
                     <TableCell className="text-xs whitespace-nowrap align-top py-3">
                       <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
-                          {log.attendance_date}
-                        </span>
+                        <span className="font-medium text-foreground">{log.attendance_date}</span>
                         {sentTime && (
                           <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                             <Clock className="h-3 w-3" />
@@ -487,7 +438,11 @@ export const SmsLogs: React.FC = () => {
                       <div className="flex flex-col gap-1 items-start">
                         <Badge
                           variant={
-                            log.status === "sent" ? "success" : "destructive"
+                            log.status === "sent"
+                              ? "success"
+                              : log.status === "skipped"
+                                ? "secondary"
+                                : "destructive"
                           }
                           className="uppercase text-[10px]"
                         >
@@ -498,9 +453,11 @@ export const SmsLogs: React.FC = () => {
                           )}
                           {log.status === "sent"
                             ? "Accepted · Delivery pending"
-                            : log.status === "pending"
-                              ? "Pending"
-                              : "Failed"}
+                            : log.status === "skipped"
+                              ? "Skipped duplicate"
+                              : log.status === "pending"
+                                ? "Pending"
+                                : "Failed"}
                         </Badge>
                         {log.channel && (
                           <span className="text-[10px] text-muted-foreground uppercase font-mono">
@@ -517,9 +474,7 @@ export const SmsLogs: React.FC = () => {
                         onClick={() => toggleExpand(log.id)}
                         className="flex w-full items-start gap-2 rounded-lg border border-border/50 bg-muted/10 px-2.5 py-2 text-left font-sans text-xs transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         aria-expanded={isExpanded}
-                        title={
-                          isExpanded ? "Collapse message" : "View full message"
-                        }
+                        title={isExpanded ? "Collapse message" : "View full message"}
                       >
                         <span
                           className={
@@ -528,9 +483,7 @@ export const SmsLogs: React.FC = () => {
                               : "line-clamp-1 flex-1 text-muted-foreground"
                           }
                         >
-                          {isExpanded
-                            ? cleanMsg
-                            : cleanMsg.replace(/\s+/g, " ")}
+                          {isExpanded ? cleanMsg : cleanMsg.replace(/\s+/g, " ")}
                         </span>
                         {isExpanded ? (
                           <ChevronUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
