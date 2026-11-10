@@ -15,13 +15,7 @@ import {
   AlertTriangle,
   Smartphone,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { generateSmsMessage, generateEmailAlertContent } from "../lib/college";
@@ -47,9 +41,7 @@ interface AttendanceVerificationModalProps {
   onLanguageChange: (lang: SmsLanguage) => void;
 }
 
-export const AttendanceVerificationModal: React.FC<
-  AttendanceVerificationModalProps
-> = ({
+export const AttendanceVerificationModal: React.FC<AttendanceVerificationModalProps> = ({
   open,
   onOpenChange,
   subject,
@@ -63,17 +55,13 @@ export const AttendanceVerificationModal: React.FC<
   smsLanguage,
   onLanguageChange,
 }) => {
-  const [smsTargetMode, setSmsTargetMode] = useState<
-    "absent_only" | "present_only" | "both"
-  >("absent_only");
-  const [selectedChannels, setSelectedChannels] = useState<AlertChannel[]>([
-    "email",
-  ]);
+  const [smsTargetMode, setSmsTargetMode] = useState<"absent_only" | "present_only" | "both">(
+    "absent_only",
+  );
+  const [selectedChannels, setSelectedChannels] = useState<AlertChannel[]>(["email"]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showFormatModal, setShowFormatModal] = useState(false);
-  const [formatPreviewTab, setFormatPreviewTab] = useState<"sms" | "email">(
-    "email",
-  );
+  const [formatPreviewTab, setFormatPreviewTab] = useState<"sms" | "email">("email");
   const [showPresentList, setShowPresentList] = useState(false);
   const [copiedPreview, setCopiedPreview] = useState(false);
 
@@ -112,9 +100,7 @@ export const AttendanceVerificationModal: React.FC<
       const past = allRecords.filter((a) => a.student_id === st.id);
       const isTodayAbsent = (attendanceState[st.id] || "present") === "absent";
       const total = past.length + 1;
-      const present =
-        past.filter((a) => a.status === "present").length +
-        (isTodayAbsent ? 0 : 1);
+      const present = past.filter((a) => a.status === "present").length + (isTodayAbsent ? 0 : 1);
       const percentage = total > 0 ? Math.round((present / total) * 100) : 100;
       rates[st.id] = {
         total,
@@ -141,9 +127,7 @@ export const AttendanceVerificationModal: React.FC<
   const sampleStatus: "absent" | "present" =
     smsTargetMode === "present_only" ? "present" : "absent";
 
-  const sampleRate = sampleStudent
-    ? studentRates[sampleStudent.id]?.percentage
-    : 70;
+  const sampleRate = sampleStudent ? studentRates[sampleStudent.id]?.percentage : 70;
 
   const sampleSms = sampleStudent
     ? generateSmsMessage(
@@ -240,10 +224,7 @@ export const AttendanceVerificationModal: React.FC<
 
                 {/* Dropdown Backdrop */}
                 {menuOpen && (
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setMenuOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 )}
 
                 {/* 3-Dots Options Dropdown Popup */}
@@ -296,9 +277,7 @@ export const AttendanceVerificationModal: React.FC<
                         >
                           <Smartphone className="h-3.5 w-3.5" />
                           <span>SMS</span>
-                          {selectedChannels.includes("sms") && (
-                            <Check className="h-3 w-3 ml-0.5" />
-                          )}
+                          {selectedChannels.includes("sms") && <Check className="h-3 w-3 ml-0.5" />}
                         </button>
                       </div>
                     </div>
@@ -405,9 +384,7 @@ export const AttendanceVerificationModal: React.FC<
                           <FileText className="h-3.5 w-3.5 text-primary" />
                           <span>Preview SMS and Email Formats</span>
                         </span>
-                        <span className="text-[11px] text-primary font-bold">
-                          Preview &rarr;
-                        </span>
+                        <span className="text-[11px] text-primary font-bold">Preview &rarr;</span>
                       </button>
                     </div>
                   </div>
@@ -424,18 +401,14 @@ export const AttendanceVerificationModal: React.FC<
                 <Users className="h-4 w-4 text-primary" />
                 <span>
                   Total Students:{" "}
-                  <strong className="text-foreground">
-                    {eligibleStudents.length}
-                  </strong>
+                  <strong className="text-foreground">{eligibleStudents.length}</strong>
                 </span>
                 <span className="text-[11px] font-medium text-foreground flex items-center gap-1">
                   <span>Channel:</span>
                   <strong className="text-primary font-semibold">
                     {selectedChannels.map((c) => c.toUpperCase()).join(" + ")}
                   </strong>
-                  <span className="text-[10px] text-muted-foreground ml-0.5">
-                    (change in •••)
-                  </span>
+                  <span className="text-[10px] text-muted-foreground ml-0.5">(change in •••)</span>
                 </span>
               </div>
 
@@ -457,8 +430,7 @@ export const AttendanceVerificationModal: React.FC<
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <p className="text-[11px] leading-tight">
                   <strong>
-                    {defaulterAbsentees.length} Absent Student(s) have Low
-                    Attendance (&lt;75%):
+                    {defaulterAbsentees.length} Absent Student(s) have Low Attendance (&lt;75%):
                   </strong>{" "}
                   Official Warning Email will be dispatched automatically.
                 </p>
@@ -471,10 +443,7 @@ export const AttendanceVerificationModal: React.FC<
                 <h3 className="font-display text-sm font-bold text-foreground flex items-center gap-2">
                   <span>Absent Students ({absentStudents.length})</span>
                   {absentStudents.length > 0 && (
-                    <Badge
-                      variant="destructive"
-                      className="text-[10px] py-0 px-1.5 font-bold"
-                    >
+                    <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-bold">
                       Alert Target
                     </Badge>
                   )}
@@ -490,10 +459,7 @@ export const AttendanceVerificationModal: React.FC<
                 <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-4 py-3 text-center space-y-0.5">
                   <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
                     {eligibleStudents.length}{" "}
-                    {eligibleStudents.length === 1
-                      ? "student was"
-                      : "students were"}{" "}
-                    marked present
+                    {eligibleStudents.length === 1 ? "student was" : "students were"} marked present
                   </p>
                   <p className="text-xs text-muted-foreground">
                     No absence notification is required.
@@ -524,8 +490,7 @@ export const AttendanceVerificationModal: React.FC<
                                   className="text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 px-1.5 py-0"
                                   title="Attendance below 75% minimum"
                                 >
-                                  ⚠️ &lt;75% ({rateInfo.percentage}%) •
-                                  Auto-Email
+                                  ⚠️ &lt;75% ({rateInfo.percentage}%) • Auto-Email
                                 </Badge>
                               )}
                             </div>
@@ -575,8 +540,7 @@ export const AttendanceVerificationModal: React.FC<
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
                 >
                   <span>
-                    {showPresentList ? "Hide" : "View"} Present Students (
-                    {presentStudents.length})
+                    {showPresentList ? "Hide" : "View"} Present Students ({presentStudents.length})
                   </span>
                   {showPresentList ? (
                     <ChevronUp className="h-3.5 w-3.5" />
@@ -643,15 +607,16 @@ export const AttendanceVerificationModal: React.FC<
 
             <Button
               type="button"
-              onClick={() =>
-                onConfirm(smsLanguage, smsTargetMode, selectedChannels)
-              }
+              onClick={() => onConfirm(smsLanguage, smsTargetMode, selectedChannels)}
               disabled={saving || eligibleStudents.length === 0}
               className="w-full sm:w-auto gap-1.5 text-xs font-semibold shadow-xs"
             >
               {saving ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span
+                    aria-hidden="true"
+                    className="h-3.5 w-3.5 rounded-full border-2 border-black/30 border-t-black animate-spin"
+                  />
                   Saving &amp; Dispatching Alerts...
                 </span>
               ) : (
@@ -682,8 +647,7 @@ export const AttendanceVerificationModal: React.FC<
               </DialogTitle>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Select a channel to review the notification template sent to
-              parents.
+              Select a channel to review the notification template sent to parents.
             </p>
           </DialogHeader>
 
@@ -754,8 +718,7 @@ export const AttendanceVerificationModal: React.FC<
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                    ⚠️ Official Defaulter Warning Email (Triggered for
-                    Attendance &lt; 75%)
+                    ⚠️ Official Defaulter Warning Email (Triggered for Attendance &lt; 75%)
                   </span>
                 </div>
                 <div className="p-2 rounded-md bg-card border border-border">

@@ -42,3 +42,44 @@ test("communication log row references the current log workflow", () => {
   assert.match(logs, /const isDefaulter = log\.is_defaulter_alert === true/);
   assert.doesNotMatch(logs, /const isDefaulter = is_defaulter_alert === true/);
 });
+
+test("duplicate daily requests are excluded from sms_logs persistence", () => {
+  assert.match(attendance, /responseStatus\s*!==\s*"already_processed"[\s\S]*?newLogEntries\.push/);
+
+  assert.match(
+    attendance,
+    /Parent notification was already processed, so no duplicate alert was sent\./,
+  );
+
+  assert.doesNotMatch(attendance, /newLogEntries\.push\([\s\S]*?status:\s*"skipped"/);
+});
+
+test("duplicate success banner stays concise", () => {
+  assert.ok(attendance.includes('successMsg.includes("Parent alert already sent")'));
+
+  assert.ok(attendance.includes("Attendance Saved · Duplicate Skipped"));
+
+  assert.ok(attendance.includes("Parent alert already sent."));
+
+  assert.ok(attendance.includes("duplicateOnly"));
+
+  assert.ok(attendance.includes('classLabel || "Attendance"'));
+
+  assert.ok(attendance.includes("Attendance Saved; Notification Status Recorded"));
+
+  assert.ok(!attendance.includes("View in SMS & Alert History anytime."));
+});
+
+test("success banner waits until the receipt closes", () => {
+  assert.ok(attendance.includes('const [pendingSuccessMsg, setPendingSuccessMsg] = useState("")'));
+
+  assert.ok(attendance.includes("setPendingSuccessMsg("));
+
+  assert.ok(attendance.includes("if (!nextOpen && pendingSuccessMsg)"));
+
+  assert.ok(attendance.includes("setSuccessMsg(completedMessage)"));
+
+  assert.ok(attendance.includes("currentMessage === completedMessage"));
+
+  assert.ok(!attendance.includes('setTimeout(() => setSuccessMsg(""), 12000)'));
+});
