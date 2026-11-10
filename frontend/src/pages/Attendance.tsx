@@ -154,6 +154,7 @@ export const Attendance: React.FC = () => {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+  const [pendingSuccessMsg, setPendingSuccessMsg] = useState("");
   const [submissionError, setSubmissionError] = useState("");
   const [lastDispatched, setLastDispatched] = useState<{
     subject?: (typeof subjects)[0];
@@ -365,6 +366,7 @@ export const Attendance: React.FC = () => {
     if (!selectedSubject || saving) return;
     setSaving(true);
     setSuccessMsg("");
+    setPendingSuccessMsg("");
     setSubmissionError("");
     let attendanceSaved = false;
 
@@ -494,7 +496,8 @@ export const Attendance: React.FC = () => {
               dailyEmailAcceptedCount++;
             } else if (response.status === 409 && result.status === "already_processed") {
               responseStatus = "already_processed";
-              responseMessage = "Daily attendance email skipped because it was already processed.";
+              responseMessage =
+                "Parent notification was already processed, so no duplicate alert was sent.";
               duplicateEmailCount++;
             } else {
               responseMessage =
@@ -505,29 +508,31 @@ export const Attendance: React.FC = () => {
           } catch {
             responseMessage = "Notification backend unavailable; delivery not confirmed.";
           }
-          newLogEntries.push({
-            student_id: st.id,
-            subject_id: selectedSubject.id,
-            student_name: st.full_name,
-            parent_mobile: st.parent_mobile,
-            recipient_email: st.parent_email || "",
-            channel: "email" as const,
-            is_defaulter_alert: false,
-            attendance_rate: rate,
-            email_subject: "Daily attendance update",
-            message: responseMessage,
-            status:
-              responseStatus === "provider_accepted"
-                ? "sent"
-                : responseStatus === "already_processed"
-                  ? "skipped"
-                  : "failed",
-            attendance_date: selectedDate,
-            sent_at: new Date().toISOString(),
-            language: chosenLang,
-            gateway: "Parent notification backend",
-            gateway_response: responseMessage,
-          });
+          if (responseStatus !== "already_processed") {
+            newLogEntries.push({
+              student_id: st.id,
+              subject_id: selectedSubject.id,
+              student_name: st.full_name,
+              parent_mobile: st.parent_mobile,
+              recipient_email: st.parent_email || "",
+              channel: "email" as const,
+              is_defaulter_alert: false,
+              attendance_rate: rate,
+              email_subject: "Daily attendance update",
+              message: responseMessage,
+              status:
+                responseStatus === "provider_accepted"
+                  ? "sent"
+                  : responseStatus === "already_processed"
+                    ? "skipped"
+                    : "failed",
+              attendance_date: selectedDate,
+              sent_at: new Date().toISOString(),
+              language: chosenLang,
+              gateway: "Parent notification backend",
+              gateway_response: responseMessage,
+            });
+          }
           notificationResults.push({
             student: st,
             channel: "email",
@@ -587,15 +592,20 @@ export const Attendance: React.FC = () => {
         dailyEmailAcceptedCount > 0
           ? ` • ${dailyEmailAcceptedCount} Daily Attendance Email ${dailyEmailAcceptedCount === 1 ? "Request" : "Requests"} Accepted`
           : "";
+      const duplicateOnly = duplicateEmailCount > 0 && dailyEmailAcceptedCount === 0;
+
       const duplicateNoticeText =
         duplicateEmailCount > 0
-          ? ` • ${duplicateEmailCount} Duplicate ${duplicateEmailCount === 1 ? "Request" : "Requests"} Skipped`
+          ? ` • ${duplicateEmailCount} duplicate ${
+              duplicateEmailCount === 1 ? "alert" : "alerts"
+            } skipped`
           : "";
 
-      setSuccessMsg(
-        `Attendance saved ${targetClassText}! Notification requests processed via [${channelNames}]${dailyNoticeText}${duplicateNoticeText}. View in SMS & Alert History anytime.`,
+      setPendingSuccessMsg(
+        duplicateOnly
+          ? `${classLabel || "Attendance"} saved. Parent alert already sent.`
+          : `Attendance saved ${targetClassText}! Notification requests processed via [${channelNames}]${dailyNoticeText}${duplicateNoticeText}.`,
       );
-      setTimeout(() => setSuccessMsg(""), 12000);
     } catch (error) {
       console.error("Attendance confirmation failed", error);
       const reason =
@@ -688,7 +698,9 @@ export const Attendance: React.FC = () => {
             </div>
             <div>
               <p className="text-sm font-bold text-emerald-900 dark:text-emerald-200">
-                Attendance Saved; Notification Status Recorded
+                {successMsg.includes("Parent alert already sent")
+                  ? "Attendance Saved · Duplicate Skipped"
+                  : "Attendance Saved; Notification Status Recorded"}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">{successMsg}</p>
             </div>
@@ -1128,7 +1140,22 @@ export const Attendance: React.FC = () => {
       {/* Post-dispatch confirmation receipt modal */}
       <AttendanceDispatchReceiptModal
         open={receiptOpen}
-        onOpenChange={setReceiptOpen}
+        onOpenChange={(nextOpen) => {
+          setReceiptOpen(nextOpen);
+
+          if (!nextOpen && pendingSuccessMsg) {
+            const completedMessage = pendingSuccessMsg;
+
+            setPendingSuccessMsg("");
+            setSuccessMsg(completedMessage);
+
+            setTimeout(() => {
+              setSuccessMsg((currentMessage) =>
+                currentMessage === completedMessage ? "" : currentMessage,
+              );
+            }, 12000);
+          }
+        }}
         subject={lastDispatched.subject}
         date={lastDispatched.date}
         totalStudents={lastDispatched.totalStudents}

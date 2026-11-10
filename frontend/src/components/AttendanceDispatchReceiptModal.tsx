@@ -62,7 +62,7 @@ export const AttendanceDispatchReceiptModal: React.FC<Props> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[88vh] overflow-hidden p-0 gap-0 border-border/70 shadow-2xl">
-        <DialogHeader className="border-b border-border/70 bg-emerald-500/[0.06] px-5 py-4 pr-12">
+        <DialogHeader className="border-b border-border/70 px-5 py-4 pr-12">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-5 w-5" />
