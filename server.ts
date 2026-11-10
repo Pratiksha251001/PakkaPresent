@@ -179,6 +179,16 @@ let isDbConnected = false;
 let lastLatencyMs = 0;
 let lastChecked = new Date().toISOString();
 
+const configuredDbHealthTimeoutMs = Number(
+  process.env.SUPABASE_HEALTH_TIMEOUT_MS || 10000,
+);
+
+const dbHealthTimeoutMs =
+  Number.isFinite(configuredDbHealthTimeoutMs) &&
+  configuredDbHealthTimeoutMs >= 3500
+    ? configuredDbHealthTimeoutMs
+    : 10000;
+
 async function checkDatabaseConnection(): Promise<{
   connected: boolean;
   latencyMs: number;
@@ -193,7 +203,7 @@ async function checkDatabaseConnection(): Promise<{
         apikey: supabaseKey,
         Authorization: `Bearer ${supabaseKey}`,
       },
-      signal: AbortSignal.timeout(3500),
+      signal: AbortSignal.timeout(dbHealthTimeoutMs),
     });
 
     lastLatencyMs = Date.now() - start;
@@ -229,12 +239,26 @@ async function checkDatabaseConnection(): Promise<{
   } catch (err: any) {
     lastLatencyMs = Date.now() - start;
     lastChecked = new Date().toISOString();
-    isDbConnected = false;
-    addLog("error", `Database connection error: ${err?.message || err}`);
+
+    const isTimeout =
+      err?.name === "TimeoutError" ||
+      err?.name === "AbortError" ||
+      /timeout|aborted/i.test(String(err?.message || err));
+
+    if (!isTimeout) {
+      isDbConnected = false;
+    }
+
+    const message = isTimeout
+      ? `Supabase health check timed out after ${dbHealthTimeoutMs}ms. The application remains online; retry the connection check.`
+      : `Database connection error: ${err?.message || err}`;
+
+    addLog(isTimeout ? "warn" : "error", message);
+
     return {
       connected: false,
       latencyMs: lastLatencyMs,
-      message: err?.message || "Connection failed",
+      message,
     };
   }
 }
@@ -252,7 +276,12 @@ function printAsciiTerminalBanner(port: number) {
   console.log(
     `\x1b[34m- Service:\x1b[0m      Node.js Express + Vite Unified Server`,
   );
-  console.log(`\x1b[34m- Host/Port:\x1b[0m    0.0.0.0:${port}`);
+  console.log(
+    `\x1b[34m- Browser URL:\x1b[0m   http://localhost:${port}`,
+  );
+  console.log(
+    `\x1b[34m- Network bind:\x1b[0m  0.0.0.0:${port}`,
+  );
   console.log(`\x1b[34m- Supabase URL:\x1b[0m ${supabaseUrl}`);
   console.log(
     `\x1b[34m- Target DB:\x1b[0m    PostgreSQL (Cloud Supabase Engine)`,
@@ -948,8 +977,9 @@ async function startServer() {
         });
       const normalizedEmail = String(email).trim().toLowerCase();
       let userId = "";
+      let createdByThisRequest = false;
       try {
-        let createdByThisRequest = false;
+
         const { data: created, error: createError } =
           await supabaseAdmin.auth.admin.createUser({
             email: normalizedEmail,
@@ -2455,7 +2485,7 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     addLog(
       "success",
-      `PakkaPresent full-stack application running at http://0.0.0.0:${PORT}`,
+      `PakkaPresent ready at http://localhost:${PORT}`,
     );
   });
 }
